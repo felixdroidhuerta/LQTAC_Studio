@@ -13,9 +13,18 @@ Rename-Item -LiteralPath (Join-Path $OutputDirectory 'electron.exe') -NewName 'L
 $appRoot = Join-Path $OutputDirectory 'resources\app'
 $desktopTarget = Join-Path $appRoot 'desktop'
 New-Item -ItemType Directory -Path $desktopTarget -Force | Out-Null
-foreach ($name in @('main.cjs','preload.cjs','veg-parser.cjs')) {
+foreach ($name in @('main.cjs','preload.cjs','veg-parser.cjs','project-io.cjs','render-engine.cjs')) {
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot $name) -Destination $desktopTarget
 }
+$codecTarget = Join-Path $desktopTarget 'codecs'
+New-Item -ItemType Directory -Path $codecTarget -Force | Out-Null
+$ffmpegRoot = Join-Path $PSScriptRoot 'node_modules\ffmpeg-static'
+if (!(Test-Path -LiteralPath (Join-Path $ffmpegRoot 'ffmpeg.exe'))) { throw 'Falta FFmpeg local. Instala las dependencias de desarrollo antes de empaquetar.' }
+foreach ($name in @('ffmpeg.exe','LICENSE','README.md','ffmpeg.exe.LICENSE','ffmpeg.exe.README')) {
+    $source = Join-Path $ffmpegRoot $name
+    if (Test-Path -LiteralPath $source) { Copy-Item -LiteralPath $source -Destination $codecTarget }
+}
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'EXPORTACION.md') -Destination $codecTarget
 Copy-Item -LiteralPath (Join-Path $projectRoot 'dist') -Destination $appRoot -Recurse
 Copy-Item -LiteralPath (Join-Path $projectRoot 'Shapes') -Destination $OutputDirectory -Recurse
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'portable-package.json') -Destination (Join-Path $appRoot 'package.json')

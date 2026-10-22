@@ -17,4 +17,4 @@ Cambios: rutas de archivos mediante Electron webUtils, duraciones sin recorte vi
 
 Verificación local: ejecutar verify-playback.cjs con Electron. Usa los dos MP4 del usuario, comprueba duraciones iguales, reproducción efectiva y cabezal. No modifica los archivos fuente.
 
-Limitaciones: la mezcla de audio usa los elementos multimedia de Chromium; no es todavía un motor nativo de render/exportación. La precisión a nivel de muestra, los formatos no decodificables por Chromium y la importación completa de VEG requieren desarrollo adicional.
+Actualización 0.3.4: la vista previa mezcla audio con elementos multimedia de Chromium; la exportación usa el compositor por fotogramas y un proceso FFmpeg local incluido en el portable, descrito en EXPORTACION.md. La precisión a nivel de muestra, los formatos no decodificables por Chromium y la importación completa de VEG requieren desarrollo adicional. Ver ../developer.md para el estado y la continuidad del puente.

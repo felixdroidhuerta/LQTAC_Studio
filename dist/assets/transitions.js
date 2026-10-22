@@ -81,15 +81,15 @@
       const vertex=compile(gl.VERTEX_SHADER,'attribute vec2 position; varying vec2 uv; void main(){uv=(position+1.0)*0.5;gl_Position=vec4(position,0.,1.);}');
       const fragment=compile(gl.FRAGMENT_SHADER,`precision highp float;
         varying vec2 uv;uniform sampler2D fromTexture;uniform sampler2D toTexture;
-        uniform float progress;uniform float ratio;uniform float fromRatio;uniform float toRatio;
+        uniform float progress;uniform float ratio;uniform float fromRatio;uniform float toRatio;uniform float fromOpacity;uniform float toOpacity;
         vec4 contained(sampler2D image,vec2 p,float sourceRatio){
           vec2 scale=vec2(max(1.,ratio/sourceRatio),max(1.,sourceRatio/ratio));
           p=(p-.5)*scale+.5;
           if(p.x<0.||p.x>1.||p.y<0.||p.y>1.)return vec4(0.,0.,0.,1.);
           return texture2D(image,p);
         }
-        vec4 getFromColor(vec2 p){return contained(fromTexture,p,fromRatio);}
-        vec4 getToColor(vec2 p){return contained(toTexture,p,toRatio);}
+        vec4 getFromColor(vec2 p){vec4 c=contained(fromTexture,p,fromRatio);c.a*=fromOpacity;return c;}
+        vec4 getToColor(vec2 p){vec4 c=contained(toTexture,p,toRatio);c.a*=toOpacity;return c;}
         ${window.LQTACTransitionShaders[id]}
         void main(){gl_FragColor=transition(uv);}`);
       const program=gl.createProgram();gl.attachShader(program,vertex);gl.attachShader(program,fragment);gl.linkProgram(program);
@@ -109,6 +109,7 @@
       });
       gl.uniform1i(gl.getUniformLocation(program,'fromTexture'),0);gl.uniform1i(gl.getUniformLocation(program,'toTexture'),1);
       gl.uniform1f(gl.getUniformLocation(program,'progress'),Math.max(0,Math.min(1,progress)));
+      gl.uniform1f(gl.getUniformLocation(program,'fromOpacity'),options.fromOpacity??1);gl.uniform1f(gl.getUniformLocation(program,'toOpacity'),options.toOpacity??1);
       gl.uniform1f(gl.getUniformLocation(program,'ratio'),this.canvas.width/this.canvas.height);
       const aspect=source=>(source.videoWidth||source.width)/(source.videoHeight||source.height);
       gl.uniform1f(gl.getUniformLocation(program,'fromRatio'),aspect(from));gl.uniform1f(gl.getUniformLocation(program,'toRatio'),aspect(to));

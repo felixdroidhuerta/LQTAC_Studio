@@ -12,6 +12,6 @@ pnpm start
 
 En Windows también puedes ejecutar `start.ps1` desde esta carpeta después de instalar las dependencias.
 
-El botón **Abrir proyecto VEGAS** abre un selector nativo y analiza `.veg`/`.vf` como contenedores binarios RIFF, recuperando referencias de media, nombres de pistas, títulos, buses, versión de VEGAS y FX detectables. Las referencias que estaban en una unidad antigua aparecen como media fuera de ruta para que puedan relincarse.
+El botón **Abrir proyecto VEGAS** abre un selector nativo e inspecciona cadenas de `.veg`/`.vf` para detectar posibles referencias y metadatos. Es un lector heurístico: no reconstruye el montaje, no garantiza los nombres/efectos detectados y no permite todavía una relocalización interactiva completa.
 
-Para una reconstrucción de timeline de máxima fidelidad, LQTAC Video acepta además XML/EDL/FCPXML exportados desde VEGAS.
+La inspección de XML/EDL/FCPXML tampoco es un importador completo de timeline. La persistencia funcional actual utiliza `.LQTS`. Consulta [developer.md](../developer.md) para el esquema, las pruebas y el plan pendiente del puente de conversión desde VEGAS Pro.

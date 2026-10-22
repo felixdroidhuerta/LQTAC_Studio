@@ -161,10 +161,86 @@ El zoom modifica la representación visual, no las duraciones, los tiempos de lo
 
 - La reproducción utiliza Chromium/Electron; no se ha integrado el motor nativo MLT. Los formatos reproducibles dependen del decodificador disponible.
 - Las pruebas descritas verifican reproducción breve y comportamiento concreto; no certifican todavía proyectos largos, carga intensiva o precisión de audio a nivel de muestra.
-- Guardado y recuperación completos del proyecto, incluidas envolventes y grupos, y exportación final requieren implementación o verificación adicional. No se garantiza persistencia de las ediciones al cerrar la aplicación.
+- Guardado LQTS y exportación implementados en 0.3.0 y comprobados en proyectos cortos; pendientes de aceptación del usuario y prueba de proyectos largos.
 - La apertura completa y fiel de proyectos VEGAS sigue pendiente de validación, incluidos eventos, medios, efectos y transiciones.
-- Falta empaquetado final como aplicación distribuible con todas sus dependencias y comprobación offline integral.
+- El portable incluye Electron y FFmpeg. Sigue pendiente una prueba integral en otro equipo con la conexión desactivada.
+
+## Proyectos LQTS y exportación local — 0.3.0
+
+### Guardar y abrir
+
+- **Archivo → Guardar proyecto** (`Ctrl+S`) muestra el diálogo nativo la primera vez y después actualiza ese archivo. **Guardar proyecto como…** (`Ctrl+Mayús+S`) permite guardar una copia.
+- **Archivo → Abrir proyecto .LQTS…** (`Ctrl+O`) recupera el montaje. Se pide confirmación antes de reemplazar la edición actual; guarda primero si deseas conservarla.
+- Se conservan nombre, biblioteca, orden y tipo de pistas, tiempos reales, grupos de sincronización, puntos/visibilidad de envolventes, transición por evento entrante, ajustes e imagen de la máscara personalizada, posición del cabezal y zoom.
+- `.LQTS` es JSON versionado. Las máscaras PNG están integradas. Los vídeos y audios se **referencian, no se incluyen**: conserva los originales. Se guardan rutas relativas al proyecto y una ruta absoluta alternativa; si faltan medios, se informa de sus rutas sin eliminar los eventos.
+- Guardado mediante archivo temporal y reemplazo después de escribir. Se rechazan esquemas desconocidos, eventos no válidos y archivos superiores a 100 MB. La decodificación de máscaras se completa antes de sustituir el montaje.
+
+### Renderizar vídeo y audio
+
+**Archivo → Renderizar vídeo o audio…** o **Exportar** abre la configuración. Elige el formato y pulsa **Guardar archivo…** para indicar destino. Incluye progreso y cancelación.
+
+| Tipo | Formato | Codificación |
+| --- | --- | --- |
+| Vídeo | MP4 | H.264 / AAC 192 kb/s |
+| Vídeo | WebM | VP9 / Opus 160 kb/s |
+| Audio | WAV | PCM 24 bits |
+| Audio | MP3 | 320 kb/s |
+| Audio | FLAC | Sin pérdida |
+| Audio | M4A | AAC 256 kb/s |
+
+Vídeo: 640×360, 1280×720 o 1920×1080, a 24, 25 o 30 fps. Mantiene la proporción de los medios con bandas negras. Exporta desde tiempo cero hasta el final del último evento, no hasta el ancho mínimo de 75 segundos del timeline.
+
+Se renderizan fotogramas del mismo compositor de la vista previa, incluyendo capas, opacidad, solapamientos y máscaras animadas/difuminadas. La mezcla de audio incorpora todas las pistas de audio, sus envolventes y fundidos por solapamiento. Las partes sin medios son negras/silenciosas. Un proyecto sin pistas de audio produce una pista silenciosa. La exportación de solo audio no necesita renderizar vídeo.
+
+FFmpeg y los códecs están incluidos en el portable; no se conecta a GitHub ni descarga componentes. No requiere instalar FFmpeg en el equipo destino. El archivo final aparece al terminar correctamente; cancelar elimina únicamente el archivo temporal de esta exportación. Se impide sobrescribir un medio utilizado por el montaje.
+
+### Pruebas y límites de esta entrega
+
+- Prueba automatizada `desktop/verify-project.cjs`: guardar/reabrir LQTS con cuatro eventos, grupos, puntos de volumen/opacidad y máscara PNG animada con blur; conserva duraciones y ajustes.
+- Exportaciones de 1,5 segundos a los seis formatos, decodificadas posteriormente por FFmpeg sin errores. MP4 y WebM contienen 36 fotogramas a 24 fps, composición y audio del proyecto.
+- No es una garantía de precisión de mezcla a nivel de muestra: el volumen FFmpeg se evalúa por bloque de audio. Falta medir rendimiento, memoria y estabilidad en proyectos largos y confirmar el resultado visual con el usuario.
+- Exportación de vídeo fotograma a fotograma: puede tardar más que la duración del montaje. Durante la exportación la edición queda bloqueada por la ventana modal.
+- Sin recolector de medios, relocalización interactiva de archivos perdidos, registro de extensión en Windows ni guardado automático. Los controles aún no funcionales de la interfaz (por ejemplo, efectos no implementados) no se convierten en efectos de exportación.
 
 ## Cómo mantener este documento
+
+### Cabezal arrastrable — 0.3.4
+
+- Arrastra la flecha del cabezal o su etiqueta de tiempo para cambiar la posición. También puedes pulsar y arrastrar sobre la regla superior del timeline.
+- Actualiza el contador, la línea de posición y la vista previa del proyecto. Si estaba reproduciendo, se pausa para inspeccionar el punto elegido; pulsa Play para continuar desde allí.
+- Respeta el zoom y el desplazamiento horizontal y limita la posición entre cero y la duración del timeline. Escape durante el arrastre recupera la posición inicial. La línea vertical no intercepta clics sobre los clips.
+- No modifica eventos, selección ni historial de deshacer. Comprobación técnica: arrastre al 400 % con desplazamiento, límites inicial/final e historial intacto. Pendiente de aceptación del usuario.
+
+### Fade-in y fade-out por evento — 0.3.3
+
+- Arrastra el tirador de la esquina superior izquierda hacia dentro para crear un **fade-in**, y el superior derecho hacia dentro para un **fade-out**. Los tiradores se desplazan al final/inicio de la rampa; arrastrarlos hacia el extremo reduce el fade hasta cero. El título del tirador indica su duración en segundos.
+- Cada extremo se ajusta por separado, hasta la duración total del clip. Se dibuja una rampa y sombreado sobre el evento. Las dos rampas pueden solaparse; sus ganancias se multiplican.
+- Afecta solo al clip manipulado, incluso si pertenece a un grupo. En vídeo modifica su opacidad y en audio su volumen. No altera los tiempos ni la sincronización, y se combina con la envolvente de pista y la transición por solapamiento existente.
+- Doble clic en un tirador elimina ese fade. Escape durante el arrastre cancela el ajuste. Ctrl+Z/Y deshace/rehace un arrastre como una sola operación.
+- Los fades se conservan en LQTS y al copiar/pegar. La exportación de vídeo usa el compositor y el audio exportado aplica la misma ganancia lineal. El compositor WebGL también aplica los fades individuales de los vídeos participantes en transiciones personalizadas.
+- Al recortar, los fades se limitan a la duración restante. Al dividir, la pieza izquierda conserva el fade-in y la derecha el fade-out, limitados a sus duraciones; no se crean fundidos nuevos en el corte.
+- Pruebas técnicas: arrastre de ambos extremos, independencia del audio agrupado, valores de ganancia al inicio/mitad/final de las rampas, recuperación del montaje, deshacer/rehacer y canal alfa en WebGL. Pendiente de aceptación visual y de escucha por el usuario.
+
+### Copiar, pegar, deshacer y rehacer — 0.3.2
+
+- **Ctrl+C** copia los eventos seleccionados y los miembros de sus grupos al portapapeles interno de la aplicación. **Ctrl+V** pega el primero en el cabezal y mantiene la separación temporal de los restantes y sus pistas de origen cuando existen y son compatibles.
+- Conserva recortes, duración original, tipo de medio y ajustes de transición/máscara. Los grupos pegados reciben identificadores nuevos: no quedan unidos a los originales. No duplica los archivos de vídeo/audio en disco. Si faltan pistas compatibles, crea las necesarias.
+- **Ctrl+Z** deshace y **Ctrl+Y** o **Ctrl+Mayús+Z** rehace. También funcionan los botones de deshacer/rehacer de la cabecera y el menú **Editar**, que incluye copiar y pegar.
+- Historial para pegar, añadir medios a pistas, mover, recortar, dividir, eliminar, agrupar/desagrupar, crear pistas, editar envolventes, aplicar/configurar transiciones y renombrar. Un arrastre se registra como una operación, no una por cada movimiento del ratón.
+- Una nueva edición descarta la rama de rehacer. El historial se mantiene solo durante la sesión y se limpia al abrir otro LQTS; no se guarda dentro del proyecto. Límite por pila: 50 estados y presupuesto de 32 MB, conservando al menos un estado aunque lo exceda. Las máscaras grandes pueden reducir la profundidad disponible.
+- Deshacer no rebobina el cabezal ni cambia el zoom; recupera la selección del estado de edición cuando es posible. No elimina exportaciones ni archivos originales. Las importaciones de biblioteca y ajustes de visualización no tienen un historial independiente.
+- En campos de texto, Ctrl+C/V/Z/Y conservan el comportamiento nativo de edición. No se aplican comandos del timeline con ventanas de configuración abiertas o mientras se exporta/restaura el montaje.
+- Pruebas técnicas: copia y pegado de vídeo/audio recortados con nuevos grupos, posiciones y desplazamientos de origen correctos; deshacer/rehacer de pegado, eliminación y creación de pista; múltiples pasos; descarte de rehacer tras una edición nueva; no interceptar Ctrl+Z al escribir. Regresión de guardado, recorte y seis formatos de exportación superada. Pendiente de aceptación del usuario.
+
+### Recorte y división — 0.3.1
+
+- Arrastra el borde izquierdo o derecho de un evento para recortar su inicio o final. Al pasar el ratón aparecen las marcas de los extremos y el cursor de ajuste horizontal.
+- El recorte no destruye el original: arrastrar hacia fuera permite recuperar material oculto hasta el límite de la fuente. No desplaza los demás eventos ni aplica cambio de velocidad. Duración mínima durante el recorte: 1/24 s.
+- Se recortan a la vez los miembros del grupo del evento, limitando el movimiento para no sacar ninguno del archivo fuente. Desagrupa para editar vídeo/audio por separado. Escape durante el arrastre cancela ese recorte.
+- Selecciona uno o varios eventos, sitúa el cabezal en su interior y pulsa **S**. Se dividen los eventos seleccionados y sus compañeros agrupados que crucen ese instante. El lado derecho queda seleccionado y recibe un grupo diferente al izquierdo, conservando la sincronización de cada pareja.
+- S no divide mientras se escribe en un campo, se guarda con Ctrl+S o hay una ventana de configuración abierta. Situar el cabezal en el extremo de un evento no crea fragmentos vacíos.
+- Se guardan en LQTS el desplazamiento de inicio dentro del medio y la duración original conocida. Vista previa y exportación de audio/vídeo usan ese desplazamiento; no vuelven al principio del archivo después de cortar.
+- Comprobación técnica: recorte de inicio y final sobre vídeo/audio agrupados, división posterior, grupos independientes, tiempos de origen correctos y recuperación del montaje serializado. Regresión de los seis formatos de exportación superada. Pendiente de aceptación de uso por el usuario.
+- Las envolventes siguen ancladas al tiempo de la pista, no al clip. Dividir dentro de una transición puede modificar su cálculo, que continúa basándose en el solapamiento de los eventos resultantes.
 
 Con cada mejora se actualizarán el uso, los límites y las comprobaciones realizadas. La aceptación del usuario se registrará por separado de una prueba técnica. Las correcciones posteriores actualizarán la descripción anterior para que el documento represente el comportamiento vigente.

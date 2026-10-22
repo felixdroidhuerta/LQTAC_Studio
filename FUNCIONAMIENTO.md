@@ -13,6 +13,14 @@ Este documento acompaña el desarrollo. Se actualizará con las funciones implem
 
 ## Abrir la aplicación
 
+### Distribucion a equipos nuevos
+
+La descarga de codigo de GitHub no incluye Electron. Para usar el programa en un equipo nuevo se debe distribuir el paquete `LQTAC_Studio_Portable_*.zip`, generado con `desktop/build-portable.ps1` en el equipo de desarrollo.
+
+Extraer el ZIP completo y ejecutar `LQTAC Studio.exe`. El paquete incluye el motor, sus bibliotecas, licencias, recursos y codigo: no requiere Node, pnpm ni Internet en el equipo de destino. Mantener todos los archivos junto al ejecutable. La compilacion actual corresponde a Windows y a la arquitectura del Electron instalado en el equipo de desarrollo.
+
+### Equipo de desarrollo
+
 En la carpeta `Documentos\LQTAC Studio`, hacer doble clic en `LQTAC Video.bat`.
 
 El lanzador abre el ejecutable local de Electron incluido en `desktop\node_modules\electron\dist`. No requiere escribir comandos ni ejecutar pnpm. Debe mantenerse la estructura de carpetas del proyecto. Todavía no es un instalador autónomo para distribuir a otros equipos.

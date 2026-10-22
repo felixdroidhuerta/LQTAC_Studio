@@ -4,7 +4,7 @@ Editor local de vídeo y audio para Windows. Versión de desarrollo 0.5.3.
 
 ## Descargar el programa
 
-Para un equipo nuevo, abre [Releases](https://github.com/felixdroidhuerta/LQTAC_Studio/releases), entra en **v0.2.0-portable** y descarga **LQTAC_Studio_0.2.0_Windows_x64_Portable.zip** dentro de Assets.
+Para un equipo nuevo, abre [Releases](https://github.com/felixdroidhuerta/LQTAC_Studio/releases), entra en **v0.5.3-portable** y descarga **LQTAC_Studio_0.5.3_Windows_x64_Portable.zip** dentro de Assets.
 
 Extrae todo el ZIP y abre **LQTAC Studio.exe**. El motor y sus bibliotecas están incluidos; no requiere Node, pnpm ni Internet en el equipo destino. La carpeta Shapes junto al ejecutable contiene la máscara LQTAC de ejemplo.
 

@@ -345,3 +345,10 @@ La prueba desktop/verify-layout.cjs abre repetidamente montajes de 18 pistas en 
 Corregido el icono de retroceder: los caracteres se dividían en dos líneas dentro del botón. Retroceder y avanzar usan ahora iconos SVG locales centrados y botones de tamaño fijo, con etiquetas y ayudas que indican su función de restar/sumar un segundo. La barra ajusta la información secundaria con puntos suspensivos para conservar los controles visibles en monitores estrechos.
 
 Nuevo botón «Reproducir desde el inicio»: lleva el cabezal a cero y comienza la reproducción, tanto si estaba pausada como si estaba reproduciendo. El botón habitual mantiene reproducir/pausar desde la posición actual y actualiza su etiqueta accesible. La prueba verify-layout.cjs comprueba los controles sin saltos de línea en cuatro anchos, retroceso con límite en cero, avance, reproducción desde cero, pausa, continuación y reinicio durante la reproducción.
+
+
+## Publicación del portable 0.5.3 (23/10/2026)
+
+Publicación solicitada por el usuario: Release de prueba v0.5.3-portable, ZIP LQTAC_Studio_0.5.3_Windows_x64_Portable.zip y SHA256SUMS.txt. Construido con build-portable.ps1 sin actualizar dependencias. El README apunta a esta descarga. Fuentes, binarios y script VEGAS del paquete cotejados mediante hashes; sin node_modules, diagnósticos ni proyectos personales. La prueba sobre una extracción independiente usa un punto de entrada temporal de comprobación y ejecuta el main original: arranque, regla/alineación, reproducción desde el inicio, módulos del puente y generación de audio con FFmpeg incluido superados. No sustituye una validación integral en otro equipo.
+
+ZIP: 168841022 bytes. SHA-256: 14656fddd7b78936053396530ded5909a392821116806ca63b976a3b95b3a63e.

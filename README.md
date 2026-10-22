@@ -1,6 +1,6 @@
 # LQTAC Studio
 
-Editor local de vídeo y audio para Windows. Versión de desarrollo 0.3.4.
+Editor local de vídeo y audio para Windows. Versión de desarrollo 0.5.0.
 
 ## Descargar el programa
 
@@ -33,3 +33,9 @@ Para retomar el desarrollo, arquitectura, formato LQTS y plan de implementación
 El código de escritorio está en desktop y la interfaz en dist. Las dependencias se instalan en el equipo de desarrollo mediante pnpm. Ejecutar desktop/build-portable.ps1 genera un ZIP con el motor instalado, recursos, Shapes y manual para distribuir sin instalación en el equipo destino.
 
 Los shaders externos conservan sus autores y licencia en dist/THIRD-PARTY. El portable incluye FFmpeg como proceso independiente y sus avisos/licencias en resources/app/desktop/codecs. No se descargan efectos ni códecs durante el uso. Consulta desktop/EXPORTACION.md para los componentes y fuentes.
+
+
+Versión 0.4.0: controles reales de mute/solo, volumen/opacidad, balance estéreo, orden de pistas, velocidad de evento y Pan/Crop con fotogramas clave. Uso y límites en FUNCIONAMIENTO.md. El exportador VEGAS sigue pendiente.
+
+
+Versión 0.5.0: apertura de VEG con puente estructural exportado desde VEGAS, curvas calibradas, mezcla de solapamientos y persistencia del informe de compatibilidad. Instrucciones y límites en la sección «Puente operativo VEGAS → LQTAC» de FUNCIONAMIENTO.md.

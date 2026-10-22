@@ -10,7 +10,7 @@ contextBridge.exposeInMainWorld('lqtacDesktop', {
   onRenderProgress: listener => { const handler=(_event,value)=>listener(value);ipcRenderer.on('render-progress',handler);return ()=>ipcRenderer.removeListener('render-progress',handler); },
   pathForFile: (file) => webUtils.getPathForFile(file),
   saveTransitionMask: (dataUrl) => ipcRenderer.invoke('save-transition-mask', dataUrl),
-  openVegasProject: () => ipcRenderer.invoke('open-vegas-project'),
+  openVegasProject: filePath => ipcRenderer.invoke('open-vegas-project',filePath),
   openMedia: () => ipcRenderer.invoke('open-media'),
   openTransitionMask: () => ipcRenderer.invoke('open-transition-mask'),
   readFileText: (filePath) => ipcRenderer.invoke('read-file-text', filePath),

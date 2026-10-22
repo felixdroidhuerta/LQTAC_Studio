@@ -11,6 +11,8 @@ const projectIO = require('./project-io.cjs');
 const renderEngine = require('./render-engine.cjs');
 let currentProjectPath = null;
 let exportJob = null;
+const startupVegas=process.argv.find(value=>/\.veg$/i.test(value));
+if(process.argv.includes('--review-vegas'))app.setPath('userData',path.join(app.getPath('temp'),'lqtac-vegas-review-'+process.pid));
 
 ipcMain.handle('save-lqts', async (_event, data, saveAs) => {
   projectIO.validateProject(data);
@@ -99,14 +101,16 @@ function createWindow() {
 function projectFilters() {
   return [
     { name: 'Proyectos VEGAS', extensions: ['veg', 'vf'] },
+    { name: 'Puente exportado desde VEGAS', extensions: ['json'] },
     { name: 'Proyectos Premiere', extensions: ['prproj'] },
     { name: 'Intercambio de timeline', extensions: ['xml', 'fcpxml', 'edl', 'srt', 'txt'] },
     { name: 'Todos los archivos', extensions: ['*'] }
   ];
 }
 
-ipcMain.handle('open-vegas-project', async () => {
-  const result = await dialog.showOpenDialog(mainWindow, {
+ipcMain.handle('open-vegas-project', async (_event,requestedPath) => {
+  if(requestedPath!==undefined&&(typeof requestedPath!=='string'||!path.isAbsolute(requestedPath)||!(/\.(veg|vf)$/i.test(requestedPath)||requestedPath.toLowerCase().endsWith('.lqtac.json'))))throw new Error('Ruta de proyecto no válida.');
+  const result = requestedPath?{canceled:false,filePaths:[requestedPath]}:await dialog.showOpenDialog(mainWindow, {
     title: 'Abrir proyecto VEGAS en LQTAC Video',
     properties: ['openFile'],
     filters: projectFilters()
@@ -115,7 +119,11 @@ ipcMain.handle('open-vegas-project', async () => {
 
   const filePath = result.filePaths[0];
   const ext = path.extname(filePath).slice(1).toLowerCase();
-  if (ext === 'veg' || ext === 'vf') return { canceled: false, project: parseVegasProject(filePath) };
+  if (ext === 'veg' || ext === 'vf') {
+    const loaded=await require('./vegas-bridge.cjs').openVegas(filePath);
+    if(loaded.project)currentProjectPath=null;return {canceled:false,...loaded};
+  }
+  if(filePath.toLowerCase().endsWith('.lqtac.json')){const loaded=await require('./vegas-bridge.cjs').readBridge(filePath);if(loaded.project)currentProjectPath=null;return {canceled:false,...loaded};}
   return { canceled: false, project: { filePath, fileName: path.basename(filePath), format: ext.toUpperCase(), warnings: ['Este formato se ha seleccionado; el lector estructural VEGAS se centra en .VEG y .VF.'] } };
 });
 
@@ -194,8 +202,17 @@ ipcMain.handle('media-duration', async (_event, filePath) => {
   }
 });
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   createWindow();
+  if(startupVegas){
+    try{
+      const loaded=await require('./vegas-bridge.cjs').openVegas(startupVegas);
+      if(loaded.report.errors.length)throw new Error(JSON.stringify(loaded.report.errors,null,2));
+      if(mainWindow.webContents.isLoading())await new Promise(resolve=>mainWindow.webContents.once('did-finish-load',resolve));
+      await mainWindow.webContents.executeJavaScript(`(async()=>{await demoReady;await restoreProject(${JSON.stringify(loaded.project)});resetEditHistory();toast('Montaje VEGAS importado · consulta el informe de compatibilidad');})()`);
+      mainWindow.setTitle(path.basename(startupVegas)+' — LQTAC Studio 0.5.0');
+    }catch(error){dialog.showErrorBox('No se pudo abrir el VEGAS',error.message);}
+  }
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });
 

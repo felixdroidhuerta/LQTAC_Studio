@@ -13,7 +13,7 @@ Rename-Item -LiteralPath (Join-Path $OutputDirectory 'electron.exe') -NewName 'L
 $appRoot = Join-Path $OutputDirectory 'resources\app'
 $desktopTarget = Join-Path $appRoot 'desktop'
 New-Item -ItemType Directory -Path $desktopTarget -Force | Out-Null
-foreach ($name in @('main.cjs','preload.cjs','veg-parser.cjs','project-io.cjs','render-engine.cjs')) {
+foreach ($name in @('main.cjs','preload.cjs','veg-parser.cjs','vegas-bridge.cjs','project-io.cjs','render-engine.cjs')) {
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot $name) -Destination $desktopTarget
 }
 $codecTarget = Join-Path $desktopTarget 'codecs'

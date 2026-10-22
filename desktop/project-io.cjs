@@ -1,17 +1,32 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const {calibrated}=require('../dist/assets/work-model.js');
 
 function validateProject(data) {
   if (!data || data.format !== 'LQTAC Studio' || data.version !== 1 || !Array.isArray(data.tracks) || data.tracks.length > 200 || !Array.isArray(data.library)) throw new Error('No es un proyecto LQTS compatible (versión 1).');
   let count = 0;
   for (const track of data.tracks) {
+    for(const key of ['mute','solo'])if(track[key]!==undefined&&typeof track[key]!=='boolean')throw new Error('Estado de pista no válido.');
+    if(track.vegasMix!==undefined&&typeof track.vegasMix!=='boolean')throw new Error('Modo de mezcla no válido.');
+    if(track.gain!==undefined&&(!Number.isFinite(track.gain)||track.gain<0||track.gain>4))throw new Error('Ganancia de pista no válida.');
+    if(track.pan!==undefined&&(!Number.isFinite(track.pan)||Math.abs(track.pan)>1))throw new Error('Pan de pista no válido.');
     if (!['video','audio'].includes(track.kind) || !Array.isArray(track.clips) || !Array.isArray(track.envelope)) throw new Error('Pista LQTS no válida.');
     for (const p of track.envelope) if (!Number.isFinite(p.time) || p.time < 0 || !Number.isFinite(p.value) || p.value < 0 || p.value > 1) throw new Error('Envolvente no válida.');
     track.envelope.sort((a,b)=>a.time-b.time);
     for (const clip of track.clips) {
+      if(clip.autoCrossfade!==undefined&&typeof clip.autoCrossfade!=='boolean')throw new Error('Modo de fundido no válido.');
+      for(const k of ['fadeInCurve','fadeOutCurve','fadeInReciprocalCurve','fadeOutReciprocalCurve'])if(clip[k]!==undefined&&!['Linear','Fast','Slow','Smooth','Sharp','None'].includes(clip[k]))throw new Error('Curva no válida.');
+      if(clip.vegasCurves!==undefined){if(!clip.vegasCurves||typeof clip.vegasCurves!=='object'||Array.isArray(clip.vegasCurves)||Object.keys(clip.vegasCurves).length>6)throw new Error('Calibración no válida.');for(const [type,table] of Object.entries(clip.vegasCurves))if(!Array.isArray(table)||table.length>4097||!calibrated(type,table))throw new Error('Curva no calibrada para este motor.');}
+      if(clip.mute!==undefined&&typeof clip.mute!=='boolean')throw new Error('Mute de evento no válido.');
+      if(clip.gain!==undefined&&(!Number.isFinite(clip.gain)||clip.gain<0||clip.gain>4))throw new Error('Ganancia de evento no válida.');
+      if(clip.playbackRate!==undefined&&(!Number.isFinite(clip.playbackRate)||clip.playbackRate<.25||clip.playbackRate>4))throw new Error('Velocidad fuera del rango 0.25–4.');
+      if(clip.panCrop!==undefined){
+        if(!Array.isArray(clip.panCrop)||clip.panCrop.length>1000)throw new Error('Pan/Crop no válido.');
+        let previous=-1;for(const f of clip.panCrop){if(!Number.isFinite(f.time)||f.time<0||f.time<=previous||f.time>clip.durationSeconds+.002||!Number.isFinite(f.x)||Math.abs(f.x)>10||!Number.isFinite(f.y)||Math.abs(f.y)>10||!Number.isFinite(f.width)||f.width<.01||f.width>10||!Number.isFinite(f.height)||f.height<.01||f.height>10||!Number.isFinite(f.rotation)||Math.abs(f.rotation)>3600)throw new Error('Fotograma clave Pan/Crop no válido.');previous=f.time;}
+      }
       for(const key of ['fadeInSeconds','fadeOutSeconds'])if(clip[key]!==undefined&&(!Number.isFinite(clip[key])||clip[key]<0||clip[key]>clip.durationSeconds+.002))throw new Error('Duración de fade no válida.');
       if(clip.sourceOffsetSeconds!==undefined&&(!Number.isFinite(clip.sourceOffsetSeconds)||clip.sourceOffsetSeconds<0))throw new Error('Inicio del medio no válido.');
-      if(clip.sourceDurationSeconds!==undefined&&(!Number.isFinite(clip.sourceDurationSeconds)||clip.sourceDurationSeconds<=0||clip.sourceOffsetSeconds+clip.durationSeconds>clip.sourceDurationSeconds+.002))throw new Error('Recorte fuera de los límites del medio.');
+      if(clip.sourceDurationSeconds!==undefined&&(!Number.isFinite(clip.sourceDurationSeconds)||clip.sourceDurationSeconds<=0||(clip.sourceOffsetSeconds||0)+clip.durationSeconds*(clip.playbackRate??1)>clip.sourceDurationSeconds+.002))throw new Error('Recorte fuera de los límites del medio.');
       if (++count > 10000 || !['video','audio'].includes(clip.kind) || typeof clip.filePath !== 'string' || !Number.isFinite(clip.startSeconds) || clip.startSeconds < 0 || !Number.isFinite(clip.durationSeconds) || clip.durationSeconds <= 0 || clip.startSeconds + clip.durationSeconds > 604800) throw new Error('Evento LQTS no válido.');
       if (clip.mask && (!/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(clip.mask.dataUrl || '') || clip.mask.dataUrl.length > 24*1024*1024)) throw new Error('Máscara LQTS no válida.');
     }

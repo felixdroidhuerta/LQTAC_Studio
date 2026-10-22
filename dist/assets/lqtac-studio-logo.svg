@@ -1,0 +1,9 @@
+<svg width="1112" height="478" viewBox="0 0 1112 478" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">LQTAC Studio</title>
+  <desc id="desc">Logotipo LQTAC con el descriptor Studio</desc>
+  <defs>
+    <clipPath id="lqtacOnly"><rect x="0" y="0" width="1112" height="286" /></clipPath>
+  </defs>
+  <image href="lqtac-studio-reference.png" x="0" y="0" width="1112" height="478" preserveAspectRatio="none" clip-path="url(#lqtacOnly)" />
+  <text x="556" y="416" text-anchor="middle" fill="#3B454E" stroke="#C8D0D5" stroke-width="1.2" paint-order="stroke" font-family="Century Gothic, Avenir Next, Arial, sans-serif" font-size="112" font-weight="300" letter-spacing="30">Studio</text>
+</svg>

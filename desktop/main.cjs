@@ -210,7 +210,7 @@ app.whenReady().then(async () => {
       if(loaded.report.errors.length)throw new Error(JSON.stringify(loaded.report.errors,null,2));
       if(mainWindow.webContents.isLoading())await new Promise(resolve=>mainWindow.webContents.once('did-finish-load',resolve));
       await mainWindow.webContents.executeJavaScript(`(async()=>{await demoReady;await restoreProject(${JSON.stringify(loaded.project)});resetEditHistory();toast('Montaje VEGAS importado · consulta el informe de compatibilidad');})()`);
-      mainWindow.setTitle(path.basename(startupVegas)+' — LQTAC Studio 0.5.1');
+      mainWindow.setTitle(path.basename(startupVegas)+' — LQTAC Studio 0.5.2');
     }catch(error){dialog.showErrorBox('No se pudo abrir el VEGAS',error.message);}
   }
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });

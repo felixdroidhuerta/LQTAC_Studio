@@ -15,6 +15,7 @@ app.whenReady().then(async()=>{
     const media=path.join(root,'test-source.mp4');
     await run(ffmpeg,['-hide_banner','-y','-f','lavfi','-i','testsrc2=s=320x180:r=24:d=2','-f','lavfi','-i','sine=frequency=440:duration=2','-c:v','libx264','-pix_fmt','yuv420p','-c:a','aac','-shortest',media],{windowsHide:true});
     const win=BrowserWindow.getAllWindows()[0];
+    win.webContents.setBackgroundThrottling(false);
     if(win.webContents.isLoading())await new Promise(resolve=>win.webContents.once('did-finish-load',resolve));
     const js=code=>win.webContents.executeJavaScript(code);
     await js(`(async()=>{

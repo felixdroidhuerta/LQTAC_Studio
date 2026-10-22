@@ -334,3 +334,9 @@ El exportador y su .config se incluyen en el portable. La automatización genera
 Prueba real del flujo automático con VEGAS Pro 22 build 250: 5 pistas y 19 eventos, cero errores de importación, sesión original abierta y sin cambios. desktop/verify-vegas-automation.cjs comprueba con lanzador simulado regeneración, reutilización sin arranque, rutas Unicode, fallo de arranque, timeout y recuperación del bloqueo. Los límites audiovisuales y de mapeo de 0.5.0 siguen vigentes. No se han actualizado dependencias ni creado Release.
 
 Referencia de los argumentos: https://help.magix-hub.com/video/vegas/22/de/content/topics/11-autoscript/scripting_in_vegas.htm
+
+## Alineación de pistas al abrir proyectos — 0.5.2 (23/10/2026)
+
+Corregida la pérdida de la regla de tiempos al restaurar un montaje LQTS o VEGAS, también al deshacer/rehacer: se conserva una única regla y se actualizan sus marcas con la duración. Las cabeceras y los eventos vuelven a empezar en la misma fila, sin el desfase de 24 píxeles. La creación de pistas durante la restauración no desplaza la vista a la última pista; al terminar se muestra el comienzo vertical de la timeline y se recuperan el zoom y la posición horizontal del proyecto. Los medidores de las cabeceras iniciales quedan anclados a su propia fila. En ventanas de hasta 1280 píxeles, biblioteca y monitor ocupan columnas independientes; antes el diseño compacto los superponía.
+
+La prueba desktop/verify-layout.cjs abre repetidamente montajes de 18 pistas en anchos de 1120, 1180, 1250 y 1540 píxeles y niveles de zoom del 100 % y 400 %, comprueba que la regla sigue visible y que todas las filas coinciden con sus cabeceras. Se guarda una captura en la carpeta temporal de la prueba. No se cambian medios, tiempos ni el formato LQTS.

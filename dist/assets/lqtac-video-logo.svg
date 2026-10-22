@@ -1,0 +1,9 @@
+<svg width="238" height="48" viewBox="0 0 238 48" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">LQTAC Video</title>
+  <desc id="desc">Logotipo LQTAC Video con palabra LQTAC intacta y descriptor Video</desc>
+  <rect x="0.75" y="0.75" width="46.5" height="46.5" rx="12" fill="#4D88FF" fill-opacity="0.14" stroke="#6EA2FF" stroke-width="1.5"/>
+  <path d="M15 16.5V31.5C15 33.1569 16.3431 34.5 18 34.5H31" stroke="#EAF2FF" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M25 16.5L34 24L25 31.5V16.5Z" fill="#6EA2FF"/>
+  <text x="60" y="27" fill="#F7FBFF" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="800" letter-spacing="0.08em">LQTAC</text>
+  <text x="60" y="41" fill="#83ADFF" font-family="Inter, Arial, sans-serif" font-size="10" font-weight="650" letter-spacing="0.24em">VIDEO</text>
+</svg>

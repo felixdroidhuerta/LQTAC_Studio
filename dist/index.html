@@ -30,6 +30,7 @@
     button, input { font: inherit; }
     button { color: inherit; }
     body { overflow-x: hidden; }
+    [hidden] { display:none !important; }
     .app-shell { min-height: 100vh; background: radial-gradient(circle at 74% 8%, rgba(62, 109, 205, .18), transparent 32%), var(--ink); }
     .topbar { height:68px; display:flex; align-items:center; justify-content:space-between; padding:0 18px; border-bottom:1px solid var(--line); background:rgba(6,19,41,.9); backdrop-filter:blur(18px); position:sticky; top:0; z-index:10; }
     .brand { display:flex; align-items:center; gap:12px; min-width:270px; }
@@ -168,6 +169,7 @@
     .clip.selected { box-shadow:0 0 0 2px var(--accent-2), 0 0 18px rgba(110,162,255,.22); }
     .clip.grouped::after { content:"▦"; position:absolute; right:6px; top:3px; color:rgba(7,23,53,.72); font-size:10px; }
     .clip.dragging { opacity:.55; }
+    .timeline-selection-box { position:fixed; border:1px solid var(--accent-2); background:rgba(110,162,255,.18); pointer-events:none; z-index:70; }
     .track.drop-target { outline:2px dashed rgba(110,162,255,.9); outline-offset:-3px; background:rgba(110,162,255,.06); }
     .media-card[draggable="true"] { cursor:grab; }
     .media-card.dragging { opacity:.5; border-color:var(--accent-2); }
@@ -197,6 +199,19 @@
     .transition-zone { display:none; }
     .auto-transition { position:absolute; top:10px; height:42px; border:1px solid rgba(247,251,255,.7); border-radius:7px; display:flex; align-items:flex-end; justify-content:center; padding-bottom:3px; color:#f7fbff; font-size:8px; font-weight:750; background:linear-gradient(135deg, rgba(231,160,255,.62), rgba(110,162,255,.44)); mix-blend-mode:screen; z-index:5; pointer-events:none; white-space:nowrap; overflow:hidden; }
     .track[data-kind="audio"] .auto-transition { background:linear-gradient(135deg, rgba(121,229,245,.56), rgba(110,162,255,.38)); }
+    .track[data-kind="video"] .auto-transition { pointer-events:auto; cursor:pointer; }
+    .transition-catalog { display:grid; grid-template-columns:repeat(auto-fill,minmax(145px,1fr)); gap:10px; margin-top:14px; }
+    .transition-card { border:1px solid var(--line); border-radius:8px; background:#102441; padding:8px; text-align:left; color:var(--text); cursor:pointer; }
+    .transition-card:hover,.transition-card.active { border-color:var(--accent-2); }
+    .transition-swatch { position:relative; height:82px; margin-bottom:8px; overflow:hidden; border-radius:5px; background:linear-gradient(110deg,#139ee4 0 50%,#ea9455 50%); }
+    .transition-swatch canvas { width:100%;height:100%; }
+    .transition-card small { display:block; margin-top:6px; color:var(--muted); font-size:10px; }
+    .transition-help { color:var(--muted); font-size:12px; line-height:1.5; }
+    .mask-dialog { width:min(460px,calc(100vw - 40px)); max-height:85vh; overflow:auto; padding:18px; border:1px solid var(--line-strong); border-radius:12px; background:#10213b; color:var(--text); box-shadow:0 20px 70px #0009; }
+    .mask-dialog::backdrop { background:rgba(0,8,20,.45); }
+    .mask-dialog-header,.mask-dialog-actions { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .mask-dialog-header h2 { margin:0; font-size:17px; }
+    .mask-dialog-actions { justify-content:flex-end; margin-top:16px; }
     .transition-zone.active { background:rgba(185,242,140,.16); color:var(--lime); border-style:solid; }
     .track-label.dynamic { position:relative; }
     .track-add-note { color:var(--muted); font-size:9px; opacity:.7; padding-left:9px; }
@@ -347,6 +362,8 @@
   <div class="modal-backdrop" id="compatModal"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="compatTitle"><div class="eyebrow">LQTAC / vegas bridge</div><h3 id="compatTitle">Proyecto VEGAS detectado.</h3><div class="compat-modal-copy"><div class="compat-mark">V</div><div><strong id="compatFileName">archivo.veg</strong><span id="compatMessage">LQTAC Video ha leído el contenedor y lo ha añadido como proyecto vinculado.</span></div></div><p style="margin-top:16px;">Para reconstruir pistas, eventos, transiciones y FX con máxima fidelidad, usa también el intercambio XML/EDL exportado desde VEGAS. El archivo original se conserva como maestro.</p><div class="modal-actions"><button class="ghost-btn" id="closeCompat" type="button">Cerrar</button><button class="solid-btn" id="bridgeCompat" type="button">Preparar puente</button></div></div></div>
   <div class="toast" id="toast">Listo</div>
 
+  <script src="assets/transition-shaders.js"></script>
+  <script src="assets/transitions.js"></script>
   <script>
     const $ = (sel, root = document) => root.querySelector(sel);
     const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -679,6 +696,9 @@
       }
     };
     const videoPool = new Map();
+    const transitionRenderers = new Map();
+    const transitionMasks = new WeakMap();
+    let selectedTransitionPair = null;
     let playbackError = '';
     const reportPlaybackError = (media, error) => {
       if (error?.name === 'AbortError') return;
@@ -722,6 +742,8 @@
           media = document.createElement(isVideo ? 'video' : 'audio');
           media.preload = 'auto'; media.playsInline = true;
           media.addEventListener('error', () => reportPlaybackError(media));
+          media.addEventListener('seeked',()=>{if(!playing && clip.isConnected) void renderTimelineAt(timelineTime);});
+          media.addEventListener('loadeddata',()=>{if(!playing && clip.isConnected) void renderTimelineAt(timelineTime);});
           if (isVideo) { media.className = 'preview-media'; media.style.objectFit = 'contain'; $('.monitor-screen').append(media); }
           pool.set(clip, media);
         }
@@ -738,12 +760,40 @@
           media.muted = true; media.style.display = 'block';
           media.style.zIndex = String(2 + (tracks.length - tracks.indexOf(clip.parentElement)) * 10 + active.filter(item => item.parentElement === clip.parentElement && clipTiming(item).startSeconds < clipTiming(clip).startSeconds).length);
           const earlier = videos.some(item => item !== clip && item.parentElement === clip.parentElement && clipTiming(item).startSeconds < clipTiming(clip).startSeconds);
-          media.style.opacity = String((earlier ? eventGain(clip, timelineTime) : 1) * envelopeValue(clip.parentElement, timelineTime));
+          const customTransition=earlier && (clip.dataset.transition||'fade')!=='fade';
+          media.style.opacity = String((customTransition ? 0 : earlier ? eventGain(clip, timelineTime) : 1) * envelopeValue(clip.parentElement, timelineTime));
         } else media.volume = eventGain(clip, timelineTime) * envelopeValue(clip.parentElement, timelineTime);
         if (playing && media.paused) media.play().catch(error => reportPlaybackError(media, error));
         else if (!playing) media.pause();
       }
       if (ticket !== renderTicket) return;
+      for (const [track, renderer] of transitionRenderers) {
+        renderer.canvas.style.display='none';
+        if (!track.isConnected) {renderer.dispose();renderer.canvas.remove();transitionRenderers.delete(track);}
+      }
+      for (const track of tracks.filter(track=>track.dataset.kind==='video')) {
+        const items=videos.filter(clip=>clip.parentElement===track).sort((a,b)=>clipTiming(a).startSeconds-clipTiming(b).startSeconds);
+        if(items.length<2) continue;
+        const from=items.at(-2),to=items.at(-1), effect=to.dataset.transition || 'fade';
+        if(effect==='fade') continue;
+        const fromVideo=videoPool.get(from),toVideo=videoPool.get(to);
+        if(!fromVideo || !toVideo || fromVideo.readyState<2 || toVideo.readyState<2) continue;
+        try {
+          let renderer=transitionRenderers.get(track);
+          if(!renderer) {
+            const canvas=document.createElement('canvas');canvas.className='preview-media';
+            renderer=new window.LQTACTransitions.Renderer(canvas);$('.monitor-screen').append(canvas);transitionRenderers.set(track,renderer);
+          }
+          const canvas=renderer.canvas, rect=$('.monitor-screen').getBoundingClientRect();
+          const width=Math.max(2,Math.round(rect.width)),height=Math.max(2,Math.round(rect.height));
+          if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;}
+          const start=clipTiming(to).startSeconds;
+          const end=Math.min(clipTiming(from).startSeconds+clipTiming(from).durationSeconds,start+clipTiming(to).durationSeconds);
+          renderer.draw(effect,fromVideo,toVideo,(timelineTime-start)/(end-start),transitionMasks.get(to));
+          canvas.style.display='block';canvas.style.zIndex=toVideo.style.zIndex;canvas.style.opacity=String(envelopeValue(track,timelineTime));
+          fromVideo.style.display='none';toVideo.style.display='none';
+        } catch(error) { toast('No se pudo renderizar la transición elegida. Se mantiene el vídeo anterior.'); console.warn(error); }
+      }
       const names = [...new Set(active.map(clip => clip.parentElement.dataset.track))];
       $('#monitorStat').textContent = playbackError || `Proyecto · ${formatTimelineLabel(timelineTime)} · ${names.join(' + ') || 'sin eventos'}`;
     };
@@ -804,7 +854,16 @@
         zone.dataset.durationSeconds = seconds.toFixed(2);
         zone.style.left = `${overlapStart}%`;
         zone.style.width = `${overlap}%`;
-        zone.textContent = `Fade ${seconds.toFixed(1)} s`;
+        const transitionId=clips[index+1].dataset.transition || 'fade';
+        const transitionName=track.dataset.kind==='video' ? window.LQTACTransitions.catalog.find(item=>item.id===transitionId)?.name || 'Fundido' : 'Fundido';
+        zone.textContent = `${transitionName} ${seconds.toFixed(1)} s`;
+        zone.title='Clic para elegir una transición para este solapamiento';
+        zone.addEventListener('pointerdown',event=>event.stopPropagation());
+        zone.addEventListener('click',event=>{
+          event.stopPropagation();
+          selectedTransitionPair={from:clips[index],to:clips[index+1]};
+          openTransitionPanel();
+        });
         track.append(zone);
       }
     };
@@ -890,6 +949,37 @@
       selectedTimelineClips.forEach(item => item.classList.add('selected'));
       selectedTimelineClip = selectedTimelineClips[0] || null;
     };
+    $('#tracks').addEventListener('pointerdown', event => {
+      if (event.button !== 0 || !event.target.closest('.track') || event.target.closest('.clip,.envelope-handle,.envelope-segment,.envelope-line,button')) return;
+      event.preventDefault(); hideClipContextMenu();
+      const initial = [...selectedTimelineClips];
+      const additive = event.ctrlKey || event.shiftKey || event.metaKey;
+      const box = document.createElement('div'); box.className = 'timeline-selection-box';
+      document.body.append(box);
+      const startX = event.clientX, startY = event.clientY;
+      let dragged = false;
+      const move = e => {
+        if (Math.hypot(e.clientX-startX,e.clientY-startY) < 4 && !dragged) return;
+        dragged = true;
+        const left = Math.min(startX,e.clientX), right = Math.max(startX,e.clientX);
+        const top = Math.min(startY,e.clientY), bottom = Math.max(startY,e.clientY);
+        Object.assign(box.style,{left:`${left}px`,top:`${top}px`,width:`${right-left}px`,height:`${bottom-top}px`});
+        const viewport = $('.timeline-body').getBoundingClientRect();
+        const hits = timelineClips().filter(clip => {
+          const rect = clip.getBoundingClientRect();
+          return rect.right > Math.max(left,viewport.left+250) && rect.left < Math.min(right,viewport.right)
+            && rect.bottom > Math.max(top,viewport.top) && rect.top < Math.min(bottom,viewport.bottom);
+        });
+        applyTimelineSelection([...(additive ? initial : []), ...hits.flatMap(groupMembers)]);
+      };
+      const cleanup = () => {
+        box.remove(); window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',stop);window.removeEventListener('pointercancel',cancel);window.removeEventListener('keydown',escape);
+      };
+      const stop = () => { if (!dragged) applyTimelineSelection(additive ? initial : []); cleanup(); };
+      const cancel = () => {applyTimelineSelection(initial);cleanup();};
+      const escape = e => {if(e.key==='Escape') cancel();};
+      window.addEventListener('pointermove',move);window.addEventListener('pointerup',stop);window.addEventListener('pointercancel',cancel);window.addEventListener('keydown',escape);
+    });
     const selectTimelineClip = (clip, additive = false) => {
       if (!clip) return applyTimelineSelection([]);
       const members = groupMembers(clip);
@@ -1193,7 +1283,174 @@
     bindClips();
     bindEnvelopeHandles();
     $$('.transition-zone').forEach(zone => zone.addEventListener('click', () => { zone.classList.toggle('active'); zone.textContent = zone.classList.contains('active') ? 'Crossfade 12f' : '+ transición'; toast(zone.classList.contains('active') ? 'Transición Crossfade montada entre clips' : 'Transición retirada'); }));
-    $('#transitionButton').addEventListener('click', () => toast('Fade automático · solapa dos eventos para definir la duración'));
+    const transitionPanel=document.createElement('section');transitionPanel.hidden=true;
+    transitionPanel.innerHTML='<div class="eyebrow">TRANSICIONES · LOCALES</div><div class="panel-title"><h2>Transiciones de vídeo</h2></div><p class="transition-help">Haz clic en un solapamiento de la timeline y elige un efecto. Su duración la determina el solapamiento. Pasa el ratón por una tarjeta para ver una muestra.</p><p class="transition-help" id="transitionTarget">Selecciona un solapamiento de vídeo.</p><div class="transition-catalog"></div>';
+    $('.side-panel').append(transitionPanel);
+    const maskControls=document.createElement('dialog');maskControls.className='mask-dialog';maskControls.id='maskDialog';maskControls.setAttribute('aria-labelledby','maskDialogTitle');
+    maskControls.innerHTML='<strong>Máscara de luminancia</strong><p class="transition-help">Blanco: aparece primero. Negro: al final. Los colores se interpretan por su luminosidad.</p><button class="ghost-btn" type="button" id="loadMaskButton">Cargar imagen…</button><input type="file" id="maskFileInput" accept="image/png,image/jpeg,image/webp,image/bmp" hidden><p class="transition-help" id="maskFileName">Ninguna imagen cargada</p><img id="maskThumbnail" alt="Máscara de transición" hidden style="width:100%;max-height:120px;object-fit:contain;background:#000"><label class="transition-help">Suavidad <output id="maskSoftnessValue">15%</output><input id="maskSoftness" type="range" min="0" max="100" value="15" style="width:100%"></label><label class="transition-help"><input type="checkbox" id="maskInvert"> Invertir blanco y negro</label><p class="transition-help">Carga la imagen y pulsa la tarjeta Máscara personalizada para aplicarla al solapamiento seleccionado.</p>';
+    $('strong',maskControls).remove();
+    const maskHeader=document.createElement('div');maskHeader.className='mask-dialog-header';
+    maskHeader.innerHTML='<h2 id="maskDialogTitle">Máscara personalizada</h2><button class="icon-btn" type="button" id="closeMaskDialog" aria-label="Cerrar configuración de máscara">×</button>';
+    maskControls.prepend(maskHeader);
+    const maskAnimationControls=document.createElement('div');
+    maskAnimationControls.innerHTML='<label class="transition-help">Movimiento de la máscara<select id="maskMotion" class="ghost-btn" style="display:block;width:100%;background:#10213b"><option value="none">Estática · revelado por luminancia</option><option value="zoomIn">Zoom in · acercar</option><option value="zoomOut">Zoom out · alejar</option><option value="left">Travelling a la izquierda</option><option value="right">Travelling a la derecha</option><option value="up">Travelling hacia arriba</option><option value="down">Travelling hacia abajo</option><option value="shake">Temblor</option></select></label><label class="transition-help">Intensidad del movimiento <output id="maskAmountValue">50%</output><input id="maskAmount" type="range" min="0" max="100" value="50" style="width:100%"></label><label class="transition-help">Blur de la imagen <output id="maskBlurValue">0 px</output><input id="maskBlur" type="range" min="0" max="50" value="0" style="width:100%"></label><p class="transition-help">El movimiento anima la máscara, no añade su imagen sobre el vídeo. Blur difumina la imagen; Suavidad mezcla únicamente el borde del revelado. No se añade un fundido global.</p><div id="maskMotionPreview" style="aspect-ratio:16/9;background:#000;border-radius:6px;overflow:hidden"></div><label class="transition-help">Posición de la muestra <output id="maskProgressValue">50%</output><input id="maskProgress" type="range" min="0" max="100" value="50" style="width:100%"></label>';
+    maskControls.append(maskAnimationControls);
+    $('#maskSoftness',maskControls).value='0';$('#maskSoftnessValue',maskControls).textContent='0%';
+    const maskActions=document.createElement('div');maskActions.className='mask-dialog-actions';
+    maskActions.innerHTML='<button class="ghost-btn" type="button" id="dismissMaskDialog">Cerrar</button><button class="solid-btn" type="button" id="applyMaskDialog">Aplicar al solapamiento</button>';
+    maskControls.append(maskActions);
+    $$('p',maskControls).at(-1).textContent='Los ajustes de una máscara ya aplicada se actualizan en la vista previa. Usa Aplicar para asignar una imagen nueva.';
+    document.body.append(maskControls);
+    const openMaskDialog=()=>{
+      stopTransitionPreview();
+      const pair=selectedOverlap();
+      if(pair?.to.dataset.transition==='lumaMask' && transitionMasks.has(pair.to)) customMask={...transitionMasks.get(pair.to)};
+      refreshMaskControls();
+      $('#applyMaskDialog').disabled=!pair;
+      if(!maskControls.open)maskControls.showModal();
+      renderMaskConfigurationPreview();
+    };
+    $('#closeMaskDialog').addEventListener('click',()=>maskControls.close());
+    $('#dismissMaskDialog').addEventListener('click',()=>maskControls.close());
+    $('#applyMaskDialog').addEventListener('click',()=>{if(applyTransition('lumaMask'))maskControls.close();});
+    maskControls.addEventListener('keydown',event=>{if(event.key==='Escape')event.stopPropagation();});
+    let customMask=null;
+    const refreshMaskControls=()=>{
+      $('#maskFileName').textContent=customMask?.name || 'Ninguna imagen cargada';
+      $('#maskThumbnail').hidden=!customMask;
+      if(customMask) $('#maskThumbnail').src=customMask.dataUrl;
+      $('#maskSoftness').value=String(Math.round((customMask?.softness ?? 0)*100));
+      $('#maskSoftnessValue').textContent=$('#maskSoftness').value+'%';
+      $('#maskInvert').checked=!!customMask?.invert;
+      $('#maskMotion').value=customMask?.motion||'none';
+      $('#maskAmount').value=String(Math.round((customMask?.amount??.5)*100));
+      $('#maskAmountValue').textContent=$('#maskAmount').value+'%';
+      $('#maskAmount').disabled=$('#maskMotion').value==='none';
+      $('#maskBlur').value=String(customMask?.blur||0);$('#maskBlurValue').textContent=$('#maskBlur').value+' px';
+    };
+    const loadCustomMask=async file=>{
+      if(!file || file.size>20*1024*1024) throw new Error('Elige una imagen de hasta 20 MB');
+      const url=URL.createObjectURL(file);
+      try {
+        const image=new Image();image.src=url;await image.decode();
+        const canvas=document.createElement('canvas'),scale=Math.min(1,2048/Math.max(image.naturalWidth,image.naturalHeight));
+        canvas.width=Math.max(1,Math.round(image.naturalWidth*scale));canvas.height=Math.max(1,Math.round(image.naturalHeight*scale));
+        const ctx=canvas.getContext('2d');ctx.fillStyle='#000';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(image,0,0,canvas.width,canvas.height);
+        const dataUrl=canvas.toDataURL('image/png');
+        const stored=await window.lqtacDesktop.saveTransitionMask(dataUrl);
+        customMask={image:canvas,dataUrl,name:file.name,softness:Number($('#maskSoftness').value)/100,invert:$('#maskInvert').checked,motion:$('#maskMotion').value,amount:Number($('#maskAmount').value)/100,blur:Number($('#maskBlur').value),...stored};
+        refreshMaskControls();toast('Máscara guardada localmente · pulsa Aplicar al solapamiento');
+        renderMaskConfigurationPreview();
+        return customMask;
+      } finally {URL.revokeObjectURL(url);}
+    };
+    $('#loadMaskButton').addEventListener('click',async ()=>{
+      if(!window.lqtacDesktop?.openTransitionMask){$('#maskFileInput').click();return;}
+      try {
+        const selected=await window.lqtacDesktop.openTransitionMask();
+        if(selected.canceled)return;
+        const bytes=Uint8Array.from(atob(selected.base64),character=>character.charCodeAt(0));
+        await loadCustomMask(new File([bytes],selected.name));
+      }catch(error){toast('No se pudo cargar la máscara: '+error.message);}
+    });
+    $('#maskFileInput').addEventListener('change',async event=>{
+      try {if(event.target.files[0]) await loadCustomMask(event.target.files[0]);}
+      catch(error){toast('No se pudo cargar la máscara: '+error.message);}
+      finally {event.target.value='';}
+    });
+    const updateMaskSettings=()=>{
+      $('#maskSoftnessValue').textContent=$('#maskSoftness').value+'%';
+      if(!customMask)return;
+      customMask={...customMask,softness:Number($('#maskSoftness').value)/100,invert:$('#maskInvert').checked,motion:$('#maskMotion').value,amount:Number($('#maskAmount').value)/100,blur:Number($('#maskBlur').value)};
+      refreshMaskControls();renderMaskConfigurationPreview();
+      const pair=selectedOverlap();
+      if(pair?.to.dataset.transition==='lumaMask' && transitionMasks.get(pair.to)?.id===customMask.id) {
+        transitionMasks.set(pair.to,{...customMask});void renderTimelineAt(timelineTime);
+      }
+    };
+    $('#maskSoftness').addEventListener('input',updateMaskSettings);$('#maskInvert').addEventListener('change',updateMaskSettings);
+    $('#maskMotion').addEventListener('change',updateMaskSettings);$('#maskAmount').addEventListener('input',updateMaskSettings);$('#maskBlur').addEventListener('input',updateMaskSettings);
+    const transitionPreview=document.createElement('canvas');transitionPreview.width=240;transitionPreview.height=135;
+    let previewRenderer=null, transitionPreviewFrame=0;
+    const previewSources=['#129ee6','#ed9950'].map((color,index)=>{
+      const canvas=document.createElement('canvas');canvas.width=240;canvas.height=135;
+      const context=canvas.getContext('2d'),gradient=context.createLinearGradient(0,0,240,135);
+      gradient.addColorStop(0,color);gradient.addColorStop(1,'#07162d');context.fillStyle=gradient;context.fillRect(0,0,240,135);
+      context.fillStyle='white';context.font='bold 70px Arial';context.textAlign='center';context.fillText(index?'B':'A',120,95);
+      return canvas;
+    });
+    let maskConfigurationRenderer=null;
+    const renderMaskConfigurationPreview=()=>{
+      $('#maskProgressValue').textContent=$('#maskProgress').value+'%';
+      if(!customMask)return;
+      try {
+        if(!maskConfigurationRenderer){const canvas=document.createElement('canvas');canvas.width=320;canvas.height=180;canvas.style.width='100%';canvas.style.height='100%';maskConfigurationRenderer=new window.LQTACTransitions.Renderer(canvas);$('#maskMotionPreview').append(canvas);}
+        maskConfigurationRenderer.draw('lumaMask',...previewSources,Number($('#maskProgress').value)/100,customMask);
+        const processedMask=window.LQTACTransitions.prepareMask(customMask.image,customMask.blur);
+        $('#maskThumbnail').src=customMask.blur?processedMask.toDataURL('image/png'):customMask.dataUrl;
+      } catch(error){toast('Vista previa de máscara no disponible');console.warn(error);}
+    };
+    $('#maskProgress').addEventListener('input',renderMaskConfigurationPreview);
+    const stopTransitionPreview=()=>{cancelAnimationFrame(transitionPreviewFrame);transitionPreview.remove();};
+    const selectedOverlap = () => {
+      const valid=pair=>pair?.from.isConnected && pair.to.isConnected && pair.from.parentElement===pair.to.parentElement
+        && pair.to.dataset.kind==='video' && Math.min(clipTiming(pair.from).startSeconds+clipTiming(pair.from).durationSeconds,clipTiming(pair.to).startSeconds+clipTiming(pair.to).durationSeconds)>Math.max(clipTiming(pair.from).startSeconds,clipTiming(pair.to).startSeconds);
+      if(valid(selectedTransitionPair)) return selectedTransitionPair;
+      for(const clip of selectedTimelineClips.filter(clip=>clip.dataset.kind==='video')) {
+        const peers=timelineClips().filter(item=>item!==clip&&item.parentElement===clip.parentElement).sort((a,b)=>clipTiming(a).startSeconds-clipTiming(b).startSeconds);
+        for(const peer of peers) {
+          const pair=clipTiming(peer).startSeconds<=clipTiming(clip).startSeconds?{from:peer,to:clip}:{from:clip,to:peer};
+          if(valid(pair)) return pair;
+        }
+      }
+      return null;
+    };
+    const openTransitionPanel=()=>{
+      [...$('.side-panel').children].forEach(child=>child.hidden=child!==transitionPanel);
+      stopTransitionPreview();
+      selectedTransitionPair=selectedOverlap();
+      if(selectedTransitionPair?.to.dataset.transition==='lumaMask' && transitionMasks.has(selectedTransitionPair.to)) customMask={...transitionMasks.get(selectedTransitionPair.to)};
+      refreshMaskControls();
+      $('#transitionTarget').textContent=selectedTransitionPair ? `${selectedTransitionPair.from.textContent.trim()} → ${selectedTransitionPair.to.textContent.trim()}` : 'Selecciona un solapamiento de vídeo.';
+      $$('.transition-card',transitionPanel).forEach(button=>button.classList.toggle('active',button.dataset.transition===(selectedTransitionPair?.to.dataset.transition||'fade')));
+    };
+    const applyTransition=id=>{
+      const pair=selectedOverlap();
+      if(!pair){toast('Solapa dos vídeos y haz clic en su zona de transición');return false;}
+      if(id==='lumaMask') {
+        if(!customMask){toast('Carga una imagen para crear la máscara');$('#loadMaskButton').focus();return false;}
+        transitionMasks.set(pair.to,{...customMask});
+      }
+      pair.to.dataset.transition=id;selectedTransitionPair=pair;
+      updateTrackTransitions(pair.to.parentElement);openTransitionPanel();void renderTimelineAt(timelineTime);
+      toast(`${window.LQTACTransitions.catalog.find(item=>item.id===id).name} aplicado · duración por solapamiento`);
+      return true;
+    };
+    window.LQTACTransitions.catalog.forEach(effect=>{
+      const button=document.createElement('button');button.type='button';button.className='transition-card';button.dataset.transition=effect.id;
+      button.innerHTML='<div class="transition-swatch"></div><strong></strong><small></small>';
+      $('strong',button).textContent=effect.name;$('small',button).textContent=effect.description;
+      button.addEventListener('click',()=>effect.id==='lumaMask'?openMaskDialog():applyTransition(effect.id));
+      button.addEventListener('pointerenter',()=>{
+        stopTransitionPreview();
+        try {
+          previewRenderer ||= new window.LQTACTransitions.Renderer(transitionPreview);
+          $('.transition-swatch',button).append(transitionPreview);
+          const start=performance.now();
+          if(effect.id==='lumaMask' && !customMask){toast('Carga una imagen para ver la muestra');return;}
+          const animate=now=>{if(transitionPanel.hidden)return;previewRenderer.draw(effect.id,...previewSources,((now-start)%2000)/2000,customMask||{});transitionPreviewFrame=requestAnimationFrame(animate);};
+          transitionPreviewFrame=requestAnimationFrame(animate);
+        }catch(error){toast('Muestra WebGL no disponible');console.warn(error);}
+      });
+      button.addEventListener('pointerleave',stopTransitionPreview);
+      $('.transition-catalog',transitionPanel).append(button);
+    });
+    $('#transitionButton').addEventListener('click',openTransitionPanel);
+    $$('.dock-panel-item').forEach(button=>button.addEventListener('click',()=>{
+      if(button.textContent.includes('Transiciones')) openTransitionPanel();
+      else {stopTransitionPreview();[...$('.side-panel').children].forEach(child=>child.hidden=child===transitionPanel);}
+    }));
+    $('.rail [title="Transiciones"]')?.addEventListener('click',openTransitionPanel);
     let dynamicTrackIndex = 2;
     const addTimelineTrack = kind => {
       dynamicTrackIndex += 1;

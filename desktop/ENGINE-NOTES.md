@@ -1,5 +1,9 @@
 # Referencias de arquitectura
 
+## Transiciones locales
+
+Se incorporan seis shaders MIT de https://github.com/gl-transitions/gl-transitions, revisión 66a975917ab01a738408c81eb74fd329935e1c72. Las fuentes conservan sus cabeceras en dist/assets/transition-shaders.js y la licencia se incluye en dist/THIRD-PARTY/gl-transitions-LICENSE.txt. El adaptador WebGL es propio. No se carga código remoto durante la ejecución. Los paquetes portátiles copian dist completo, incluida la licencia.
+
 Consultadas el 22 de octubre de 2026:
 
 - Shotcut: https://github.com/mltframework/shotcut/blob/master/src/models/multitrackmodel.cpp

@@ -38,6 +38,8 @@ El lanzador abre el ejecutable local de Electron incluido en `desktop\node_modul
 
 - Clic en un evento: seleccionarlo; si pertenece a un grupo, seleccionar el grupo.
 - Ctrl o Shift + clic: añadir o quitar eventos de la selección.
+- Arrastrar desde una zona vacía de una pista: dibujar un recuadro y seleccionar los clips que toca, incluso entre varias pistas. Los miembros de un grupo se seleccionan juntos.
+- Ctrl o Shift + arrastrar un recuadro: añadir clips a la selección existente. Clic en una zona vacía: limpiar la selección. Escape durante el arrastre: cancelar y recuperar la selección anterior.
 - Arrastrar los eventos seleccionados para cambiar su posición temporal.
 - Se permite trasladar un evento entre pistas. Los cambios temporales de un grupo aplican un desplazamiento común para conservar su sincronización.
 - Suprimir o Retroceso: eliminar los eventos seleccionados de la timeline.
@@ -56,6 +58,45 @@ El lanzador abre el ejecutable local de Electron incluido en `desktop\node_modul
 Solapar dos eventos de la misma pista define la duración de la transición. Por defecto se aplica un fundido entre ambos, tanto en audio como en vídeo.
 
 La zona de solapamiento muestra su duración. La vista previa aplica cambios graduales de volumen u opacidad durante esa zona.
+
+### Catálogo de transiciones de vídeo
+
+Disponible desde Transiciones en el selector lateral o desde el botón Transición de la timeline.
+
+1. Solapar dos clips de vídeo en la misma pista.
+2. Hacer clic en la zona del solapamiento para identificar el par que se va a editar. También se puede seleccionar un clip solapado y abrir el panel.
+3. Pasar el ratón por una tarjeta para ver una muestra animada A/B.
+4. Pulsar la tarjeta para aplicar el efecto al par elegido.
+5. Reproducir o situar el cabezal sobre el solapamiento para ver el resultado con los vídeos reales.
+
+Efectos iniciales: Fundido, Barrido izquierda, Barrido derecha, Apertura circular, Pixelado y Zoom deformado. La duración siempre procede del solapamiento. Seleccionar Fundido restaura la transición por defecto. El audio conserva su fundido independiente.
+
+Los shaders proceden de `gl-transitions/gl-transitions`, revisión `66a975917ab01a738408c81eb74fd329935e1c72`, y están incluidos en `dist/assets/transition-shaders.js`, con los autores y licencias originales. La licencia MIT y su aviso se distribuyen en `dist/THIRD-PARTY/gl-transitions-LICENSE.txt`. No se consultan GitHub ni CDN al usar los efectos. El adaptador WebGL local de LQTAC está en `dist/assets/transitions.js`.
+
+Esta implementación corresponde a la vista previa. La exportación final del proyecto sigue pendiente. Si WebGL falla, se conserva el fundido y se muestra un aviso.
+
+### Transición por máscara personalizada
+
+El selector Cargar imagen se abre siempre en la carpeta `Shapes` de la raíz del proyecto. En el paquete portátil, `Shapes` está junto a `LQTAC Studio.exe` e incluye la máscara LQTAC de ejemplo. Aunque se elija una imagen de otra ubicación, la siguiente apertura vuelve a comenzar en `Shapes`.
+
+1. Abrir Transiciones y pulsar la tarjeta Máscara personalizada. Sus controles aparecen en una ventana flotante, no permanentemente en el catálogo.
+2. Dentro de la ventana pulsar Cargar imagen. Aplicar al solapamiento asigna la imagen; Cerrar, la cruz o Escape cierran la configuración sin quitar la transición. Reabrir la tarjeta con un solapamiento de máscara seleccionado recupera sus ajustes.
+3. Elegir una imagen PNG, JPEG, WebP o BMP de hasta 20 MB. Se recomienda una imagen en blanco y negro con degradados.
+4. Seleccionar previamente el solapamiento entre dos vídeos y usar Aplicar al solapamiento. Si no hay un par seleccionado, se puede preparar la imagen pero Aplicar queda desactivado.
+5. Elegir Movimiento de la máscara: Estática, Zoom in, Zoom out, Travelling izquierda/derecha/arriba/abajo o Temblor. Intensidad controla la amplitud del movimiento. Estos movimientos se aplican a la máscara, no a los vídeos.
+6. Ajustar Blur de la imagen entre 0 y 50 px para difuminar la máscara y generar zonas grises. El blur se calcula sobre una copia de trabajo de hasta 1024 píxeles y se conserva en caché para no recalcularlo en cada fotograma. El original no se modifica.
+7. Suavidad controla únicamente la mezcla del borde del revelado; empieza en 0 % para evitar una mezcla no solicitada. Invertir blanco y negro cambia el orden de aparición. Los ajustes de una máscara aplicada se actualizan inmediatamente; cerrar la ventana no revierte esos cambios.
+8. Posición de la muestra permite examinar cualquier momento de la transición entre los ejemplos A/B antes de aplicarla. La miniatura refleja el blur y la muestra refleja también movimiento, inversión y suavidad.
+
+Las transiciones personalizadas sustituyen el fundido automático del vídeo: el compositor muestra únicamente los colores de los vídeos seleccionados, usando la imagen como mapa de revelado, sin superponer la propia imagen ni añadir un fundido global. Si el compositor no está listo o falla, permanece el vídeo anterior; no se introduce un fundido como sustitución. Las envolventes de opacidad de la pista siguen siendo independientes, al igual que el fundido de las pistas de audio.
+
+El blanco revela primero el vídeo entrante; el negro lo revela al final y los grises ordenan las zonas intermedias. Las imágenes de color se interpretan por su luminosidad. La imagen se adapta al tamaño de la vista previa; las transparencias del archivo se interpretan sobre negro.
+
+Cada solapamiento mantiene su propia imagen y sus ajustes. Los controles modifican la máscara del solapamiento seleccionado cuando coincide con la imagen cargada. Cargar otra imagen no sustituye ninguna transición hasta pulsar la tarjeta para aplicarla.
+
+Se guarda una copia PNG independiente del original en `transition-masks`, dentro de los datos locales de la aplicación de Windows. Las imágenes grandes se reducen a un máximo de 2048 píxeles de lado para la vista previa. Esta copia no requiere Internet. El guardado y traslado de un proyecto completo con sus máscaras sigue pendiente del sistema de persistencia de proyectos; actualmente los ajustes de la timeline no se recuperan automáticamente al cerrar.
+
+Comprobaciones técnicas: carga de PNG y copia local, compilación del shader, extremos de transición exactos, orden de blanco/negro e inversión mediante lectura de píxeles y aplicación de máscara, suavidad e inversión sobre ambos MP4 de prueba. Pendiente de aceptación visual por el usuario.
 
 ## Monitor y reproducción del proyecto
 
@@ -112,6 +153,8 @@ El zoom modifica la representación visual, no las duraciones, los tiempos de lo
 | Reproducción y timeline tras las correcciones | Usuario da por buena esta parte antes de solicitar las envolventes. Pruebas técnicas de reproducción con los MP4 de 2:15 y 4:21, pares de igual duración y cabezal en movimiento. |
 | Envolventes | Aceptadas por el usuario al solicitar la siguiente mejora. Comprobaciones técnicas de inserción de puntos, movimiento de punto y tramo, y aplicación de volumen 25 % y opacidad 40 % a los reproductores. |
 | Creación de pistas y zoom | Implementados y comprobados técnicamente: pistas vacías con controles de inserción/envolvente, zoom 400 %, desplazamiento horizontal y ajuste completo. Pendiente de confirmación explícita de uso por el usuario. |
+| Selección por recuadro | Comprobada técnicamente sobre clips agrupados y cancelación con Escape. Pendiente de aceptación explícita. |
+| Catálogo de transiciones | Seis shaders compilados y comprobados con lectura de píxeles en inicio y final; barrido aplicado en el compositor con los MP4 reales de 2:15 y 4:21. Pendiente de aceptación visual por el usuario. |
 | Funcionamiento offline completo | Requisito acordado. Pendiente de prueba integral con conexión desactivada y de completar guardado/exportación. |
 
 ## Límites actuales y funciones pendientes

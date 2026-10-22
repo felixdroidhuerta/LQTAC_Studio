@@ -6,6 +6,7 @@ const { pathToFileURL } = require('node:url');
 const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const { parseVegasProject } = require('./veg-parser.cjs');
 const execFileAsync = promisify(execFile);
+const crypto = require('node:crypto');
 
 let mainWindow;
 
@@ -94,6 +95,24 @@ ipcMain.handle('open-media', async () => {
   return { canceled: false, files: result.filePaths.map(filePath => ({ filePath, fileName: path.basename(filePath), extension: path.extname(filePath).slice(1).toLowerCase() })) };
 });
 
+ipcMain.handle('open-transition-mask', async () => {
+  const root = app.isPackaged ? path.dirname(process.execPath) : path.join(__dirname, '..');
+  const shapes = path.join(root, 'Shapes');
+  await fs.promises.mkdir(shapes, { recursive: true });
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: 'Elegir máscara de transición',
+    defaultPath: shapes,
+    properties: ['openFile'],
+    filters: [{ name: 'Imágenes de máscara', extensions: ['png', 'jpg', 'jpeg', 'webp', 'bmp'] }]
+  });
+  if (result.canceled || !result.filePaths[0]) return { canceled: true };
+  const filePath = result.filePaths[0];
+  const stat = await fs.promises.stat(filePath);
+  if (stat.size > 20 * 1024 * 1024) throw new Error('Elige una imagen de hasta 20 MB');
+  const bytes = await fs.promises.readFile(filePath);
+  return { canceled: false, name: path.basename(filePath), base64: bytes.toString('base64') };
+});
+
 ipcMain.handle('read-file-text', async (_event, filePath) => {
   return fs.readFileSync(filePath, 'utf8');
 });
@@ -101,6 +120,18 @@ ipcMain.handle('read-file-text', async (_event, filePath) => {
 ipcMain.handle('get-demo-media', async () => demoMedia.filter(item => fs.existsSync(item.filePath)));
 
 ipcMain.handle('media-file-url', async (_event, filePath) => pathToFileURL(filePath).toString());
+
+ipcMain.handle('save-transition-mask', async (_event, dataUrl) => {
+  if (typeof dataUrl !== 'string' || !/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(dataUrl) || dataUrl.length > 24 * 1024 * 1024) throw new Error('Imagen de máscara no válida');
+  const bytes = Buffer.from(dataUrl.split(',')[1], 'base64');
+  if (bytes.subarray(0,8).toString('hex') !== '89504e470d0a1a0a') throw new Error('La máscara no es PNG');
+  const hash = crypto.createHash('sha256').update(bytes).digest('hex');
+  const directory = path.join(app.getPath('userData'), 'transition-masks');
+  await fs.promises.mkdir(directory, { recursive: true });
+  const filePath = path.join(directory, hash + '.png');
+  await fs.promises.writeFile(filePath, bytes);
+  return { id: hash, filePath };
+});
 
 ipcMain.handle('media-duration', async (_event, filePath) => {
   if (!filePath || !fs.existsSync(filePath) || process.platform !== 'win32') return 0;

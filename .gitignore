@@ -1,0 +1,7 @@
+node_modules/
+desktop/node_modules/
+*.log
+tmp/
+.openai/
+LQTAC_Studio_Portable_*/
+LQTAC_Studio_Portable_*.zip

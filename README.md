@@ -1,6 +1,6 @@
 # LQTAC Studio
 
-Editor local de vídeo y audio para Windows. Versión de desarrollo 0.5.0.
+Editor local de vídeo y audio para Windows. Versión de desarrollo 0.5.1.
 
 ## Descargar el programa
 
@@ -39,3 +39,5 @@ Versión 0.4.0: controles reales de mute/solo, volumen/opacidad, balance estére
 
 
 Versión 0.5.0: apertura de VEG con puente estructural exportado desde VEGAS, curvas calibradas, mezcla de solapamientos y persistencia del informe de compatibilidad. Instrucciones y límites en la sección «Puente operativo VEGAS → LQTAC» de FUNCIONAMIENTO.md.
+
+Versión 0.5.1: «Abrir proyecto VEGAS» inicia automáticamente VEGAS Pro si falta un puente válido. No hace falta abrir VEGAS ni ejecutar el script a mano. Requiere VEGAS instalado en la ruta habitual de Program Files/VEGAS y medios accesibles. Convierte la copia guardada del VEG; los cambios sin guardar en otra sesión no se incluyen. Un puente vigente se reutiliza sin iniciar VEGAS.

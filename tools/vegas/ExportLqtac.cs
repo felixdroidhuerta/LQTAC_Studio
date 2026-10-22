@@ -12,6 +12,8 @@ using ScriptPortal.Vegas;
 // Reads the user's saved project. Curve calibration edits only a temporary clone.
 public class EntryPoint
 {
+    public bool Automated = false;
+    public string OutputPath = null;
     string HashFile(string file)
     {
         using (SHA256 sha = SHA256.Create()) using (FileStream stream = File.OpenRead(file)) return BitConverter.ToString(sha.ComputeHash(stream)).Replace("-", "").ToLowerInvariant();
@@ -196,6 +198,7 @@ public class EntryPoint
         JavaScriptSerializer serializer = new JavaScriptSerializer(); serializer.MaxJsonLength = 100 * 1024 * 1024;
         string temporary = output + ".tmp";
         File.WriteAllText(temporary, serializer.Serialize(report), new UTF8Encoding(false)); File.Move(temporary, output);
-        MessageBox.Show("Puente exportado sin modificar el VEG.\nPistas: " + tracks.Count + "\nErrores de lectura: " + errors.Count + "\n\n" + output + "\n\nEn LQTAC pulsa Abrir proyecto VEGAS y elige el .veg original.", "LQTAC - Exportar puente VEGAS");
+        if (OutputPath != null) { File.WriteAllText(OutputPath + ".tmp", output, new UTF8Encoding(false)); File.Move(OutputPath + ".tmp", OutputPath); }
+        if (!Automated) MessageBox.Show("Puente exportado sin modificar el VEG.\nPistas: " + tracks.Count + "\nErrores de lectura: " + errors.Count + "\n\n" + output + "\n\nEn LQTAC pulsa Abrir proyecto VEGAS y elige el .veg original.", "LQTAC - Exportar puente VEGAS");
     }
 }

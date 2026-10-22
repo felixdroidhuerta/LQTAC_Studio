@@ -1,8 +1,8 @@
 # LQTAC Studio — guía de desarrollo y continuidad
 
-Actualizado: 22-10-2026. Código: **0.5.0**. Proyecto privado: https://github.com/felixdroidhuerta/LQTAC_Studio.
+Actualizado: 22-10-2026. Código: **0.5.1**. Proyecto privado: https://github.com/felixdroidhuerta/LQTAC_Studio.
 
-Estado vigente: ver la sección final «Puente operativo VEGAS → LQTAC — 0.5.0». Ya existe un puente estructural inicial; las secciones de 0.3.4 se conservan como contexto histórico. No declarar lectura binaria universal ni compatibilidad audiovisual completa con VEG.
+Estado vigente: ver la sección final «Conversión VEGAS integrada — 0.5.1». Ya existe un puente estructural inicial; las secciones de 0.3.4 se conservan como contexto histórico. No declarar lectura binaria universal ni compatibilidad audiovisual completa con VEG.
 
 ## 1. Objetivo y condiciones del producto
 
@@ -323,3 +323,13 @@ Para ejecutar la prueba sintética: desde desktop, eliminar ELECTRON_RUN_AS_NODE
 
 
 Comprobación final 0.5.0: verify-project.cjs, verify-work.cjs y verify-vegas.cjs terminan con código 0. Los seis formatos de exportación se decodifican correctamente. aeval declara/reafirma el layout estéreo para la compatibilidad con AAC de FFmpeg 6.1.1. El montaje real se ha abierto en una instancia de revisión con perfil temporal independiente; no se ha cerrado la sesión anterior de trabajo del usuario. No se ha creado Release ni actualizado dependencias.
+
+## Conversión VEGAS integrada — 0.5.1 (22/10/2026)
+
+En LQTAC, pulsar «Abrir proyecto VEGAS» y seleccionar el archivo guardado. No hace falta iniciar VEGAS ni ejecutar scripts manualmente: si falta un puente o su SHA-256 está desactualizado, desktop/vegas-automation.cjs detecta VEGAS en Program Files/VEGAS (prioriza la versión más reciente), inicia /OPEN y /SCRIPT con argumentos separados sin shell, y espera la respuesta. Se sigue necesitando VEGAS Pro instalado; no se ha implementado lectura binaria independiente. Un puente válido se abre sin iniciar VEGAS.
+
+El exportador y su .config se incluyen en el portable. La automatización genera un script propio en una carpeta temporal única, verifica la ruta del proyecto abierto y escribe la señal de finalización de forma atómica. El puente permanece junto al VEG y se valida contra sus bytes antes de importar. No se guarda ni se modifica el VEG, ni se cierra o sustituye la sesión de trabajo ya abierta. Se lee la copia guardada en disco: los cambios pendientes en otra sesión no se convierten. La interfaz indica la espera y evita aperturas repetidas desde el botón. Fallos de lanzamiento/API y espera de tres minutos se comunican sin sustituir el montaje actual. No se mata VEGAS al vencer el plazo; puede haber diálogos de licencia o medios pendientes. En ese caso resolverlos y volver a abrir el VEG. Los temporales sin señal de éxito se conservan para permitir que una carga tardía termine.
+
+Prueba real del flujo automático con VEGAS Pro 22 build 250: 5 pistas y 19 eventos, cero errores de importación, sesión original abierta y sin cambios. desktop/verify-vegas-automation.cjs comprueba con lanzador simulado regeneración, reutilización sin arranque, rutas Unicode, fallo de arranque, timeout y recuperación del bloqueo. Los límites audiovisuales y de mapeo de 0.5.0 siguen vigentes. No se han actualizado dependencias ni creado Release.
+
+Referencia de los argumentos: https://help.magix-hub.com/video/vegas/22/de/content/topics/11-autoscript/scripting_in_vegas.htm

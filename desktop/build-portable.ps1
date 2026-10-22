@@ -13,7 +13,7 @@ Rename-Item -LiteralPath (Join-Path $OutputDirectory 'electron.exe') -NewName 'L
 $appRoot = Join-Path $OutputDirectory 'resources\app'
 $desktopTarget = Join-Path $appRoot 'desktop'
 New-Item -ItemType Directory -Path $desktopTarget -Force | Out-Null
-foreach ($name in @('main.cjs','preload.cjs','veg-parser.cjs','vegas-bridge.cjs','project-io.cjs','render-engine.cjs')) {
+foreach ($name in @('main.cjs','preload.cjs','veg-parser.cjs','vegas-bridge.cjs','vegas-automation.cjs','project-io.cjs','render-engine.cjs')) {
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot $name) -Destination $desktopTarget
 }
 $codecTarget = Join-Path $desktopTarget 'codecs'
@@ -26,6 +26,11 @@ foreach ($name in @('ffmpeg.exe','LICENSE','README.md','ffmpeg.exe.LICENSE','ffm
 }
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'EXPORTACION.md') -Destination $codecTarget
 Copy-Item -LiteralPath (Join-Path $projectRoot 'dist') -Destination $appRoot -Recurse
+$vegasTarget = Join-Path $appRoot 'tools\vegas'
+New-Item -ItemType Directory -Path $vegasTarget -Force | Out-Null
+foreach ($name in @('ExportLqtac.cs','ExportLqtac.cs.config')) {
+    Copy-Item -LiteralPath (Join-Path $projectRoot ('tools\vegas\' + $name)) -Destination $vegasTarget
+}
 Copy-Item -LiteralPath (Join-Path $projectRoot 'Shapes') -Destination $OutputDirectory -Recurse
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'portable-package.json') -Destination (Join-Path $appRoot 'package.json')
 Copy-Item -LiteralPath (Join-Path $projectRoot 'FUNCIONAMIENTO.md') -Destination $OutputDirectory

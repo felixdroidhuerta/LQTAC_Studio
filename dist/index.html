@@ -491,6 +491,7 @@
     };
     const openVegasLocally = async requestedPath => {
       if (window.lqtacDesktop?.openVegasProject) {
+        const button=$('#openVegasButton');if(button.disabled)return;button.disabled=true;button.textContent='Abriendo VEGAS · espera…';
         try{
           await demoReady;const result=await window.lqtacDesktop.openVegasProject(typeof requestedPath==='string'?requestedPath:undefined);if(result.canceled)return;
           if(!result.report){toast('Formato sin importador de timeline implementado.');return;}
@@ -501,6 +502,7 @@
           $('#compatDetails').textContent=result.report.warnings.map(w=>w.scope+' · '+w.code+' · '+(typeof w.detail==='object'?JSON.stringify(w.detail):w.detail)).join('\n')||'Sin avisos.';
           $('#bridgeCompat').textContent='Guardar como LQTS';compatModal.classList.add('open');
         }catch(error){alert('No se pudo abrir el proyecto VEGAS:\n'+error.message);}
+        finally{button.disabled=false;button.textContent='↗ Abrir proyecto VEGAS';}
         return;
       }
       $('#fileInput').click();

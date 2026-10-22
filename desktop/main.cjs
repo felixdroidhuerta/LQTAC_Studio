@@ -120,7 +120,7 @@ ipcMain.handle('open-vegas-project', async (_event,requestedPath) => {
   const filePath = result.filePaths[0];
   const ext = path.extname(filePath).slice(1).toLowerCase();
   if (ext === 'veg' || ext === 'vf') {
-    const loaded=await require('./vegas-bridge.cjs').openVegas(filePath);
+    const loaded=await require('./vegas-automation.cjs').openVegas(filePath);
     if(loaded.project)currentProjectPath=null;return {canceled:false,...loaded};
   }
   if(filePath.toLowerCase().endsWith('.lqtac.json')){const loaded=await require('./vegas-bridge.cjs').readBridge(filePath);if(loaded.project)currentProjectPath=null;return {canceled:false,...loaded};}
@@ -206,11 +206,11 @@ app.whenReady().then(async () => {
   createWindow();
   if(startupVegas){
     try{
-      const loaded=await require('./vegas-bridge.cjs').openVegas(startupVegas);
+      const loaded=await require('./vegas-automation.cjs').openVegas(startupVegas);
       if(loaded.report.errors.length)throw new Error(JSON.stringify(loaded.report.errors,null,2));
       if(mainWindow.webContents.isLoading())await new Promise(resolve=>mainWindow.webContents.once('did-finish-load',resolve));
       await mainWindow.webContents.executeJavaScript(`(async()=>{await demoReady;await restoreProject(${JSON.stringify(loaded.project)});resetEditHistory();toast('Montaje VEGAS importado · consulta el informe de compatibilidad');})()`);
-      mainWindow.setTitle(path.basename(startupVegas)+' — LQTAC Studio 0.5.0');
+      mainWindow.setTitle(path.basename(startupVegas)+' — LQTAC Studio 0.5.1');
     }catch(error){dialog.showErrorBox('No se pudo abrir el VEGAS',error.message);}
   }
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });

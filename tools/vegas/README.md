@@ -1,6 +1,8 @@
-# Puente VEGAS → LQTAC: versión 0.5.0
+# Puente VEGAS → LQTAC: versión 0.5.1
 
-Para convertir: abrir el proyecto guardado en VEGAS y ejecutar **ExportLqtac.cs**, con su archivo `.config` al lado. Crea un JSON nuevo junto al VEG. En LQTAC, **Abrir proyecto VEGAS** carga el VEG con ese JSON y verifica la huella SHA-256. Después guardar como LQTS. No se modifican los medios ni el VEG. Los cambios posteriores del VEG necesitan una nueva exportación.
+Conversión integrada: en LQTAC pulsa **Abrir proyecto VEGAS** y elige el `.veg`. Si no existe un puente vigente, LQTAC detecta VEGAS en Program Files/VEGAS, lo inicia y ejecuta el exportador automáticamente. No necesitas abrir VEGAS previamente. Se convierte la copia guardada; guarda antes cualquier cambio pendiente. Si VEGAS muestra avisos de medios o licencia, resuélvelos en su ventana. El plazo de espera es de tres minutos y no se fuerza el cierre del proceso.
+
+Alternativa manual: abrir el proyecto guardado en VEGAS y ejecutar **ExportLqtac.cs**, con su archivo `.config` al lado. Crea un JSON nuevo junto al VEG. En LQTAC, **Abrir proyecto VEGAS** carga el VEG con ese JSON y verifica la huella SHA-256. Después guardar como LQTS. No se modifican los medios ni el VEG. Los cambios posteriores del VEG necesitan una nueva exportación.
 
 `install-menu.ps1` instala una copia del script y su configuración en Documentos/Vegas Script Menu. Volver a explorar las secuencias de comandos en VEGAS para ver **LQTAC Export Bridge**. El instalador preserva cualquier copia diferente que encuentre.
 
@@ -26,6 +28,6 @@ Genera un inventario `.compatibility.json` y un resumen `.compatibility.md`, sin
 
 Verificado dentro de VEGAS Pro 22 build 250, el 22/10/2026, con el proyecto abierto del usuario: 5 pistas, 19 eventos, cero errores de lectura en la versión corregida y estado IsModified=false antes y después. Todos los medios del pool estaban presentes y online. Detectados velocidad alterada, mute de pista, cadenas de efectos de audio, curvas no lineales y ganancia de evento. El primer intento reveló colecciones COM no enumerables en fades sin transición; se corrigió y volvió a ejecutar.
 
-Los diagnósticos contienen rutas y datos personales del montaje: permanecen excluidos de Git. No incluir canciones ni proyectos personales como fixtures. El script no se incluye en el portable porque se ejecuta en VEGAS y no es una dependencia del editor.
+Los diagnósticos contienen rutas y datos personales del montaje: permanecen excluidos de Git. No incluir canciones ni proyectos personales como fixtures. El portable incluye ExportLqtac.cs y su configuración para la conversión integrada; los diagnósticos y capturas de referencia no se empaquetan.
 
 Referencia: [FAQ oficial de scripting VEGAS Pro 22](https://help.magix-hub.com/video/vegas/22/en/content/topics/external/vegasscriptfaq.html), documentación XML y DLL de la instalación local.

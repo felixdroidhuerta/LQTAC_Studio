@@ -1,8 +1,8 @@
 # LQTAC Studio — guía de desarrollo y continuidad
 
-Actualizado: 23-10-2026. Código: **0.5.2**. Proyecto privado: https://github.com/felixdroidhuerta/LQTAC_Studio.
+Actualizado: 23-10-2026. Código: **0.5.3**. Proyecto privado: https://github.com/felixdroidhuerta/LQTAC_Studio.
 
-Estado vigente: ver la sección final «Alineación de pistas al abrir proyectos — 0.5.2». Ya existe un puente estructural inicial; las secciones de 0.3.4 se conservan como contexto histórico. No declarar lectura binaria universal ni compatibilidad audiovisual completa con VEG.
+Estado vigente: ver la sección final «Transporte del reproductor — 0.5.3». Ya existe un puente estructural inicial; las secciones de 0.3.4 se conservan como contexto histórico. No declarar lectura binaria universal ni compatibilidad audiovisual completa con VEG.
 
 ## 1. Objetivo y condiciones del producto
 
@@ -339,3 +339,9 @@ Referencia de los argumentos: https://help.magix-hub.com/video/vegas/22/de/conte
 Corregida la pérdida de la regla de tiempos al restaurar un montaje LQTS o VEGAS, también al deshacer/rehacer: se conserva una única regla y se actualizan sus marcas con la duración. Las cabeceras y los eventos vuelven a empezar en la misma fila, sin el desfase de 24 píxeles. La creación de pistas durante la restauración no desplaza la vista a la última pista; al terminar se muestra el comienzo vertical de la timeline y se recuperan el zoom y la posición horizontal del proyecto. Los medidores de las cabeceras iniciales quedan anclados a su propia fila. En ventanas de hasta 1280 píxeles, biblioteca y monitor ocupan columnas independientes; antes el diseño compacto los superponía.
 
 La prueba desktop/verify-layout.cjs abre repetidamente montajes de 18 pistas en anchos de 1120, 1180, 1250 y 1540 píxeles y niveles de zoom del 100 % y 400 %, comprueba que la regla sigue visible y que todas las filas coinciden con sus cabeceras. Se guarda una captura en la carpeta temporal de la prueba. No se cambian medios, tiempos ni el formato LQTS.
+
+## Transporte del reproductor — 0.5.3 (23/10/2026)
+
+Corregido el icono de retroceder: los caracteres se dividían en dos líneas dentro del botón. Retroceder y avanzar usan ahora iconos SVG locales centrados y botones de tamaño fijo, con etiquetas y ayudas que indican su función de restar/sumar un segundo. La barra ajusta la información secundaria con puntos suspensivos para conservar los controles visibles en monitores estrechos.
+
+Nuevo botón «Reproducir desde el inicio»: lleva el cabezal a cero y comienza la reproducción, tanto si estaba pausada como si estaba reproduciendo. El botón habitual mantiene reproducir/pausar desde la posición actual y actualiza su etiqueta accesible. La prueba verify-layout.cjs comprueba los controles sin saltos de línea en cuatro anchos, retroceso con límite en cero, avance, reproducción desde cero, pausa, continuación y reinicio durante la reproducción.

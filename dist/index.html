@@ -117,13 +117,14 @@
     .audio-preview-state::before { content:""; width:70%; height:50px; opacity:.75; background:repeating-linear-gradient(90deg, transparent 0 5px, rgba(116,190,255,.88) 5px 7px, transparent 7px 12px); -webkit-mask-image:linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); mask-image:linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); }
     .audio-preview-state.visible { display:flex; }
     .monitor-controls { height: 42px; display:flex; align-items:center; gap: 9px; padding: 2px 4px 0; }
-    .transport { display:flex; gap:5px; }
-    .transport button { border:0; background:transparent; color:var(--muted); width:26px; height:26px; border-radius:7px; cursor:pointer; }
+    .transport { display:flex; flex:none; gap:5px; }
+    .transport button { display:inline-flex; align-items:center; justify-content:center; flex:none; padding:0; white-space:nowrap; border:0; background:transparent; color:var(--muted); width:26px; height:26px; border-radius:7px; cursor:pointer; }
+    .transport svg { width:16px; height:16px; fill:currentColor; flex:none; }
     .transport button:hover { background:rgba(255,255,255,.08); color:var(--text); }
-    .timecode { color: var(--text); font-variant-numeric: tabular-nums; font-size: 12px; width: 78px; }
-    .scrub { flex:1; height: 4px; border-radius:99px; background:#23395f; position:relative; cursor:pointer; }
+    .timecode { color: var(--text); font-variant-numeric: tabular-nums; font-size: 12px; width: 78px; flex:none; }
+    .scrub { flex:1; min-width:24px; height: 4px; border-radius:99px; background:#23395f; position:relative; cursor:pointer; }
     .scrub span { position:absolute; left: 24%; top:50%; transform:translate(-50%,-50%); width:9px; height:9px; border-radius:50%; background:var(--accent-2); box-shadow:0 0 0 4px rgba(110,162,255,.12); }
-    .monitor-stat { color: var(--muted); font-size: 10px; }
+    .monitor-stat { color: var(--muted); font-size: 10px; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .timeline { grid-column:2 / 6; grid-row:2; margin-right:18px; border:1px solid var(--line); border-radius:10px; background:rgba(9,27,53,.68); overflow:hidden; min-height:0; }
     .timeline-top { display:flex; align-items:center; justify-content:space-between; height: 42px; border-bottom:1px solid var(--line); padding:0 12px; }
     .timeline-tabs { display:flex; gap: 4px; }
@@ -338,7 +339,7 @@
           <div class="monitor-head"><strong>Video Preview</strong><div class="monitor-head-actions"><button type="button">Safe Areas</button><button type="button">Calidad ▾</button><button type="button">▣</button></div></div>
           <div class="monitor-screen"><video id="previewVideo" class="preview-media" playsinline preload="metadata"></video><audio id="previewAudio" preload="metadata"></audio><div class="audio-preview-state" id="audioPreviewState">AUDIO PREVIEW</div><span class="frame-label">PREVIEW · 01:03:14:08</span><div class="frame-title" id="frameTitle">Tecnología<br/>con imaginación.</div></div>
           <div class="monitor-controls">
-            <div class="transport"><button id="prevButton" type="button" aria-label="Anterior">|◀</button><button id="playButton" type="button" aria-label="Reproducir">▶</button><button id="nextButton" type="button" aria-label="Siguiente">▶|</button></div>
+            <div class="transport"><button id="prevButton" type="button" aria-label="Retroceder un segundo" title="Retroceder un segundo"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 3h2v14H3zM16 3v14L6 10z"/></svg></button><button id="playFromStartButton" type="button" aria-label="Reproducir desde el inicio" title="Reproducir desde el inicio"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2 3h2v14H2zM7 3l11 7-11 7z"/></svg></button><button id="playButton" type="button" aria-label="Reproducir" title="Reproducir / Pausar">▶</button><button id="nextButton" type="button" aria-label="Avanzar un segundo" title="Avanzar un segundo"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M15 3h2v14h-2zM4 3l10 7-10 7z"/></svg></button></div>
             <span class="timecode" id="timecode">00:01:03:14</span><div class="scrub" id="scrub" aria-label="Posición de reproducción"><span id="scrubDot"></span></div><span class="monitor-stat" id="monitorStat">4K UHD · 24 fps</span>
           </div>
         </section>
@@ -878,7 +879,7 @@
         media.play().catch(error => console.warn('No se pudo iniciar el audio de timeline', error));
       });
     };
-    const stopTimelinePlayback = () => { playing = false; cancelAnimationFrame(timer); previewVideo.pause(); for (const media of [...timelineAudioPool.values(), ...videoPool.values()]) media.pause(); $('#playButton').textContent = '▶'; };
+    const stopTimelinePlayback = () => { playing = false; cancelAnimationFrame(timer); previewVideo.pause(); for (const media of [...timelineAudioPool.values(), ...videoPool.values()]) media.pause(); $('#playButton').textContent = '▶'; $('#playButton').setAttribute('aria-label','Reproducir'); };
     let lastPlaybackTick = 0;
     const advanceTimeline = async now => {
       if (!playing) return;
@@ -891,13 +892,20 @@
       await renderTimelineAt(timelineTime);
       if (playing) timer = requestAnimationFrame(advanceTimeline);
     };
-    $('#playButton').addEventListener('click', async () => {
-      if (playing) { stopTimelinePlayback(); await renderTimelineAt(timelineTime); return; }
+    const startTimelinePlayback = async (fromStart=false) => {
+      if(exporting||historyBusy)return;
+      if(fromStart){stopTimelinePlayback();timelineTime=0;}
       playbackError = ''; if (timelineTime >= timelineDurationSeconds) timelineTime = 0;
-      playing = true; lastPlaybackTick = 0; $('#playButton').textContent = '❚❚';
+      playing = true; lastPlaybackTick = 0; $('#playButton').textContent = '❚❚';$('#playButton').setAttribute('aria-label','Pausar');
       await renderTimelineAt(timelineTime);
       if (playing) timer = requestAnimationFrame(advanceTimeline);
+    };
+    $('#playButton').addEventListener('click', async () => {
+      if(exporting||historyBusy)return;
+      if (playing) { stopTimelinePlayback(); await renderTimelineAt(timelineTime); return; }
+      await startTimelinePlayback();
     });
+    $('#playFromStartButton').addEventListener('click',()=>startTimelinePlayback(true));
     $('#prevButton').addEventListener('click', () => { timelineTime = Math.max(0, timelineTime - 1); renderTimelineAt(timelineTime); });
     $('#nextButton').addEventListener('click', () => { timelineTime = Math.min(timelineDurationSeconds, timelineTime + 1); renderTimelineAt(timelineTime); });
     $('#scrub').addEventListener('click', e => { const rect = e.currentTarget.getBoundingClientRect(); timelineTime = Math.max(0, Math.min(timelineDurationSeconds, ((e.clientX - rect.left) / rect.width) * timelineDurationSeconds)); renderTimelineAt(timelineTime); });

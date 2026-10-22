@@ -1,6 +1,6 @@
 # LQTAC Studio
 
-Editor local de vídeo y audio para Windows. Versión de desarrollo 0.5.2.
+Editor local de vídeo y audio para Windows. Versión de desarrollo 0.5.3.
 
 ## Descargar el programa
 

@@ -1,0 +1,14 @@
+{
+  "name": "lqtac-video-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "LQTAC Video · editor local de video y audio con puente estructural VEGAS",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev"
+  },
+  "devDependencies": {
+    "electron": "^38.2.0"
+  }
+}

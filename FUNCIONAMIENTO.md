@@ -2,6 +2,59 @@
 
 Última actualización: 23 de octubre de 2026.
 
+## Empaquetado solicitado — 0.10.1
+
+Se prepara portable Windows x64 de 0.10.1, incluyendo FX creativos, Pan/Crop visual, selección/arrastre/borrado de puntos y movimiento de cámara con Mayús. Esta publicación agrupa cambios que las secciones históricas siguientes describían como locales. Incluye Electron, FFmpeg, assets, Shapes y manual; no necesita Node ni conexión para editar/renderizar. La conversión inicial de un VEG sigue requiriendo VEGAS Pro instalado cuando no hay un puente válido. El código y los portables históricos se conservan en GitHub. El paquete no incluye medios ni proyectos personales.
+
+## Pan/Crop · Mayús para movimiento recto
+
+Mantener Mayús al arrastrar el interior de la cámara bloquea el movimiento en horizontal o vertical según la dirección inicial. Un pequeño umbral evita que un temblor del ratón elija el eje; una vez elegido se conserva hasta soltar Mayús, aunque el ratón cambie de dirección. El eje se refiere a la imagen del escritorio, incluso con la cámara rotada. Soltar Mayús recupera el movimiento libre sin saltos; también se puede pulsar a mitad de un arrastre, tomando como origen la última posición. No modifica los tiradores de zoom ni la casilla de proporción. Se añade ayuda en el escritorio. verify-pan-crop-editor.cjs comprueba ambos ejes, cambio de dirección, cámara rotada y pulsación/liberación durante el arrastre, además de preview/export e historial. Cambio solo en carpeta principal, sin nuevo portable.
+
+## Seleccionar, mover y eliminar puntos — corrección local 0.10.1
+
+Pan/Crop: pulsar un diamante o elegir su fila para seleccionarlo. Arrastrar el diamante lo mueve en el tiempo, conservando el encuadre. También se puede escribir un segundo exacto en «Tiempo del punto seleccionado» y pulsar «Mover punto». Se permite pasar por delante/detrás de otros fotogramas, pero no colocar dos exactamente en el mismo instante. El borrado funciona desde «Eliminar fotograma», Suprimir/Retroceso (fuera de campos de texto) o botón derecho sobre el diamante → Eliminar punto. Se puede borrar incluso el último; sin fotogramas vuelve el encuadre neutro.
+
+FX de vídeo y audio: mismo borrado con botón, Suprimir o menú contextual, selección desde curva/lista y campo de tiempo exacto. El arrastre de la curva permite cambiar tiempo y valor, incluso cruzar otros puntos manteniendo la curva ordenada. En el ecualizador se respeta la banda seleccionada. El borrado trabaja con el punto seleccionado, no exige acertar con el deslizador en una fracción exacta de segundo. Quitar el último punto desactiva esa curva y deja el valor estático del parámetro. Los cambios de audio invalidan la escucha preparada y requieren volver a prepararla.
+
+Envolventes de pista: sus nodos siguen permitiendo arrastre horizontal/vertical; ahora botón derecho sobre un nodo ofrece Eliminar punto, y Suprimir elimina el nodo seleccionado sin borrar los clips. Borrar extremos no los vuelve a crear automáticamente. Sin nodos la envolvente queda neutra (100 %); la línea continúa disponible para añadir nuevos puntos con botón derecho. El guardado conserva envolventes vacías. El historial permite recuperar borrados de pista; en los editores de clip, Aplicar guarda el borrador como una operación y Cancelar lo descarta.
+
+verify-keyframe-controls.cjs reproduce arrastre de diamante Pan/Crop, tiempos fraccionarios, retiming entre puntos, menú contextual, borrado por botón/teclado, eliminación del último punto, seguridad de los clips, historial y persistencia de envolvente vacía. Regresiones de editores FX/Pan-Crop y proyecto superadas. Cambios en carpeta principal; portable publicado sin actualizar.
+
+## Pan/Crop visual con línea de tiempo — local 0.10.0
+
+Seleccionar un evento de vídeo y pulsar «Pan/Crop · editor visual» en el inspector, o hacer doble clic en el evento de vídeo. Los eventos de audio siguen abriendo sus propiedades. El editor conserva un borrador independiente y reproduce el vídeo silenciado sin desplazar el cabezal del proyecto.
+
+El escritorio muestra la fuente con una cámara rectangular y cuatro tiradores. Arrastrar el interior mueve el centro; arrastrar una esquina redimensiona manteniendo fija la esquina opuesta, también con rotación. Un encuadre menor acerca la imagen; mayor la aleja. «Mantener proporción» vincula ancho y alto. El zoom del escritorio solo cambia la escala de trabajo, nunca el clip. «Ajustes numéricos y rotación» permite introducir centro X/Y, tamaño proporcional a la fuente y ángulo.
+
+Selector de formato: original, 4:3, 16:9, 15:9, 21:9, 1:1 y 9:16. Elegir un formato ajusta el alto conservando el ancho y activa el bloqueo. La proporción se calcula en píxeles reales del medio, no comparando simplemente ancho y alto normalizados. El selector refleja el encuadre interpolado; aparece Personalizado cuando no coincide con un preset. No cambia el formato/resolución del proyecto: si difiere, quedan bandas en el resultado. Los formatos/bloqueo son ayudas del editor; se guardan las dimensiones reales de cada fotograma, no una preferencia global.
+
+Cada cambio de encuadre añade/actualiza un fotograma en el tiempo actual. Para movimiento: fijar el encuadre inicial en 0 s, avanzar en la línea de tiempo y mover/redimensionar la cámara. Interpolación lineal de centro, tamaño y rotación. Añadir/actualizar, seleccionar desde los diamantes/lista, eliminar y restablecer están disponibles. Un primer cambio después de cero crea además una posición neutra en cero si antes no había fotogramas. Cancelar o Escape descarta el borrador; Aplicar lo registra como una operación de historial.
+
+La previsualización pequeña incluye FX y usa el mismo compositor Pan/Crop que la exportación. Se respetan offset y velocidad de la fuente. LQTS, undo/redo, copia y continuidad de recorte/división usan el esquema existente panCrop. Se conservan los controles numéricos antiguos en propiedades. El editor no mezcla audio ni otras pistas; las zonas sin material pueden quedar negras. No se añaden máscaras Bézier ni interpolación de cámara avanzada.
+
+verify-pan-crop-editor.cjs prueba formatos y bloqueo, anclaje al redimensionar, desplazamiento de cámara, modo libre, interpolación, offset y velocidad, aislamiento del borrador, coincidencia de píxeles entre preview/exportación, historial, cancelar, división y guardado/reapertura LQTS. Aceptación visual del usuario pendiente. Cambios solo en carpeta principal; sin nuevo portable ni publicación de esta entrega.
+
+## Fase 2 · efectos creativos de vídeo — local 0.9.0
+
+En FX → Vídeo aparecen TV antigua / CRT, VHS, Glitch / separación RGB, Glow / resplandor, Bloom / expansión de luces y Película antigua. Seleccionar un evento de vídeo, abrir la tarjeta y subir Intensidad (cero deja ese filtro neutro). Se pueden combinar. Cada tarjeta tiene editor individual, comparación con original y curva por parámetro; Aplicar confirma, Cancelar descarta. También están en el formulario general del inspector.
+
+- TV / CRT: intensidad, curvatura y líneas de barrido; añade oscurecimiento de bordes y parpadeo.
+- VHS: intensidad y ruido de cinta; ondulación horizontal, banda de tracking y separación de color.
+- Glitch: intensidad y velocidad; desplazamientos por franjas y separación RGB.
+- Glow: intensidad, radio y umbral; resplandor con mezcla tipo pantalla.
+- Bloom: intensidad, radio y umbral; suma de halos luminosos en dos escalas.
+- Película antigua: intensidad, grano y arañazos; tono cálido desaturado y variaciones luminosas.
+
+Todos sus parámetros numéricos admiten animación, guardado LQTS, copia, recorte/división e historial. Vista previa y fotogramas de exportación usan el mismo shader y tiempo local del evento. Los patrones temporales son deterministas al repetir el mismo tiempo; no dependen del reloj del sistema. Después de dividir/recortar, la fase procedural se reinicia con el tiempo local del nuevo fragmento, aunque las curvas conservan sus valores de frontera.
+
+Implementaciones originales WebGL, integradas y offline, no plugins de VEGAS ni réplicas físicas de equipos. Glow/bloom son halos de muestreo limitado, no desenfoques Gaussianos multipaso; radios en píxeles de fuente. Orden fijo: distorsión espacial y separación RGB → correcciones de color/LUT → glow/bloom → textura CRT/VHS/película → viñeta/croma. No se anima el orden de filtros. No añaden ruido de audio ni emulan sonido de cinta. Pueden aumentar el coste GPU en fuentes grandes; no se certifica reproducción 4K en tiempo real.
+
+verify-creative-effects.cjs comprueba cambios de píxeles para los seis filtros, neutralidad con intensidad cero, repetibilidad, evolución temporal, alfa, seis editores, formulario general, animación, historial, exportación repetible y guardado/reapertura LQTS. Regresión previa verify-effects.cjs superada. Aceptación visual del usuario pendiente. Esta entrega modifica la carpeta principal; no actualiza por sí sola el portable 0.8.1 ni GitHub.
+
+## Nombre del catálogo de efectos
+
+El botón lateral «Video FX» pasa a llamarse «FX», ya que reúne vídeo y audio. Se actualiza también el controlador de apertura y sus pruebas para conservar el funcionamiento del catálogo. El usuario confirma que los efectos de fase 1 funcionan y propone avanzar a fase 2; todavía no hay una lista cerrada de efectos avanzados acordada. Las secciones históricas siguientes conservan los nombres y límites de cada entrega; las actualizaciones más recientes prevalecen.
+
 ## Conservación de versiones — regla desde 23/10/2026
 
 GitHub conserva todas las versiones publicadas, con código y portables. Localmente solo se mantienen las tres versiones más recientes (carpeta y ZIP por versión). Antes de eliminar versiones antiguas se verifica su respaldo remoto; nunca se eliminan proyectos, medios personales ni la carpeta principal de desarrollo como parte de esta limpieza. La regla también figura en AGENTS.md para futuras sesiones.

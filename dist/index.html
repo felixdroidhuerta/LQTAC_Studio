@@ -306,7 +306,7 @@
 
       <aside class="dock-panel" aria-label="Paneles de trabajo">
         <div class="dock-panel-title">Ventanas</div>
-        <div class="dock-panel-list"><button class="dock-panel-item active" type="button"><span>▦</span><strong>Project Media</strong></button><button class="dock-panel-item" type="button"><span>⌕</span><strong>Explorer</strong></button><button class="dock-panel-item" type="button"><span>✧</span><strong>Transiciones</strong></button><button class="dock-panel-item" type="button"><span>fx</span><strong>Video FX</strong></button><button class="dock-panel-item" type="button"><span>▤</span><strong>Generadores</strong></button><button class="dock-panel-item" type="button"><span>≡</span><strong>Notas</strong></button></div>
+        <div class="dock-panel-list"><button class="dock-panel-item active" type="button"><span>▦</span><strong>Project Media</strong></button><button class="dock-panel-item" type="button"><span>⌕</span><strong>Explorer</strong></button><button class="dock-panel-item" type="button"><span>✧</span><strong>Transiciones</strong></button><button class="dock-panel-item" type="button"><span>fx</span><strong>FX</strong></button><button class="dock-panel-item" type="button"><span>▤</span><strong>Generadores</strong></button><button class="dock-panel-item" type="button"><span>≡</span><strong>Notas</strong></button></div>
         <div class="dock-panel-rule"></div><div class="dock-panel-title">Proyecto</div><div class="dock-panel-info">Selecciona una ventana para acoplarla en este marco. La biblioteca se mantiene visible en el panel central.</div>
       </aside>
       <aside class="side-panel">
@@ -1393,12 +1393,16 @@
       });
     });
     const envelopePoints = new WeakMap();
+    let selectedEnvelopePoint=null;
+    const deleteEnvelopePoint=(track,point)=>{const points=getEnvelopePoints(track),index=points.indexOf(point);if(!track.isConnected||index<0)return false;historyCheckpoint();points.splice(index,1);selectedEnvelopePoint=null;drawEnvelope(track);void renderTimelineAt(timelineTime);return true;};
+    document.addEventListener('pointerdown',e=>{if(!e.target.closest('.envelope-handle')){const previous=selectedEnvelopePoint;selectedEnvelopePoint=null;if(previous?.track.isConnected)drawEnvelope(previous.track);}},true);
     const getEnvelopePoints = track => {
       if (!envelopePoints.has(track)) envelopePoints.set(track, [{time:0, value:1}, {time:timelineDurationSeconds, value:1}]);
       return envelopePoints.get(track);
     };
     const envelopeValue = (track, seconds) => {
       const points = getEnvelopePoints(track);
+      if(!points.length)return 1;
       if (seconds <= points[0].time) return points[0].value;
       for (let i = 1; i < points.length; i++) {
         const a = points[i-1], b = points[i];
@@ -1410,11 +1414,11 @@
       const layer = $('.envelope-layer', track);
       if (!layer) return;
       const svg = $('svg', layer), points = getEnvelopePoints(track);
-      if (points.at(-1).time < timelineDurationSeconds) points.push({time:timelineDurationSeconds,value:points.at(-1).value});
+      const displayPoints=points.length?[{time:0,value:points[0].value},...points,{time:timelineDurationSeconds,value:points.at(-1).value}]:[{time:0,value:1},{time:timelineDurationSeconds,value:1}];
       const x = point => point.time / timelineDurationSeconds * 640;
       const y = point => 4 + (1-point.value)*38;
       const pink = track.dataset.kind === 'video' ? ' opacity' : '';
-      svg.innerHTML = `<polyline class="envelope-line${pink}" points="${points.map(p=>`${x(p)},${y(p)}`).join(' ')}"></polyline>`;
+      svg.innerHTML = `<polyline class="envelope-line${pink}" style="pointer-events:stroke" points="${displayPoints.map(p=>`${x(p)},${y(p)}`).join(' ')}"></polyline>`;
       for (let i=0; i<points.length-1; i++) {
         const line = document.createElementNS('http://www.w3.org/2000/svg','line');
         line.classList.add('envelope-segment'); line.dataset.segment = i;
@@ -1425,6 +1429,7 @@
         const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
         circle.setAttribute('class',`envelope-handle${pink}`); circle.dataset.point=index;
         circle.setAttribute('cx',x(point)); circle.setAttribute('cy',y(point)); circle.setAttribute('r',4);
+        if(selectedEnvelopePoint?.point===point)circle.style.fill='#ffcc70';
         const title = document.createElementNS('http://www.w3.org/2000/svg','title');
         title.textContent=`${formatTimelineLabel(point.time)} · ${Math.round(point.value*100)}%`;
         circle.append(title); svg.append(circle);
@@ -1441,6 +1446,7 @@
         const rect=$('svg',layer).getBoundingClientRect();
         const time=Math.max(0,Math.min(timelineDurationSeconds,(event.clientX-rect.left)/rect.width*timelineDurationSeconds));
         const points=getEnvelopePoints(track);
+        const handle=event.target.closest('[data-point]');if(handle){const point=points[Number(handle.dataset.point)];selectedEnvelopePoint={track,point};LQTACKeyframes.deleteMenu(event,()=>deleteEnvelopePoint(track,point));return;}
         if (points.some(p=>Math.abs(p.time-time)<.001)) return;
         historyCheckpoint();
         points.push({time,value:envelopeValue(track,time)}); points.sort((a,b)=>a.time-b.time);
@@ -1453,6 +1459,8 @@
         event.preventDefault(); event.stopPropagation();
         const points=getEnvelopePoints(track), rect=$('svg',layer).getBoundingClientRect();
         const index=Number(point ? point.dataset.point : segment.dataset.segment);
+        selectedEnvelopePoint=point?{track,point:points[index]}:null;
+        drawEnvelope(track);
         const originals=points.map(p=>({...p}));
         let envelopeRecorded=false;
         const move=e=>{
@@ -1870,7 +1878,7 @@
         track.dataset.mute=String(!!data.mute);track.dataset.solo=String(!!data.solo);track.dataset.gain=String(data.gain??1);track.dataset.pan=String(data.pan||0);
         track.dataset.vegasMix=String(!!data.vegasMix);
         $$('#trackLabels .track-label strong').at(-1).textContent=String(data.name||track.dataset.track);
-        envelopePoints.set(track,data.envelope.length?data.envelope.map(p=>({...p})):[{time:0,value:1}]);track.classList.toggle('envelope-visible',!!data.envelopeVisible);
+        envelopePoints.set(track,data.envelope.map(p=>({...p})));track.classList.toggle('envelope-visible',!!data.envelopeVisible);
         for(const item of data.clips){
           const clip=createTimelineClip(track,item,item.startSeconds/timelineDurationSeconds*100);
           clip.dataset.startSeconds=String(item.startSeconds);clip.dataset.durationSeconds=String(item.durationSeconds);
@@ -1964,9 +1972,10 @@
     });
     document.addEventListener('keydown',event=>{if(event.ctrlKey||event.metaKey){if(event.key.toLowerCase()==='s'){event.preventDefault();void saveLqts(event.shiftKey);}if(event.key.toLowerCase()==='o'){event.preventDefault();void openLqts();}}});
     document.addEventListener('keydown', e => {
-      if(exporting || renderDialog.open || historyBusy)return;
+      if(exporting || renderDialog.open || historyBusy || document.querySelector('dialog[open]'))return;
       if (e.key === 'Escape') { modal.classList.remove('open'); compatModal.classList.remove('open'); hideClipContextMenu(); }
       const typing = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName) || document.activeElement?.isContentEditable;
+      if((e.key==='Delete'||e.key==='Backspace')&&!typing&&!document.querySelector('dialog[open]')&&selectedEnvelopePoint){e.preventDefault();const {track,point}=selectedEnvelopePoint;deleteEnvelopePoint(track,point);selectedEnvelopePoint=null;return;}
       if((e.ctrlKey||e.metaKey)&&!e.altKey&&!typing&&!document.querySelector('dialog[open]')&&!modal.classList.contains('open')&&!compatModal.classList.contains('open')){
         const key=e.key.toLowerCase();
         if(['c','v','z','y'].includes(key)){e.preventDefault();if(historyBusy)return;if(key==='c')copySelectedClips();if(key==='v')void pasteCopiedClips();if(key==='z')void navigateHistory(e.shiftKey);if(key==='y')void navigateHistory(true);return;}
@@ -1978,7 +1987,9 @@
   </script>
 </body>
 <script src="assets/work-controls.js"></script>
+<script src="assets/keyframe-controls.js"></script>
 <script src="assets/effects-controls.js"></script>
 <script src="assets/effect-editor.js"></script>
 <script src="assets/audio-effect-editor.js"></script>
+<script src="assets/pan-crop-editor.js"></script>
 </html>

@@ -1,5 +1,39 @@
 # LQTAC Studio — guía de desarrollo y continuidad
 
+## Portable 0.10.1 — publicación solicitada
+
+build-portable.ps1 empaqueta el estado actual sin actualizar dependencias. verify-portable-runtime.cjs carga el main/preload/HTML del paquete, comprueba 14 tarjetas de vídeo, Pan/Crop y herramientas de puntos, genera vídeo con FFmpeg incluido y coteja hashes de los módulos clave y del ejecutable Electron. Prueba superada el 23/10/2026; no sustituye una prueba integral en otro equipo. Incluye los cambios de Mayús posteriores a la corrección 0.10.1. El SHA-256 del ZIP queda registrado en desktop/RELEASE-SHA256SUMS.txt.
+
+## Pan/Crop · arrastre restringido con Shift
+
+pan-crop-editor.js evalúa PointerEvent.shiftKey solo al trasladar el interior. Selecciona el eje dominante en coordenadas de fuente tras un umbral de dos unidades canvas; fija la coordenada perpendicular. Conserva el eje durante esa pulsación. Cambiar el modificador reinicia el anclaje en la última posición de cámara/puntero, evitando saltos. No altera tamaño, rotación ni el arrastre de esquinas. Regresión verify-pan-crop-editor.cjs ampliada con ejes X/Y, rotación, deriva contraria y Shift a mitad de gesto.
+
+## Local 0.10.1 — edición común de puntos
+
+keyframe-controls.js se carga antes de los editores. install conserva selección por referencia, añade menú de borrar, atajos aislados, campo de retiming y resolución desde lista. Pan/Crop incorpora arrastre de diamantes (antes solo cambiaba el cursor). La selección no depende de una igualdad con el valor redondeado del slider. retime ordena las curvas y rechaza colisiones exactas; las posiciones/valores de cámara se conservan al cambiar el tiempo. FX de vídeo/audio usan el helper para seleccionar/borrar y permiten cruzar nodos durante el arrastre; limpieza de listeners al cerrar. No cambia esquema LQTS.
+
+Envolventes: selección explícita de nodo, menú de borrar, Delete con prioridad sobre clips, neutralidad cuando no hay puntos y extremos visuales no serializados. drawEnvelope deja de insertar automáticamente un nodo final. restoreProject conserva arrays vacíos. Los atajos globales de clips no se ejecutan con un diálogo abierto. Nuevo verify-keyframe-controls.cjs comprueba la regresión del usuario y los otros editores.
+
+## Local 0.10.0 — editor visual de Pan/Crop
+
+Nuevo dist/assets/pan-crop-editor.js cargado al final de index.html: escritorio canvas, overlay de cámara rotada y cuatro tiradores, preview propio con FX y fondo negro, presets de aspecto en píxeles de fuente, bloqueo de proporción, zoom de escritorio, campos numéricos plegables, transporte local y línea/lista de keyframes. Estado de trabajo en borrador con una sola operación de historial al aplicar. No cambia esquema panCrop ni LQTACWork.drawCrop/cropAt; reusa compositor y metadatos de offset/rate. El redimensionado calcula en ejes rotados y ancla esquina opuesta. La fase temporal de FX sigue siendo local al evento.
+
+work-controls.js abre editor visual al doble clic en vídeo; audio y formularios de propiedades originales se mantienen. Botón openVisualCrop en inspector. Teclado del diálogo aislado de atajos de borrar/reproducir del proyecto. Cancelar/Escape descarta; cerrar elimina listeners temporales y el elemento video. El editor se limita a 1000 fotogramas según validación existente. Preset/bloqueo no se serializan como estado aparte: las dimensiones resultantes sí; la selección de formato se deduce del encuadre actual.
+
+verify-pan-crop-editor.cjs valida UI, geometría, timeline, reproducción con offset/rate, preview/export en píxeles, persistencia e historial. La conversión VEGAS mantiene sus restricciones previas: disponer de editor de rotación no amplía el mapeo certificado del puente. Fuentes 0.10.0; portable publicado 0.8.1 sin cambios.
+
+## Local 0.9.0 — seis efectos creativos
+
+effects-model.js exporta creative: definición central de seis grupos, etiquetas, defaults y rangos. Amplía dinámicamente videoDefaults/ranges.video (16 parámetros nuevos); el límite de claves de animación deriva del número real de parámetros. Proyectos previos toman intensidades cero. effects-controls.js amplía catálogo y formulario general, evitando campos ausentes al serializar todos los defaults. effect-editor.js reutiliza editor/curvas para cada grupo.
+
+effects-video.js implementa distorsión CRT/VHS/glitch, separación RGB, halos glow/bloom y textura de película en el shader original. uniform clock recibe tiempo del evento desde draw(source,fx,time), igual en monitor/editor/captura exportada. No usa Date, Math.random ni servicios externos. Patrón fijo a tiempo dado; reinicia fase procedural al recortar/dividir. Se conserva alfa, CRT recorta exterior curvado, radios en píxeles de fuente, glow/bloom aproximados con muestras limitadas. No efectos de audio nuevos, plugins externos, orden editable ni garantías 4K/HDR.
+
+Prueba nueva desktop/verify-creative-effects.cjs: píxeles, neutralidad, determinismo, variación temporal, alfa, catálogo/editores, formulario general, keyframes, undo/redo, captura de exportación y LQTS en disco. Versión de fuentes 0.9.0; no se ha generado ni publicado un nuevo portable en esta entrega. El portable de GitHub sigue en 0.8.1. Consultar FUNCIONAMIENTO.md para uso y límites.
+
+## Catálogo FX y siguiente fase
+
+Botón lateral renombrado de Video FX a FX en dist/index.html; effects-controls.js y verify-effects.cjs usan el nuevo nombre. README actualizado. Aceptación del usuario de fase 1 el 23/10/2026. La fase 2 está pendiente de concretar; no marcar propuestas de efectos avanzados como implementadas.
+
 ## Actualización local 0.8.1 — curvas múltiples de EQ
 
 audio-effect-editor.js dibuja simultáneamente bass/mid/treble con colores, grosores/trazos y leyenda seleccionable. Hit testing prioriza nodos cercanos y luego curvas, con desempate por banda activa. El arrastre conserva la banda capturada y no altera las otras curvas. No cambia el modelo ni el DSP. verify-audio-editor.cjs comprueba tres controles de leyenda, selección automática de medios y arrastre independiente.

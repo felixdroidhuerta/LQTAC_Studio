@@ -49,7 +49,7 @@ function openWorkControls(track,clip=null){
   };
   workDialog.showModal();
 }
-document.addEventListener('dblclick',e=>{const clip=e.target.closest('.clip');if(clip&&!e.target.closest('.clip-fade-handle,.clip-trim-handle'))openWorkControls(clip.parentElement,clip);});
+document.addEventListener('dblclick',e=>{const clip=e.target.closest('.clip');if(clip&&!e.target.closest('.clip-fade-handle,.clip-trim-handle')){if(clip.dataset.kind==='video')openPanCropEditor(clip);else openWorkControls(clip.parentElement,clip);}});
 document.addEventListener('dblclick',e=>{const label=e.target.closest('.track-label-title');if(label){const i=$$('#trackLabels .track-label').indexOf(label.closest('.track-label'));openWorkControls($$('.track')[i]);}});
 demoReady.then(syncTrackHeaders);
 const transformCard=$('#scaleRange').closest('.inspector-card');

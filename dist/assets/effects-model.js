@@ -2,6 +2,8 @@
   const videoDefaults={enabled:false,brightness:0,contrast:1,saturation:1,temperature:0,blur:0,sharpen:0,vignette:0,chroma:false,chromaColor:'#00ff00',chromaTolerance:.15,chromaSoftness:.08,lut:null,animation:{}};
   const audioDefaults={enabled:false,bass:0,mid:0,treble:0,compressor:false,thresholdDb:-18,ratio:4,limiter:false,limiterCeiling:.95,denoise:false,denoiseDb:12,normalize:false,targetLufs:-16,echo:false,echoMs:250,echoMix:.25,reverb:false,reverbMix:.2,animation:{}};
   const ranges={video:{brightness:[-1,1],contrast:[0,2],saturation:[0,2],temperature:[-1,1],blur:[0,20],sharpen:[0,2],vignette:[0,1],chromaTolerance:[0,1],chromaSoftness:[.001,1]},audio:{bass:[-18,18],mid:[-18,18],treble:[-18,18],thresholdDb:[-60,0],ratio:[1,20],limiterCeiling:[.0625,1],denoiseDb:[0,30],targetLufs:[-30,-10],echoMs:[20,1000],echoMix:[0,.7],reverbMix:[0,.7]}};
+  const creative=[["crt","TV antigua / CRT",[["crt","Intensidad",0,1,0],["crtCurve","Curvatura",0,1,0.35],["crtLines","Líneas de barrido",0,1,0.5]]],["vhs","VHS",[["vhs","Intensidad",0,1,0],["vhsNoise","Ruido de cinta",0,1,0.3]]],["glitch","Glitch / separación RGB",[["glitch","Intensidad",0,1,0],["glitchSpeed","Velocidad",1,30,8]]],["glow","Glow / resplandor",[["glow","Intensidad",0,2,0],["glowRadius","Radio (px de fuente)",1,80,12],["glowThreshold","Umbral luminoso",0,1,0.5]]],["bloom","Bloom / expansión de luces",[["bloom","Intensidad",0,2,0],["bloomRadius","Radio (px de fuente)",1,100,25],["bloomThreshold","Umbral luminoso",0,1,0.65]]],["film","Película antigua",[["film","Intensidad",0,1,0],["filmGrain","Grano",0,1,0.35],["filmScratches","Arañazos",0,1,0.3]]]];
+  for(const [, ,fields] of creative)for(const [key,,min,max,value] of fields){videoDefaults[key]=value;ranges.video[key]=[min,max];}
   function validate(fx,kind){
     if(fx===undefined)return;
     const defaults=kind==='video'?videoDefaults:audioDefaults;
@@ -11,7 +13,7 @@
       const range=ranges[kind][key];if(range&&(!Number.isFinite(value)||value<range[0]||value>range[1]))throw Error('Parámetro de efecto fuera de rango: '+key);
     }
     if(kind==='video'){
-      if(fx.animation!==undefined){if(!fx.animation||typeof fx.animation!=='object'||Array.isArray(fx.animation)||Object.keys(fx.animation).length>9)throw Error('Animación FX no válida');for(const [key,points] of Object.entries(fx.animation)){const range=ranges.video[key];if(!range||!Array.isArray(points)||points.length>1000||!points.length)throw Error('Curva FX no válida');let previous=-1;for(const p of points){if(!p||!Number.isFinite(p.time)||p.time<0||p.time<=previous||!Number.isFinite(p.value)||p.value<range[0]||p.value>range[1])throw Error('Punto FX no válido');previous=p.time;}}}
+      if(fx.animation!==undefined){if(!fx.animation||typeof fx.animation!=='object'||Array.isArray(fx.animation)||Object.keys(fx.animation).length>Object.keys(ranges.video).length)throw Error('Animación FX no válida');for(const [key,points] of Object.entries(fx.animation)){const range=ranges.video[key];if(!range||!Array.isArray(points)||points.length>1000||!points.length)throw Error('Curva FX no válida');let previous=-1;for(const p of points){if(!p||!Number.isFinite(p.time)||p.time<0||p.time<=previous||!Number.isFinite(p.value)||p.value<range[0]||p.value>range[1])throw Error('Punto FX no válido');previous=p.time;}}}
       if(fx.chromaColor!==undefined&&!/^#[0-9a-f]{6}$/i.test(fx.chromaColor))throw Error('Color de croma no válido');
       if(fx.lut!==undefined&&fx.lut!==null){const l=fx.lut;if(!Number.isInteger(l.size)||l.size<2||l.size>65||!Array.isArray(l.values)||l.values.length!==l.size**3*3||l.values.some(v=>!Number.isFinite(v)||v<0||v>1)||typeof l.name!=='string'||l.name.length>200)throw Error('LUT 3D no válida');}
     }
@@ -43,5 +45,5 @@
     if(f.limiter)out.push(`alimiter=limit=${f.limiterCeiling}:level=false:latency=true`);
     return out;
   }
-  const api={videoDefaults,audioDefaults,ranges,validate,parseCube,audioFilters,valueAt,at,slice,animatedAudio};if(typeof module==='object'&&module.exports)module.exports=api;else root.LQTACEffects=api;
+  const api={creative,videoDefaults,audioDefaults,ranges,validate,parseCube,audioFilters,valueAt,at,slice,animatedAudio};if(typeof module==='object'&&module.exports)module.exports=api;else root.LQTACEffects=api;
 })(typeof window==='undefined'?globalThis:window);

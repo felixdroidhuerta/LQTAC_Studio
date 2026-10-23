@@ -5,6 +5,7 @@ effectsButton.onclick=()=>{const clip=selectedTimelineClips.find(c=>c.dataset.ki
 const effectsPanel=document.createElement('section');effectsPanel.id='effectsPanel';effectsPanel.hidden=true;$('.side-panel').append(effectsPanel);
 effectsPanel.innerHTML='<div class="eyebrow">EFECTOS · LOCALES</div><h2>Efectos de vídeo y audio</h2><p>Selecciona un clip de la timeline y elige un efecto. En la ventana de configuración marca «Activar efectos de este clip» y pulsa Aplicar.</p><p id="effectsSelection" role="status"></p><div id="effectsCatalog"></div>';
 const effectsCatalog={video:[['brightness','Brillo y contraste'],['saturation','Saturación'],['temperature','Temperatura de color'],['blur','Desenfoque'],['sharpen','Enfoque'],['vignette','Viñeta'],['chroma','Croma / fondo transparente'],['lut','LUT 3D .cube']],audio:[['bass','Ecualizador'],['compressor','Compresor'],['limiter','Limitador'],['denoise','Reducción de ruido'],['normalize','Normalización'],['echo','Eco'],['reverb','Ambiente / reverberación corta']]};
+effectsCatalog.video.push(...LQTACEffects.creative.map(([key,name])=>[key,name]));
 const effectsPanelStyle=document.createElement('style');effectsPanelStyle.textContent='#effectsPanel{padding:0 4px}#effectsPanel p{font-size:12px;color:var(--muted);line-height:1.5}#effectsCatalog .fx-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:12px 0 20px}#effectsCatalog button{background:#142c4c;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:16px;text-align:left;cursor:pointer}#effectsCatalog button:hover{border-color:var(--accent-2)}';document.head.append(effectsPanelStyle);
 function effectsTarget(kind){return selectedTimelineClips.find(c=>c.isConnected&&c.dataset.kind===kind)||timelineClips().find(c=>c.classList.contains('selected')&&c.dataset.kind===kind);}
 for(const [kind,items] of Object.entries(effectsCatalog)){
@@ -13,7 +14,7 @@ for(const [kind,items] of Object.entries(effectsCatalog)){
   $('#effectsCatalog').append(heading,grid);
 }
 function openEffectsPanel(){stopTransitionPreview();[...$('.side-panel').children].forEach(child=>child.hidden=child!==effectsPanel);$('#effectsSelection').textContent=selectedTimelineClips.length?`${selectedTimelineClips.length} eventos seleccionados. Los ajustes se aplican al clip del tipo elegido.`:'Selecciona un clip de la timeline para configurar sus efectos.';}
-$$('.dock-panel-item').forEach(button=>button.addEventListener('click',()=>{if($('strong',button)?.textContent.trim()==='Video FX')openEffectsPanel();else effectsPanel.hidden=true;}));
+$$('.dock-panel-item').forEach(button=>button.addEventListener('click',()=>{if($('strong',button)?.textContent.trim()==='FX')openEffectsPanel();else effectsPanel.hidden=true;}));
 let effectsBusy=false;
 function openClipEffects(clip){
   if(exporting||historyBusy||effectsBusy||!clip?.isConnected)return;stopTimelinePlayback();
@@ -28,6 +29,7 @@ function openClipEffects(clip){
     const fields=$('#fxFields',effectsDialog),ranges=LQTACEffects.ranges[kind];
     if(kind==='video'){
       fields.innerHTML=[['brightness','Brillo'],['contrast','Contraste (1 = original)'],['saturation','Saturación (1 = original)'],['temperature','Temperatura (− frío / + cálido)'],['blur','Desenfoque (px de fuente)'],['sharpen','Enfoque'],['vignette','Viñeta']].map(([k,label])=>numeric(k,label,value[k],ranges[k])).join('')+`<fieldset><legend>Croma</legend>${check('chroma','Eliminar un color',value.chroma)}<label>Color<input type="color" id="fx-chromaColor" value="${value.chromaColor}"></label>${numeric('chromaTolerance','Tolerancia',value.chromaTolerance,ranges.chromaTolerance)}${numeric('chromaSoftness','Suavidad',value.chromaSoftness,ranges.chromaSoftness)}</fieldset><fieldset><legend>LUT 3D .cube</legend><input id="fxLut" type="file" accept=".cube"><p id="fxLutName"></p><button id="fxLutClear" type="button">Quitar LUT</button><p>2–65 puntos por eje; dominio 0–1. La tabla queda integrada en el LQTS.</p></fieldset>`;
+      for(const [,name,items] of LQTACEffects.creative){const group=document.createElement('fieldset');const legend=document.createElement('legend');legend.textContent=name;group.append(legend);group.insertAdjacentHTML('beforeend',items.map(([p,label])=>numeric(p,label,value[p],ranges[p])).join(''));fields.append(group);}
       const refresh=()=>{$('#fxLutName',effectsDialog).textContent=lut?.name||'Sin LUT';};refresh();
       $('#fxLut',effectsDialog).onchange=async event=>{try{const file=event.target.files[0];if(file){if(file.size>16*1024*1024)throw Error('La LUT supera 16 MB');lut=LQTACEffects.parseCube(await file.text(),file.name);refresh();}}catch(error){$('#fxStatus',effectsDialog).textContent=error.message;}};
       $('#fxLutClear',effectsDialog).onclick=()=>{lut=null;refresh();};

@@ -2,6 +2,34 @@
 
 Última actualización: 23 de octubre de 2026.
 
+## Subtítulos locales y reorganización de paneles — 0.11.0
+
+### Generar y editar
+
+1. Abrir «Subtítulos» en la columna izquierda y pulsar «Generar subtítulos».
+2. Elegir un evento de audio o una pista de audio completa e idioma (español o detección automática, entre otros). Si se seleccionó un evento de audio, aparece preseleccionado. En vídeo con audio separado, elegir su evento de audio. Para voz con música es preferible una pista de voz aislada.
+3. El programa prepara el audio y ejecuta Whisper small multilingüe en CPU, localmente. Se respetan offsets, velocidades, FX y ganancias/envolventes de la fuente elegida. Se analizan los eventos elegidos aunque su mute esté activado. Límite de cuatro horas por operación. El montaje queda bloqueado durante el trabajo y se permite cancelar.
+4. Al terminar se añade una pista S de subtítulos, sin reemplazar las anteriores ni tocar los medios originales. Cada frase es un bloque independiente. Si se cancela o falla no se añade una pista parcial. La transcripción puede tardar; no se promete tiempo real.
+5. Doble clic en un bloque para corregir texto, inicio, duración, fuente, tamaño, color, contorno y posición X/Y. Arrastrar mueve el bloque; sus extremos recortan/extienden duración. S divide copiando el texto en las dos partes, no redistribuye automáticamente sus palabras. Ctrl+C/V, Suprimir, grupos y deshacer/rehacer conservan texto y estilo. «Añadir subtítulo» añade un bloque manual en la primera pista de subtítulos existente o crea una si no hay; «＋ Pista» permite otra pista S vacía.
+
+Los estilos se aplican por bloque; el tamaño se expresa respecto a 720p y escala con la salida. Se ajustan líneas de texto al ancho del vídeo. No hay karaoke palabra a palabra, identificación de hablantes ni alineación forzada de letras cantadas. Música, silencios, ruido y voces solapadas pueden causar errores o texto inventado: revisar siempre texto y tiempos. Los subtítulos no siguen automáticamente ediciones posteriores de la pista de audio original; recolocarlos o regenerar cuando cambie el montaje. Varias pistas/bloques en la misma posición pueden superponerse.
+
+### Guardar y exportar
+
+Los bloques y estilos se guardan dentro de LQTS sin un medio externo ficticio. Abrir estos proyectos con 0.11.0 o posterior; las versiones anteriores no admiten el tipo de pista nuevo. Los proyectos AV anteriores siguen abriendo con valores neutros.
+
+«Importar SRT» crea una pista nueva y «Exportar SRT» guarda los bloques habilitados, ordenados por tiempo. SRT conserva texto y tiempos (milisegundos), no colores, tipografía, contorno ni posición. El editor no interpreta etiquetas HTML/ASS como formato de texto. Para exportar vídeo, «Incrustar subtítulos en el vídeo» está activado por defecto; desactivarlo genera vídeo limpio sin alterar la vista previa ni los bloques guardados. Los subtítulos habilitados aparecen sobre la composición completa, también cuando no hay un vídeo activo. Se elimina la marca decorativa y el tiempo ficticio que quedaban sobre el monitor para no interferir con la previsualización real.
+
+### Motor offline
+
+Whisper.cpp v1.9.2 Windows x64 CPU y ggml-small.bin multilingüe (~466 MiB) están instalados en desktop/speech. No se usa API, cuenta ni conexión durante la transcripción; Python/CUDA no son requisitos del usuario. Para preparar un equipo de desarrollo desde Git: tools/setup-whisper.ps1 descarga las versiones fijadas y comprueba SHA-256; esa preparación requiere Internet. Los binarios/modelo no se guardan en Git; se empaquetan con el portable y se incluyen licencias MIT. La compilación del portable exige el modelo local; no produce silenciosamente un paquete sin motor de voz. Los temporales de audio/transcripción se eliminan al terminar o cancelar normalmente; un cierre forzado del proceso puede dejarlos en Temp.
+
+### Paneles y validación
+
+Pan/Crop y los ajustes generales de efectos están ahora en FX. El inspector derecho muestra el evento seleccionado en la timeline y sus propiedades; seleccionar una tarjeta de biblioteca ya no sustituye esa información. Se retiran los botones de maqueta Transcribir/Auto ducking/Subtítulos y las afirmaciones de Qbit. Los subtítulos funcionales tienen su panel propio accesible también en ventanas donde el inspector se oculta. La información y el informe de compatibilidad VEGAS pasan al panel «Proyecto»; no se amplía el alcance del puente.
+
+verify-subtitles.cjs comprueba pista de texto, estilo/tiempos, copiar/dividir, historial, LQTS sin medios faltantes, SRT mediante IPC, captura con/sin subtítulos y un MP4 codificado y decodificado con texto visible. Con un WAV de prueba adicional, ejecuta el flujo real desde UI/IPC a Whisper y comprueba cancelación sin pista parcial. Se ha probado con voz española sintetizada por Helena de Windows y con una muestra inglesa de referencia: ambas reconocidas localmente con tiempos de proyecto. No constituye certificación de precisión con material del usuario. Las regresiones de proyectos, propiedades y puente VEGAS han pasado. Aceptación visual/auditiva del usuario pendiente; cambios solo en carpeta principal, portable publicado 0.10.1 sin modificar.
+
 ## Empaquetado solicitado — 0.10.1
 
 Se prepara portable Windows x64 de 0.10.1, incluyendo FX creativos, Pan/Crop visual, selección/arrastre/borrado de puntos y movimiento de cámara con Mayús. Esta publicación agrupa cambios que las secciones históricas siguientes describían como locales. Incluye Electron, FFmpeg, assets, Shapes y manual; no necesita Node ni conexión para editar/renderizar. La conversión inicial de un VEG sigue requiriendo VEGAS Pro instalado cuando no hay un puente válido. El código y los portables históricos se conservan en GitHub. El paquete no incluye medios ni proyectos personales.
@@ -460,3 +488,6 @@ La prueba desktop/verify-layout.cjs abre repetidamente montajes de 18 pistas en 
 Corregido el icono de retroceder: los caracteres se dividían en dos líneas dentro del botón. Retroceder y avanzar usan ahora iconos SVG locales centrados y botones de tamaño fijo, con etiquetas y ayudas que indican su función de restar/sumar un segundo. La barra ajusta la información secundaria con puntos suspensivos para conservar los controles visibles en monitores estrechos.
 
 Nuevo botón «Reproducir desde el inicio»: lleva el cabezal a cero y comienza la reproducción, tanto si estaba pausada como si estaba reproduciendo. El botón habitual mantiene reproducir/pausar desde la posición actual y actualiza su etiqueta accesible. La prueba verify-layout.cjs comprueba los controles sin saltos de línea en cuatro anchos, retroceso con límite en cero, avance, reproducción desde cero, pausa, continuación y reinicio durante la reproducción.
+# Corrección de detección de audio para subtítulos
+
+Los archivos de audio arrastrados a una pista de vídeo se insertan en una pista de audio existente o en una nueva si no existe. El selector de subtítulos reconoce los eventos de audio por su contenido, incluso en pistas de vídeo de proyectos anteriores. Al analizar una pista mixta solo se procesan sus eventos de audio; no se interpreta la envolvente de opacidad como volumen.

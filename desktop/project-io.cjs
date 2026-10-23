@@ -10,10 +10,11 @@ function validateProject(data) {
     if(track.vegasMix!==undefined&&typeof track.vegasMix!=='boolean')throw new Error('Modo de mezcla no válido.');
     if(track.gain!==undefined&&(!Number.isFinite(track.gain)||track.gain<0||track.gain>4))throw new Error('Ganancia de pista no válida.');
     if(track.pan!==undefined&&(!Number.isFinite(track.pan)||Math.abs(track.pan)>1))throw new Error('Pan de pista no válido.');
-    if (!['video','audio'].includes(track.kind) || !Array.isArray(track.clips) || !Array.isArray(track.envelope)) throw new Error('Pista LQTS no válida.');
+    if (!['video','audio','subtitle'].includes(track.kind) || !Array.isArray(track.clips) || !Array.isArray(track.envelope)) throw new Error('Pista LQTS no válida.');
     for (const p of track.envelope) if (!Number.isFinite(p.time) || p.time < 0 || !Number.isFinite(p.value) || p.value < 0 || p.value > 1) throw new Error('Envolvente no válida.');
     track.envelope.sort((a,b)=>a.time-b.time);
     for (const clip of track.clips) {
+      if(clip.kind==='subtitle'){if(track.kind!=='subtitle'||clip.filePath)throw Error('Pista de subtítulos no válida');require('../dist/assets/subtitle-model.js').validate(clip);}else if(track.kind==='subtitle')throw Error('Una pista de subtítulos no admite medios');
       const effects=require('../dist/assets/effects-model.js');effects.validate(clip.videoFx,'video');effects.validate(clip.audioFx,'audio');
       for(const points of Object.values(clip.videoFx?.animation||{}))if(points.at(-1).time>clip.durationSeconds+.002)throw Error('La animación FX excede la duración del evento');
       for(const points of Object.values(clip.audioFx?.animation||{}))if(points.at(-1).time>clip.durationSeconds+.002)throw Error('La animación de audio excede la duración del evento');
@@ -30,7 +31,7 @@ function validateProject(data) {
       for(const key of ['fadeInSeconds','fadeOutSeconds'])if(clip[key]!==undefined&&(!Number.isFinite(clip[key])||clip[key]<0||clip[key]>clip.durationSeconds+.002))throw new Error('Duración de fade no válida.');
       if(clip.sourceOffsetSeconds!==undefined&&(!Number.isFinite(clip.sourceOffsetSeconds)||clip.sourceOffsetSeconds<0))throw new Error('Inicio del medio no válido.');
       if(clip.sourceDurationSeconds!==undefined&&(!Number.isFinite(clip.sourceDurationSeconds)||clip.sourceDurationSeconds<=0||(clip.sourceOffsetSeconds||0)+clip.durationSeconds*(clip.playbackRate??1)>clip.sourceDurationSeconds+.002))throw new Error('Recorte fuera de los límites del medio.');
-      if (++count > 10000 || !['video','audio'].includes(clip.kind) || typeof clip.filePath !== 'string' || !Number.isFinite(clip.startSeconds) || clip.startSeconds < 0 || !Number.isFinite(clip.durationSeconds) || clip.durationSeconds <= 0 || clip.startSeconds + clip.durationSeconds > 604800) throw new Error('Evento LQTS no válido.');
+      if (++count > 10000 || !['video','audio','subtitle'].includes(clip.kind) || typeof clip.filePath !== 'string' || !Number.isFinite(clip.startSeconds) || clip.startSeconds < 0 || !Number.isFinite(clip.durationSeconds) || clip.durationSeconds <= 0 || clip.startSeconds + clip.durationSeconds > 604800) throw new Error('Evento LQTS no válido.');
       if (clip.mask && (!/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(clip.mask.dataUrl || '') || clip.mask.dataUrl.length > 24*1024*1024)) throw new Error('Máscara LQTS no válida.');
     }
   }

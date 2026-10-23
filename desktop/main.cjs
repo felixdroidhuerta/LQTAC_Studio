@@ -222,3 +222,11 @@ app.whenReady().then(async () => {
 });
 
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
+
+const subtitlesService=require('./subtitles-service.cjs');
+app.on('before-quit',()=>subtitlesService.cancel());
+ipcMain.handle('subtitle-status',()=>subtitlesService.status());
+ipcMain.handle('subtitle-transcribe',(event,options)=>subtitlesService.transcribe(options,p=>{if(!event.sender.isDestroyed())event.sender.send('subtitle-progress',p);}));
+ipcMain.handle('subtitle-cancel',()=>subtitlesService.cancel());
+ipcMain.handle('subtitle-import',async()=>{const r=await dialog.showOpenDialog(mainWindow,{title:'Importar subtítulos SRT',properties:['openFile'],filters:[{name:'Subtítulos',extensions:['srt']}]});if(r.canceled)return null;const p=r.filePaths[0];if((await fs.promises.stat(p)).size>8*1024*1024)throw Error('SRT demasiado grande');return require('../dist/assets/subtitle-model.js').parse(await fs.promises.readFile(p,'utf8'));});
+ipcMain.handle('subtitle-export',async(_event,cues)=>{if(!Array.isArray(cues)||cues.length>10000)throw Error('Subtítulos no válidos');for(const c of cues){require('../dist/assets/subtitle-model.js').validate(c);if(!Number.isFinite(c.startSeconds)||c.startSeconds<0||!Number.isFinite(c.durationSeconds)||c.durationSeconds<=0||c.startSeconds+c.durationSeconds>604800)throw Error('Tiempo de subtítulo no válido');}const r=await dialog.showSaveDialog(mainWindow,{title:'Exportar subtítulos SRT',defaultPath:'Subtitulos.srt',filters:[{name:'Subtítulos',extensions:['srt']}]});if(r.canceled)return null;const p=/\.srt$/i.test(r.filePath)?r.filePath:r.filePath+'.srt';await fs.promises.writeFile(p,require('../dist/assets/subtitle-model.js').srt(cues),'utf8');return p;});

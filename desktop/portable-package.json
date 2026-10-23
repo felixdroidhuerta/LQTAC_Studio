@@ -1,6 +1,6 @@
 {
   "name": "lqtac-studio",
-  "version": "0.10.1",
+  "version": "0.11.0",
   "private": true,
   "main": "desktop/main.cjs"
 }

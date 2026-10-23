@@ -1,14 +1,16 @@
 # LQTAC Studio
 
-Editor local de vídeo y audio para Windows. Versión 0.10.1 de desarrollo.
+Editor local de vídeo y audio para Windows. Versión 0.11.0 con subtítulos automáticos offline.
 
 ## Descargar el programa
 
-Para un equipo nuevo, abre [Releases](https://github.com/felixdroidhuerta/LQTAC_Studio/releases), entra en **v0.10.1-portable** y descarga **LQTAC_Studio_0.10.1_Windows_x64_Portable.zip** dentro de Assets.
+Para un equipo nuevo, abre [Releases](https://github.com/felixdroidhuerta/LQTAC_Studio/releases), entra en **v0.11.0-portable** y descarga **LQTAC_Studio_0.11.0_Windows_x64_Portable.zip** dentro de Assets.
 
 Extrae todo el ZIP y abre **LQTAC Studio.exe**. El motor y sus bibliotecas están incluidos; no requiere Node, pnpm ni Internet en el equipo destino. La carpeta Shapes junto al ejecutable contiene la máscara LQTAC de ejemplo.
 
 Los archivos automáticos **Source code** contienen únicamente fuentes y no el motor de escritorio.
+
+La versión local añade pista de subtítulos editable, Whisper small multilingüe offline, importación/exportación SRT e incrustación en vídeo. Acceso desde la pestaña «Subtítulos». El modelo y runtime están instalados en este equipo; para preparar otro entorno de desarrollo ejecutar tools/setup-whisper.ps1. El empaquetado incluye ambos y sus licencias; no requiere descargas durante el uso.
 
 ## Funciones actuales
 
@@ -26,9 +28,9 @@ Los archivos automáticos **Source code** contienen únicamente fuentes y no el 
 - Efectos por clip de vídeo y audio con editor individual, previsualización/escucha y parámetros animados. El ecualizador muestra tres curvas simultáneas con colores y puntos independientes. Selecciona un evento y pulsa «Efectos de vídeo / audio» o «FX». Ver uso y límites en FUNCIONAMIENTO.md.
 - Editor individual de filtros con vista previa del clip y curvas de animación para parámetros numéricos de vídeo: por ejemplo, desaturación gradual. El audio dispone de escucha individual con ajuste fijo.
 
-Consulta [FUNCIONAMIENTO.md](FUNCIONAMIENTO.md) para el uso, las pruebas y los límites actuales. La compatibilidad fiel con VEGAS sigue pendiente; esta versión no debe considerarse un editor terminado. La versión 0.3.4 se genera localmente; los enlaces de descarga anteriores corresponden a la última versión publicada, 0.2.0.
+Consulta [FUNCIONAMIENTO.md](FUNCIONAMIENTO.md) para el uso, las pruebas y los límites actuales. La compatibilidad fiel con VEGAS sigue pendiente; esta versión no debe considerarse un editor terminado.
 
-Para retomar el desarrollo, arquitectura, formato LQTS y plan de implementación del puente desde un equipo con VEGAS Pro, consulta [developer.md](developer.md). El código actual es 0.3.4; subirlo al repositorio no sustituye los Assets de la Release 0.2.0.
+Para retomar el desarrollo, arquitectura, formato LQTS y plan de implementación del puente desde un equipo con VEGAS Pro, consulta [developer.md](developer.md). Las descargas de código fuente no incluyen motores ni modelo de voz: usa el ZIP portable para ejecutar el programa.
 
 ## Desarrollo y paquete portátil
 

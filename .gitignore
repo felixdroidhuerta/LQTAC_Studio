@@ -1,4 +1,8 @@
 node_modules/
+desktop/speech/bin/
+desktop/speech/models/
+desktop/speech/*.zip
+*.download
 tools/vegas/diagnostics/
 desktop/node_modules/
 *.log

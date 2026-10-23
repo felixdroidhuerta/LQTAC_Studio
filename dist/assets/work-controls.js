@@ -43,13 +43,13 @@ function openWorkControls(track,clip=null){
     if(clip){const source=Number(clip.dataset.sourceDurationSeconds),offset=Number(clip.dataset.sourceOffsetSeconds||0);if(source&&offset+duration*rate>source+.002){$('#workError',workDialog).textContent='La velocidad pide más material del disponible. Recorta el evento o reduce la velocidad.';return;}}
     historyCheckpoint();const target=clip||track;target.dataset.gain=String(value('workGain'));target.dataset.mute=String($('#workMute',workDialog).checked);
     if(clip){clip.firstChild.textContent=name||'Evento';clip.dataset.playbackRate=String(rate);
-      if(!audio){let next=[...frames];const time=value('cropTime');if($('#cropReset',workDialog).checked)next=[];else{next=next.filter(f=>Math.abs(f.time-time)>.000001);if(!$('#cropDelete',workDialog).checked)next.push({time,x:value('cropX'),y:value('cropY'),width:value('cropWidth'),height:value('cropHeight'),rotation:value('cropRotation')});next.sort((a,b)=>a.time-b.time);}clip.dataset.panCrop=JSON.stringify(next);}
+      if(!audio&&!$('fieldset',workDialog)?.hidden){let next=[...frames];const time=value('cropTime');if($('#cropReset',workDialog).checked)next=[];else{next=next.filter(f=>Math.abs(f.time-time)>.000001);if(!$('#cropDelete',workDialog).checked)next.push({time,x:value('cropX'),y:value('cropY'),width:value('cropWidth'),height:value('cropHeight'),rotation:value('cropRotation')});next.sort((a,b)=>a.time-b.time);}clip.dataset.panCrop=JSON.stringify(next);}
     }else{track.dataset.solo=String($('#workSolo',workDialog).checked);if(audio)track.dataset.pan=String(value('workPan'));$$('#trackLabels .track-label strong')[$$('.track').indexOf(track)].textContent=name||track.dataset.track;}
     syncTrackHeaders();workDialog.close();void renderTimelineAt(timelineTime);
   };
   workDialog.showModal();
 }
-document.addEventListener('dblclick',e=>{const clip=e.target.closest('.clip');if(clip&&!e.target.closest('.clip-fade-handle,.clip-trim-handle')){if(clip.dataset.kind==='video')openPanCropEditor(clip);else openWorkControls(clip.parentElement,clip);}});
+document.addEventListener('dblclick',e=>{const clip=e.target.closest('.clip');if(clip&&!e.target.closest('.clip-fade-handle,.clip-trim-handle')){if(clip.dataset.kind==='subtitle')openSubtitleEditor(clip);else if(clip.dataset.kind==='video')openPanCropEditor(clip);else openWorkControls(clip.parentElement,clip);}});
 document.addEventListener('dblclick',e=>{const label=e.target.closest('.track-label-title');if(label){const i=$$('#trackLabels .track-label').indexOf(label.closest('.track-label'));openWorkControls($$('.track')[i]);}});
 demoReady.then(syncTrackHeaders);
 const transformCard=$('#scaleRange').closest('.inspector-card');

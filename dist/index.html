@@ -401,7 +401,7 @@
     };
     const previewVideo = $('#previewVideo');
     const previewAudio = $('#previewAudio');
-    const selectMediaCard = (card) => { $$('.media-card').forEach(c => c.classList.remove('selected')); card.classList.add('selected'); $('#selectedName').textContent = card.dataset.name; $('#selectedMeta').textContent = card.dataset.kind === 'audio' ? 'Media real · audio local' : card.dataset.kind === 'project' ? 'VEGAS Bridge · proyecto vinculado' : 'Media real · vídeo local'; $('#frameTitle').innerHTML = card.dataset.kind === 'audio' ? 'Audio<br/>con intención.' : card.dataset.kind === 'project' ? 'Proyecto<br/>VEGAS.' : 'Tecnología<br/>con imaginación.'; toast('Biblioteca seleccionada · ' + card.dataset.name + ' · la reproducción usa la timeline'); };
+    const selectMediaCard = (card) => { $$('.media-card').forEach(c => c.classList.remove('selected')); card.classList.add('selected'); window.LQTACSubtitles?.selection(); $('#frameTitle').innerHTML = card.dataset.kind === 'audio' ? 'Audio<br/>con intención.' : card.dataset.kind === 'project' ? 'Proyecto<br/>VEGAS.' : 'Tecnología<br/>con imaginación.'; toast('Biblioteca seleccionada · ' + card.dataset.name + ' · la reproducción usa la timeline'); };
     let pointerMediaDrag = null;
     let nativeMediaDrag = false;
     const bindMediaCard = card => {
@@ -874,7 +874,8 @@
         ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';surface.style.zIndex=topMedia.style.zIndex;surface.style.opacity=String(envelopeValue(track,timelineTime)*Number(track.dataset.gain??1));surface.style.display='block';
         for(const c of clips){const m=videoPool.get(c);if(m?.workCanvas)m.workCanvas.style.display='none';}
       }
-      const names = [...new Set(active.map(clip => clip.parentElement.dataset.track))];
+      window.LQTACSubtitles?.render(timelineTime,exportSize);
+      const names = [...new Set([...active,...timelineClips().filter(c=>c.dataset.kind==='subtitle'&&c.dataset.mute!=='true'&&trackIsEnabled(c.parentElement)&&clipIsActiveAt(c,timelineTime))].map(clip => clip.parentElement.dataset.track))];
       $('#monitorStat').textContent = playbackError || `Proyecto · ${formatTimelineLabel(timelineTime)} · ${names.join(' + ') || 'sin eventos'}`;
     };
     const startTimelineMediaAtCurrentTime = () => {
@@ -936,6 +937,7 @@
     });
     const clipState = clip => ({ start: Number(clip.dataset.start || 0), duration: Number(clip.dataset.duration || parseFloat(clip.style.width) || 0) });
     const updateTrackTransitions = track => {
+      if(track.dataset.kind==='subtitle')return;
       $$('.auto-transition', track).forEach(zone => zone.remove());
       const clips = $$('.clip', track).filter(clip => !clip.classList.contains('transition-zone')).sort((a, b) => clipState(a).start - clipState(b).start);
       const totalSeconds = Number(track.dataset.timelineSeconds || timelineDurationSeconds);
@@ -1047,6 +1049,7 @@
       selectedTimelineClips = [...new Set(clips.filter(Boolean))];
       selectedTimelineClips.forEach(item => item.classList.add('selected'));
       selectedTimelineClip = selectedTimelineClips[0] || null;
+      window.LQTACSubtitles?.selection();
     };
     $('#tracks').addEventListener('pointerdown', event => {
       if (event.button !== 0 || !event.target.closest('.track') || event.target.closest('.clip,.envelope-handle,.envelope-segment,.envelope-line,button')) return;
@@ -1154,7 +1157,7 @@
     document.addEventListener('click', event => { if (!event.target.closest('.clip-context-menu')) hideClipContextMenu(); });
     document.addEventListener('contextmenu', event => { if (!event.target.closest('.clip') && !event.target.closest('.track')) hideClipContextMenu(); });
     const createTimelineClip = (track, item, startPercent) => {
-      const kind = item.kind === 'audio' ? 'audio wave' : 'video';
+      const kind = item.kind==='subtitle'?'subtitle':item.kind === 'audio' ? 'audio wave' : 'video';
       const clip = document.createElement('div');
       const durationSeconds = Number(item.durationSeconds);
       const duration = Number.isFinite(durationSeconds) && durationSeconds > 0
@@ -1163,11 +1166,12 @@
       clip.className = `clip ${kind}`;
       clip.textContent = item.name || 'media nuevo';
       clip.dataset.kind = item.kind || 'video';
+      if(item.kind==='subtitle'){clip.dataset.subtitleText=item.subtitleText||item.name||'Subtítulo';clip.dataset.subtitleStyle=JSON.stringify(item.subtitleStyle||{});clip.textContent=clip.dataset.subtitleText;}
       clip.dataset.start = Math.max(0, startPercent).toFixed(6);
       clip.dataset.duration = String(duration);
       if (Number.isFinite(durationSeconds) && durationSeconds > 0) clip.dataset.durationSeconds = String(durationSeconds);
       clip.dataset.startSeconds = String(Number(item.startSeconds??((startPercent / 100) * timelineDurationSeconds)));
-      clip.dataset.sourceOffsetSeconds = String(Number(item.sourceOffsetSeconds)||0);
+      clip.dataset.sourceOffsetSeconds = String(item.kind==='subtitle'?0:Number(item.sourceOffsetSeconds)||0);
       clip.dataset.videoFx=JSON.stringify(item.videoFx||{});clip.dataset.audioFx=JSON.stringify(item.audioFx||{});
       clip.dataset.playbackRate=String(item.playbackRate??1);clip.dataset.gain=String(item.gain??1);clip.dataset.mute=String(!!item.mute);clip.dataset.panCrop=JSON.stringify(item.panCrop||[]);
       clip.dataset.autoCrossfade=String(item.autoCrossfade!==false);clip.dataset.vegasCurves=JSON.stringify(item.vegasCurves||{});for(const key of ['fadeInCurve','fadeOutCurve','fadeInReciprocalCurve','fadeOutReciprocalCurve'])clip.dataset[key]=item[key]||'Linear';
@@ -1185,6 +1189,7 @@
       return clip;
     };
     const addMediaToTimeline = async (track, item, startPercent) => {
+      if(track.dataset.kind==='subtitle'){toast('Esta pista solo admite subtítulos. Usa Añadir subtítulo o Importar SRT.');return null;}
       if (!item.filePath) { toast('No se pudo obtener la ruta del archivo. Importa desde Archivo.'); return null; }
       const insertionSeconds = Math.max(0, startPercent / 100 * timelineDurationSeconds);
       const durationSeconds = await mediaDurationSeconds(item);
@@ -1202,7 +1207,9 @@
         void renderTimelineAt(timelineTime);
         return videoClip;
       }
-      const audioClip = createTimelineClip(track, preparedItem, startPercent);
+      const targetTrack = item.kind === 'audio' && track.dataset.kind !== 'audio'
+        ? $('.track[data-kind="audio"]') || addTimelineTrack('audio') : track;
+      const audioClip = createTimelineClip(targetTrack, preparedItem, startPercent);
       refreshTimelineScale();
       void renderTimelineAt(timelineTime);
       return audioClip;
@@ -1267,7 +1274,7 @@
           const move = moveEvent => {
             const targetTrack = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY)?.closest('.track');
             if(!dragRecorded){if(Math.abs(moveEvent.clientX-startX)<2&&(!targetTrack||targetTrack===currentTrack))return;historyCheckpoint();dragRecorded=true;}
-            if (targetTrack && targetTrack !== currentTrack) {
+            if (targetTrack && targetTrack !== currentTrack && targetTrack.dataset.kind===originTrack.dataset.kind) {
               const envelope = $('.envelope-layer', targetTrack);
               currentTrack.classList.remove('drop-target');
               currentTrack = targetTrack;
@@ -1296,6 +1303,7 @@
     const trimStyle=document.createElement('style');trimStyle.textContent='.clip:hover::before,.clip:hover::after{content:"";position:absolute;top:2px;bottom:2px;width:4px;border-radius:2px;background:rgba(255,255,255,.75);pointer-events:none}.clip:hover::before{left:2px}.clip:hover::after{right:2px}';document.head.append(trimStyle);
     const fadeStyle=document.createElement('style');fadeStyle.textContent='.clip-fade-visual{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2}.clip-fade-handle{position:absolute;top:0;width:12px;height:12px;transform:translateX(-50%);background:#eaf6ff;border:1px solid #244674;border-radius:2px;z-index:6;cursor:ew-resize;opacity:.85;touch-action:none}.clip-fade-handle:hover{background:#72e7ff;opacity:1}';document.head.append(fadeStyle);
     function drawClipFades(clip){
+      if(clip.dataset.kind==='subtitle')return;
       const duration=clipTiming(clip).durationSeconds;if(!(duration>0))return;
       const fadeIn=Math.max(0,Math.min(duration,Number(clip.dataset.fadeInSeconds)||0)),fadeOut=Math.max(0,Math.min(duration,Number(clip.dataset.fadeOutSeconds)||0));
       clip.dataset.fadeInSeconds=String(fadeIn);clip.dataset.fadeOutSeconds=String(fadeOut);
@@ -1323,21 +1331,21 @@
       const targets=groupMembers(clip).filter(c=>c?.isConnected);
       const states=targets.map(c=>{const timing=clipTiming(c),offset=Number(c.dataset.sourceOffsetSeconds)||0;const pool=c.dataset.kind==='video'?videoPool:timelineAudioPool;
         const known=Number(c.dataset.sourceDurationSeconds)||timelineDurationCache.get(c.dataset.filePath)||pool.get(c)?.duration;
-        const source=Number.isFinite(known)&&known>0?known:offset+timing.durationSeconds*Number(c.dataset.playbackRate||1);
+        const source=c.dataset.kind==='subtitle'?604800:Number.isFinite(known)&&known>0?known:offset+timing.durationSeconds*Number(c.dataset.playbackRate||1);
         c.dataset.sourceDurationSeconds=String(source);return {clip:c,...timing,offset,source,crop:clipCropFrames(c),videoFx:clipEffectsState(c,'video'),audioFx:clipEffectsState(c,'audio'),rate:Number(c.dataset.playbackRate||1),fadeIn:Number(c.dataset.fadeInSeconds)||0,fadeOut:Number(c.dataset.fadeOutSeconds)||0};});
       const originX=event.clientX,secondsPerPixel=timelineDurationSeconds/clip.parentElement.getBoundingClientRect().width,minimum=1/24;
       let trimRecorded=false;
       const apply=delta=>{
         if(!trimRecorded&&Math.abs(delta)>.000001){historyCheckpoint();trimRecorded=true;}
         for(const s of states){const start=edge==='start'?s.startSeconds+delta:s.startSeconds,duration=edge==='start'?s.durationSeconds-delta:s.durationSeconds+delta;
-          s.clip.dataset.startSeconds=String(start);s.clip.dataset.durationSeconds=String(duration);s.clip.dataset.sourceOffsetSeconds=String(edge==='start'?s.offset+delta*s.rate:s.offset);s.clip.dataset.fadeInSeconds=String(Math.min(s.fadeIn,duration));s.clip.dataset.fadeOutSeconds=String(Math.min(s.fadeOut,duration));
+          s.clip.dataset.startSeconds=String(start);s.clip.dataset.durationSeconds=String(duration);s.clip.dataset.sourceOffsetSeconds=String(s.clip.dataset.kind==='subtitle'?0:edge==='start'?s.offset+delta*s.rate:s.offset);s.clip.dataset.fadeInSeconds=String(Math.min(s.fadeIn,duration));s.clip.dataset.fadeOutSeconds=String(Math.min(s.fadeOut,duration));
           s.clip.dataset.videoFx=JSON.stringify(LQTACEffects.slice(s.videoFx,edge==='start'?delta:0,duration));
           s.clip.dataset.audioFx=JSON.stringify(LQTACEffects.slice(s.audioFx,edge==='start'?delta:0,duration));
           if(s.crop.length){const offset=edge==='start'?delta:0;s.clip.dataset.panCrop=JSON.stringify([{time:0,...LQTACWork.cropAt(s.crop,offset)},...s.crop.filter(f=>f.time>offset&&f.time<offset+duration).map(f=>({...f,time:f.time-offset})),{time:duration,...LQTACWork.cropAt(s.crop,offset+duration)}]);}}
         refreshTimelineScale();void renderTimelineAt(timelineTime);
       };
       const move=e=>{const requested=(e.clientX-originX)*secondsPerPixel;
-        const low=Math.max(...states.map(s=>edge==='start'?Math.max(-s.startSeconds,-s.offset/s.rate):minimum-s.durationSeconds));
+        const low=Math.max(...states.map(s=>edge==='start'?s.clip.dataset.kind==='subtitle'?-s.startSeconds:Math.max(-s.startSeconds,-s.offset/s.rate):minimum-s.durationSeconds));
         const high=Math.min(...states.map(s=>edge==='start'?s.durationSeconds-minimum:(s.source-s.offset)/s.rate-s.durationSeconds));
         apply(Math.max(low,Math.min(high,requested)));
       };
@@ -1353,7 +1361,7 @@
       stopTimelinePlayback();const rightGroups=new Map(),rightClips=[];
       for(const clip of targets){
         const timing=clipTiming(clip),leftDuration=timelineTime-timing.startSeconds,offset=Number(clip.dataset.sourceOffsetSeconds)||0;
-        const right=createTimelineClip(clip.parentElement,{name:clip.firstChild?.textContent||'Media',kind:clip.dataset.kind,filePath:clip.dataset.filePath,durationSeconds:timing.durationSeconds-leftDuration,sourceOffsetSeconds:offset+leftDuration*Number(clip.dataset.playbackRate||1),sourceDurationSeconds:Number(clip.dataset.sourceDurationSeconds)||undefined,playbackRate:Number(clip.dataset.playbackRate||1),gain:Number(clip.dataset.gain??1),mute:clip.dataset.mute==='true'},timelineTime/timelineDurationSeconds*100);
+        const right=createTimelineClip(clip.parentElement,{subtitleText:clip.dataset.subtitleText,subtitleStyle:JSON.parse(clip.dataset.subtitleStyle||'{}'),name:clip.firstChild?.textContent||'Media',kind:clip.dataset.kind,filePath:clip.dataset.filePath,durationSeconds:timing.durationSeconds-leftDuration,sourceOffsetSeconds:offset+leftDuration*Number(clip.dataset.playbackRate||1),sourceDurationSeconds:Number(clip.dataset.sourceDurationSeconds)||undefined,playbackRate:Number(clip.dataset.playbackRate||1),gain:Number(clip.dataset.gain??1),mute:clip.dataset.mute==='true'},timelineTime/timelineDurationSeconds*100);
         const crop=clipCropFrames(clip);right.dataset.panCrop=JSON.stringify([{time:0,...LQTACWork.cropAt(crop,leftDuration)},...crop.filter(f=>f.time>leftDuration).map(f=>({...f,time:f.time-leftDuration}))]);clip.dataset.panCrop=JSON.stringify([...crop.filter(f=>f.time<leftDuration),{time:leftDuration,...LQTACWork.cropAt(crop,leftDuration)}]);
         right.dataset.startSeconds=String(timelineTime);right.dataset.transition=clip.dataset.transition||'fade';
         for(const key of ['autoCrossfade','vegasCurves','fadeInCurve','fadeOutCurve','fadeInReciprocalCurve','fadeOutReciprocalCurve'])right.dataset[key]=clip.dataset[key];
@@ -1664,12 +1672,12 @@
       historyCheckpoint();
       dynamicTrackIndex += 1;
       const isAudio = kind === 'audio';
-      const prefix = isAudio ? 'A' : 'V';
+      const prefix = kind==='subtitle'?'S':isAudio ? 'A' : 'V';
       let number = 1;
       while ($$('.track').some(track => track.dataset.track === `${prefix}${number}`)) number++;
       const label = `${prefix}${number}`;
       $('#trackLabels').insertAdjacentHTML('beforeend', `<div class="track-label ${isAudio ? 'audio' : ''} dynamic"><div class="track-label-title"><b></b><strong>${label} · nueva pista</strong></div><div class="track-header-buttons"><button type="button">M</button><button type="button">S</button><button type="button">FX</button></div><div class="track-meter"></div></div>`);
-      const row = document.createElement('div'); row.className = 'track'; row.dataset.track = label; row.dataset.kind = isAudio ? 'audio' : 'video';
+      const row = document.createElement('div'); row.className = 'track'; row.dataset.track = label; row.dataset.kind = kind==='subtitle'?'subtitle':isAudio ? 'audio' : 'video';
       row.innerHTML = `<div class="clip ${isAudio ? 'audio wave' : 'video alt'}" style="width:34%;">${isAudio ? 'audio listo' : 'video listo'}</div><div class="envelope-layer" data-envelope="${isAudio ? 'volume' : 'opacity'}"><span class="envelope-label">${isAudio ? 'volumen' : 'opacidad'}</span><svg viewBox="0 0 640 46" preserveAspectRatio="none"><polyline class="envelope-line${isAudio ? '' : ' opacity'}" points="0,23 220,18 420,28 640,20"></polyline><circle class="envelope-handle${isAudio ? '' : ' opacity'}" data-index="0" cx="0" cy="23" r="4"></circle><circle class="envelope-handle${isAudio ? '' : ' opacity'}" data-index="1" cx="220" cy="18" r="4"></circle><circle class="envelope-handle${isAudio ? '' : ' opacity'}" data-index="2" cx="420" cy="28" r="4"></circle><circle class="envelope-handle${isAudio ? '' : ' opacity'}" data-index="3" cx="640" cy="20" r="4"></circle></svg></div>`;
       $('.clip', row)?.remove();
       $('#tracks').append(row); bindClips(); bindEnvelopeHandles(); toast(`${label} añadida · lista para montar clips`);
@@ -1845,7 +1853,7 @@
         ...trackWorkState(track),vegasMix:track.dataset.vegasMix==='true',envelopeVisible:track.classList.contains('envelope-visible'),envelope:getEnvelopePoints(track).map(p=>({...p})),
         clips:timelineClips().filter(c=>c.parentElement===track).map(c=>{
           const mask=transitionMasks.get(c);
-          return {name:c.firstChild?.textContent||c.textContent,kind:c.dataset.kind||track.dataset.kind,filePath:c.dataset.filePath||'',...clipTiming(c),videoFx:clipEffectsState(c,'video'),audioFx:clipEffectsState(c,'audio'),playbackRate:Number(c.dataset.playbackRate||1),gain:Number(c.dataset.gain??1),mute:c.dataset.mute==='true',panCrop:clipCropFrames(c),fadeInSeconds:Number(c.dataset.fadeInSeconds)||0,fadeOutSeconds:Number(c.dataset.fadeOutSeconds)||0,sourceOffsetSeconds:Number(c.dataset.sourceOffsetSeconds)||0,sourceDurationSeconds:Number(c.dataset.sourceDurationSeconds)||undefined,groupId:c.dataset.groupId||'',groupType:c.dataset.groupType||'',transition:c.dataset.transition||'fade',
+          return {subtitleText:c.dataset.subtitleText,subtitleStyle:c.dataset.kind==='subtitle'?JSON.parse(c.dataset.subtitleStyle||'{}'):undefined,name:c.firstChild?.textContent||c.textContent,kind:c.dataset.kind||track.dataset.kind,filePath:c.dataset.filePath||'',...clipTiming(c),videoFx:clipEffectsState(c,'video'),audioFx:clipEffectsState(c,'audio'),playbackRate:Number(c.dataset.playbackRate||1),gain:Number(c.dataset.gain??1),mute:c.dataset.mute==='true',panCrop:clipCropFrames(c),fadeInSeconds:Number(c.dataset.fadeInSeconds)||0,fadeOutSeconds:Number(c.dataset.fadeOutSeconds)||0,sourceOffsetSeconds:Number(c.dataset.sourceOffsetSeconds)||0,sourceDurationSeconds:Number(c.dataset.sourceDurationSeconds)||undefined,groupId:c.dataset.groupId||'',groupType:c.dataset.groupType||'',transition:c.dataset.transition||'fade',
             autoCrossfade:c.dataset.autoCrossfade!=='false',...vegasClipState(c),fadeInReciprocalCurve:c.dataset.fadeInReciprocalCurve||'Linear',fadeOutReciprocalCurve:c.dataset.fadeOutReciprocalCurve||'Linear',mask:mask?Object.fromEntries(Object.entries(mask).filter(([key])=>!['image','filePath'].includes(key))):undefined};
         })}))
     });
@@ -1950,6 +1958,7 @@
       const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;const ctx=canvas.getContext('2d');ctx.fillStyle='#000';ctx.fillRect(0,0,width,height);
       const layers=[...active.map(([,media])=>media.workCanvas||media),...transitionRenderers.values(),...vegasTrackSurfaces.values()].map(layer=>layer.canvas||layer).filter(layer=>layer.style.display!=='none').sort((a,b)=>Number(a.style.zIndex)-Number(b.style.zIndex));
       for(const layer of layers){ctx.globalAlpha=Number(layer.style.opacity||1);if(layer.tagName==='VIDEO'){const scale=Math.min(width/layer.videoWidth,height/layer.videoHeight),w=layer.videoWidth*scale,h=layer.videoHeight*scale;ctx.drawImage(layer,(width-w)/2,(height-h)/2,w,h);}else ctx.drawImage(layer,0,0,width,height);}
+      window.LQTACSubtitles?.draw(ctx,width,height,seconds);
       return canvas.toDataURL('image/png').split(',')[1];
       }finally{frameCapturing=false;}
     };
@@ -1986,10 +1995,12 @@
     });
   </script>
 </body>
+<script src="assets/subtitle-model.js"></script>
 <script src="assets/work-controls.js"></script>
 <script src="assets/keyframe-controls.js"></script>
 <script src="assets/effects-controls.js"></script>
 <script src="assets/effect-editor.js"></script>
 <script src="assets/audio-effect-editor.js"></script>
 <script src="assets/pan-crop-editor.js"></script>
+<script src="assets/subtitles-controls.js"></script>
 </html>

@@ -45,8 +45,8 @@ async function startRender({project,profile,width=1280,height=720,fps=24,output,
   if(!preset || ![24,25,30].includes(fps) || ![640,1280,1920].includes(width) || ![360,720,1080].includes(height)) throw new Error('Formato de exportación no válido.');
   const clips=project.tracks.flatMap(t=>t.clips);
   if(!clips.length) throw new Error('El proyecto no tiene eventos que exportar.');
-  if(clips.some(c=>path.resolve(c.filePath).toLowerCase()===path.resolve(output).toLowerCase())) throw new Error('El destino no puede sobrescribir un medio del proyecto.');
-  for(const c of clips) if(!c.filePath || !fs.existsSync(c.filePath)) throw new Error('Medio no encontrado: '+c.filePath);
+  if(clips.some(c=>c.kind!=='subtitle'&&path.resolve(c.filePath).toLowerCase()===path.resolve(output).toLowerCase())) throw new Error('El destino no puede sobrescribir un medio del proyecto.');
+  for(const c of clips.filter(c=>c.kind!=='subtitle')) if(!c.filePath || !fs.existsSync(c.filePath)) throw new Error('Medio no encontrado: '+c.filePath);
   project=structuredClone(project);
   const cache=effectsDirectory||path.join(require('node:os').tmpdir(),'lqtac-effects-cache');
   for(const track of project.tracks)for(const clip of track.clips)if(clip.kind==='audio'&&clip.audioFx?.enabled){const animated=require('../dist/assets/effects-model.js').animatedAudio(clip.audioFx);clip.filePath=await require('./effects-audio.cjs').prepare(clip.filePath,clip.audioFx,cache,{offset:clip.sourceOffsetSeconds||0,duration:clip.durationSeconds,rate:clip.playbackRate||1});if(animated){clip.sourceOffsetSeconds=0;clip.playbackRate=1;}}

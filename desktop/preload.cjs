@@ -1,6 +1,12 @@
 const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 contextBridge.exposeInMainWorld('lqtacDesktop', {
+  subtitleStatus:()=>ipcRenderer.invoke('subtitle-status'),
+  transcribeSubtitles:options=>ipcRenderer.invoke('subtitle-transcribe',options),
+  cancelSubtitles:()=>ipcRenderer.invoke('subtitle-cancel'),
+  importSubtitles:()=>ipcRenderer.invoke('subtitle-import'),
+  exportSubtitles:cues=>ipcRenderer.invoke('subtitle-export',cues),
+  onSubtitleProgress:listener=>{const fn=(_e,p)=>listener(p);ipcRenderer.on('subtitle-progress',fn);return ()=>ipcRenderer.removeListener('subtitle-progress',fn);},
   prepareAudioEffects:(filePath,fx,segment)=>ipcRenderer.invoke('prepare-audio-effects',filePath,fx,segment),
   cancelAudioEffects:()=>ipcRenderer.invoke('cancel-audio-effects'),
   audioEffectsWaveform:(filePath,segment)=>ipcRenderer.invoke('audio-effects-waveform',filePath,segment),

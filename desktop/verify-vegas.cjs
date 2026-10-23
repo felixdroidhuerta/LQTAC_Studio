@@ -2,6 +2,7 @@ const {app,BrowserWindow,dialog}=require('electron');
 const fs=require('node:fs/promises'),path=require('node:path'),crypto=require('node:crypto'),assert=require('node:assert/strict');
 const {promisify}=require('node:util'),run=promisify(require('node:child_process').execFile);
 const root=path.join(app.getPath('temp'),'lqtac-vegas-test-'+process.pid);app.setPath('userData',path.join(root,'profile'));
+app.on('browser-window-created',(_event,win)=>win.webContents.setBackgroundThrottling(false));
 require('./main.cjs');
 app.whenReady().then(async()=>{
   const timer=setTimeout(()=>app.exit(1),180000);timer.unref();

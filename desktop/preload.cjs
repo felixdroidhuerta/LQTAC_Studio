@@ -1,6 +1,9 @@
 const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 contextBridge.exposeInMainWorld('lqtacDesktop', {
+  prepareAudioEffects:(filePath,fx,segment)=>ipcRenderer.invoke('prepare-audio-effects',filePath,fx,segment),
+  cancelAudioEffects:()=>ipcRenderer.invoke('cancel-audio-effects'),
+  audioEffectsWaveform:(filePath,segment)=>ipcRenderer.invoke('audio-effects-waveform',filePath,segment),
   saveProject: (data,saveAs=false) => ipcRenderer.invoke('save-lqts',data,saveAs),
   openProject: () => ipcRenderer.invoke('open-lqts'),
   renderStart: options => ipcRenderer.invoke('render-start',options),

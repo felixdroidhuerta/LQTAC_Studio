@@ -14,6 +14,9 @@ function validateProject(data) {
     for (const p of track.envelope) if (!Number.isFinite(p.time) || p.time < 0 || !Number.isFinite(p.value) || p.value < 0 || p.value > 1) throw new Error('Envolvente no válida.');
     track.envelope.sort((a,b)=>a.time-b.time);
     for (const clip of track.clips) {
+      const effects=require('../dist/assets/effects-model.js');effects.validate(clip.videoFx,'video');effects.validate(clip.audioFx,'audio');
+      for(const points of Object.values(clip.videoFx?.animation||{}))if(points.at(-1).time>clip.durationSeconds+.002)throw Error('La animación FX excede la duración del evento');
+      for(const points of Object.values(clip.audioFx?.animation||{}))if(points.at(-1).time>clip.durationSeconds+.002)throw Error('La animación de audio excede la duración del evento');
       if(clip.autoCrossfade!==undefined&&typeof clip.autoCrossfade!=='boolean')throw new Error('Modo de fundido no válido.');
       for(const k of ['fadeInCurve','fadeOutCurve','fadeInReciprocalCurve','fadeOutReciprocalCurve'])if(clip[k]!==undefined&&!['Linear','Fast','Slow','Smooth','Sharp','None'].includes(clip[k]))throw new Error('Curva no válida.');
       if(clip.vegasCurves!==undefined){if(!clip.vegasCurves||typeof clip.vegasCurves!=='object'||Array.isArray(clip.vegasCurves)||Object.keys(clip.vegasCurves).length>6)throw new Error('Calibración no válida.');for(const [type,table] of Object.entries(clip.vegasCurves))if(!Array.isArray(table)||table.length>4097||!calibrated(type,table))throw new Error('Curva no calibrada para este motor.');}

@@ -6,6 +6,7 @@ const {promisify}=require('node:util');
 const run=promisify(require('node:child_process').execFile);
 const root=path.join(app.getPath('temp'),'lqtac-work-test-'+process.pid);
 app.setPath('userData',path.join(root,'profile'));
+app.on('browser-window-created',(_event,win)=>win.webContents.setBackgroundThrottling(false));
 require('./main.cjs');
 app.whenReady().then(async()=>{
   const timeout=setTimeout(()=>app.exit(1),120000);timeout.unref();

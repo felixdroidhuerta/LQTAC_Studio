@@ -39,7 +39,7 @@ async function hasAudio(filePath) {
   try {await promisify(execFile)(ffmpegPath(),['-hide_banner','-i',filePath],{windowsHide:true,maxBuffer:1024*1024});return false;}
   catch(error) {return /Stream .*Audio:/.test(error.stderr||'');}
 }
-async function startRender({project,profile,width=1280,height=720,fps=24,output},progress=()=>{}) {
+async function startRender({project,profile,width=1280,height=720,fps=24,output,effectsDirectory},progress=()=>{}) {
   validateProject(project);
   const preset=presets[profile];
   if(!preset || ![24,25,30].includes(fps) || ![640,1280,1920].includes(width) || ![360,720,1080].includes(height)) throw new Error('Formato de exportación no válido.');
@@ -47,12 +47,16 @@ async function startRender({project,profile,width=1280,height=720,fps=24,output}
   if(!clips.length) throw new Error('El proyecto no tiene eventos que exportar.');
   if(clips.some(c=>path.resolve(c.filePath).toLowerCase()===path.resolve(output).toLowerCase())) throw new Error('El destino no puede sobrescribir un medio del proyecto.');
   for(const c of clips) if(!c.filePath || !fs.existsSync(c.filePath)) throw new Error('Medio no encontrado: '+c.filePath);
+  project=structuredClone(project);
+  const cache=effectsDirectory||path.join(require('node:os').tmpdir(),'lqtac-effects-cache');
+  for(const track of project.tracks)for(const clip of track.clips)if(clip.kind==='audio'&&clip.audioFx?.enabled){const animated=require('../dist/assets/effects-model.js').animatedAudio(clip.audioFx);clip.filePath=await require('./effects-audio.cjs').prepare(clip.filePath,clip.audioFx,cache,{offset:clip.sourceOffsetSeconds||0,duration:clip.durationSeconds,rate:clip.playbackRate||1});if(animated){clip.sourceOffsetSeconds=0;clip.playbackRate=1;}}
+  const renderClips=project.tracks.flatMap(t=>t.clips);
   const duration=Math.max(...clips.map(c=>c.startSeconds+c.durationSeconds));
   const temporary=path.join(path.dirname(output),`.lqtac-render-${process.pid}-${Date.now()}.${profile}`);
   const args=['-hide_banner','-y'];
   let input=0;
   if(preset.video) {args.push('-f','image2pipe','-framerate',String(fps),'-vcodec','png','-i','pipe:0');input++;}
-  const audioPaths=[...new Set(clips.filter(c=>c.kind==='audio').map(c=>c.filePath))];
+  const audioPaths=[...new Set(renderClips.filter(c=>c.kind==='audio').map(c=>c.filePath))];
   const available=new Map(await Promise.all(audioPaths.map(async p=>[p,await hasAudio(p)])));
   const filters=[],labels=[];
   for(const track of project.tracks.filter(t=>enabled(t,project.tracks))) for(const clip of track.clips.filter(c=>!c.mute&&c.kind==='audio'&&available.get(c.filePath))) {

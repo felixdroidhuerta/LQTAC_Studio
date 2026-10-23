@@ -1,6 +1,67 @@
 # LQTAC Studio — Funcionamiento y validación
 
-Última actualización: 22 de octubre de 2026.
+Última actualización: 23 de octubre de 2026.
+
+## Conservación de versiones — regla desde 23/10/2026
+
+GitHub conserva todas las versiones publicadas, con código y portables. Localmente solo se mantienen las tres versiones más recientes (carpeta y ZIP por versión). Antes de eliminar versiones antiguas se verifica su respaldo remoto; nunca se eliminan proyectos, medios personales ni la carpeta principal de desarrollo como parte de esta limpieza. La regla también figura en AGENTS.md para futuras sesiones.
+
+## Ecualizador con tres curvas simultáneas — 0.8.1
+
+Graves en naranja, medios en cian y agudos en violeta, visibles juntos sobre la misma escala de −18 a +18 dB. Pulsar una curva o uno de sus puntos selecciona su banda para editarla; arrastrar modifica solo esa banda. La leyenda permite elegir la banda cuando las curvas coinciden. La curva activa tiene mayor grosor y las otras usan trazos diferenciados. Los campos numéricos llevan el color correspondiente. Se conservan los controles de animación y la preparación de escucha de 0.8.0; cada banda conserva sus puntos independientes.
+
+## Editor individual de audio y automatización — 0.8.0
+
+El usuario da por válido el editor individual de efectos de vídeo de 0.7.0 («funcionan de lujo», 23/10/2026). Se incorpora ahora su equivalente para audio; su aceptación auditiva queda pendiente.
+
+Seleccionar un evento de audio y abrir su efecto desde FX. La ventana muestra solo los controles del filtro, la forma de onda, escucha independiente y una línea de tiempo relativa al clip. Elegir un parámetro, marcar «Animar este parámetro» y añadir puntos en los tiempos deseados; los puntos se pueden arrastrar o eliminar. La interpolación es lineal. «Preparar escucha» procesa el borrador; «Escuchar clip» permite oírlo y comparar con el original sin filtros. Tras editar hay que preparar de nuevo. «Aplicar al clip» confirma los cambios; Cancelar los descarta.
+
+Se pueden animar graves, medios, agudos, umbral y ratio del compresor, techo del limitador, reducción de ruido, objetivo de sonoridad, retardo y mezcla del eco e intensidad de reverberación. Activar/desactivar cada filtro es fijo, no un parámetro animado. La escucha del editor es del evento antes de las ganancias y envolventes de pista, no de la mezcla completa.
+
+El proyecto y la exportación reutilizan el mismo audio procesado. Los puntos se guardan en LQTS, copiar/pegar e historial; recortar y dividir conserva los valores interpolados en los límites. No se modifican los medios originales. Todo funciona localmente con FFmpeg incluido.
+
+Límites: no hay procesamiento DSP interactivo mientras se arrastra. El audio animado se prepara sobre el fragmento a su velocidad de reproducción; el modo estático procesa la fuente completa antes del recorte, por lo que el estado inicial de los filtros puede diferir. Al cortar se conservan las curvas, no la memoria interna ni colas de los procesadores. Variar el retardo del eco puede cambiar el tono. La sonoridad animada combina normalización inicial y ganancia variable, no garantiza un LUFS instantáneo constante. Los comandos se actualizan en bloques, con latencia adicional propia de algunos filtros.
+
+Validación técnica: verify-audio-animation.cjs mide una rampa de EQ y decodifica filtros animados. verify-audio-editor.cjs comprueba edición, escucha preparada, búsqueda temporal, reproducción del proyecto, exportación medida con inicio desplazado y velocidad 1,5×, persistencia LQTS, historial, división y copia.
+
+## Efectos básicos por clip — 0.6.0
+
+### Editor individual y animación de filtros — 0.7.0
+
+En Video FX, selecciona un clip y pulsa una tarjeta. El editor muestra solo ese filtro, una vista previa del clip (no del proyecto completo), reproducción individual, comparación con el original y una línea de tiempo que empieza en cero y termina en la duración del evento. Los cambios son un borrador hasta **Aplicar al clip**; Cancelar o Escape los descarta. El tiempo del proyecto no se mueve al explorar la vista previa. El vídeo se previsualiza silenciado; el audio del grupo no se mezcla en esta ventana.
+
+Para cambiar progresivamente de color a blanco y negro: abre **Saturación**, activa **Animar este parámetro**, deja valor 1 en 0 s, mueve el cursor al final y escribe 0. Puedes añadir puntos intermedios para mantener color hasta un instante concreto y empezar entonces el cambio. Entre puntos se interpola linealmente; antes/después se mantiene el valor extremo. El valor está expresado como multiplicador: 1 = original, 0 = blanco y negro, 2 = saturación doble.
+
+La lista permite seleccionar puntos; Añadir/actualizar los crea en el tiempo actual y Eliminar quita el punto de ese instante. También puedes pulsar en la curva para crear un punto o arrastrar un punto existente en tiempo y valor. Para Brillo/Contraste o Croma, el desplegable permite elegir qué parámetro representa la curva. Se pueden animar brillo, contraste, saturación, temperatura, blur, enfoque, viñeta, tolerancia y suavidad de croma. La casilla/color del croma y la tabla LUT son fijos en esta entrega.
+
+Las curvas se guardan con el evento en `.LQTS`, y se evalúan igual en vista previa y exportación. Copiar/pegar las conserva. Dividir y recortar ajusta los tiempos de sus puntos e interpola valores en los límites para evitar saltos. Deshacer/rehacer recupera el ajuste como una operación. Los tiempos son relativos al clip, no a la fuente ni al proyecto; cambiar velocidad no comprime automáticamente la curva.
+
+Audio: las tarjetas abren solo sus controles y una escucha individual con **Preparar escucha**, botón de reproducción y desplazamiento dentro del clip. Tras modificar valores, prepara de nuevo el audio. La automatización temporal de filtros de audio sigue pendiente; sus ajustes son constantes. La escucha previa es anterior a ganancias/envolventes de pista y a la mezcla final. El editor general de todos los efectos sigue accesible desde el inspector.
+
+Prueba `verify-effect-editor.cjs`: editor individual, previsualización propia, interpolación 1→0, fotogramas exportados color/gris, persistencia en disco, historial, copia y continuidad al dividir/recortar. Pendiente de aceptación visual del usuario. Guardar con versiones previas puede perder o rechazar estos parámetros; usar 0.7.0 o posterior para proyectos animados.
+
+**Corrección 0.6.1:** Video FX sustituye la biblioteca central por un catálogo de efectos de vídeo y audio, incluso sin selección. Una tarjeta abre la configuración del clip seleccionado de ese tipo; sin selección muestra instrucciones dentro del panel. Project Media recupera la biblioteca. Pruebas: clic en FX sin selección, biblioteca oculta, 15 tarjetas, vuelta a medios y apertura de configuración desde una tarjeta.
+
+Selecciona un evento y pulsa **Efectos de vídeo / audio** en el inspector o **Video FX** a la izquierda. Activa los efectos, ajusta sus valores y pulsa **Aplicar**. Para parejas agrupadas hay botones para cambiar entre vídeo y audio: cada evento conserva sus propios ajustes. Cambiar de formulario descarta ajustes no aplicados. Restablecer prepara valores neutros; confirmar con Aplicar. Desactivar la casilla principal omite el procesamiento sin borrar los ajustes.
+
+Vídeo: brillo, contraste, saturación, temperatura cálida/fría, desenfoque, enfoque, viñeta, croma con color/tolerancia/suavidad y LUT 3D `.cube`. La LUT se integra en LQTS: tamaño de 2 a 65 por eje, dominio 0–1 y valores 0–1; no depende del archivo externo después de guardar. No se admiten LUT 1D ni dominios distintos.
+
+Audio: EQ de tres bandas (120 Hz, 1 kHz, 8 kHz, Q=1), compresor con umbral/ratio, limitador, reducción FFT de ruido, eco, ambiente/reverberación corta por multieco y normalización de sonoridad de una pasada (objetivo LUFS aproximado). El ambiente por multieco no es una reverb de convolución profesional.
+
+Los efectos se conservan en guardado/apertura, copiar/pegar y división, y admiten deshacer/rehacer. No sobrescriben originales. Cierra la ventana y reproduce el proyecto para escuchar el resultado.
+
+### Procesamiento y límites de esta prueba
+
+- Vídeo: shader WebGL propio, compartido por vista previa y fotogramas exportados. Orden fijo: desenfoque/enfoque → color → LUT → viñeta → croma, antes de Pan/Crop y composición. Desenfoque aproximado de nueve muestras; temperatura creativa RGB, no balance de blancos calibrado. LUT interpolada en textura de 8 bits; no es un flujo HDR certificado.
+- Audio: FFmpeg prepara una copia WAV estéreo float32/48 kHz en `userData/effects-cache`. Vista previa y exportación usan la misma copia, aplicando después los recortes, velocidad, ganancia y envolventes del evento. No se descarga nada ni se envía material fuera del equipo.
+- Aplicar audio puede tardar con fuentes largas. El diálogo muestra preparación y permite cancelar. Si falla, no se cambia la configuración del evento. Una caché válida se reutiliza por ruta, tamaño/fecha de fuente y filtros; en otro equipo se regenera localmente.
+- La normalización usa **la fuente completa**, no solo el fragmento recortado. Los efectos temporales también conservan el contexto de la fuente. Las colas de eco/ambiente no alargan los eventos ni el proyecto.
+- Orden de audio fijo: ruido → EQ → compresor → eco → ambiente → normalización → limitador. Las ganancias posteriores pueden superar el nivel limitado. Las cachés ocupan disco y aún no tienen límite automático ni botón de purga. Los originales siguen siendo necesarios; las rutas de caché no se guardan en LQTS.
+- Todavía sin cadenas reordenables, automatización FX, presets ni efectos de pista/bus. Video FX muestra un catálogo de efectos y abre ajustes por clip; no es una biblioteca de presets.
+
+### Verificación
+
+`desktop/verify-effects.cjs`: píxeles neutros, brillo, temperatura, saturación, viñeta, croma y LUT; ejecución de blur/enfoque; preparación/decodificación de todos los filtros de audio y reutilización de caché; reproducción WAV float32; interfaz, persistencia, copiar/pegar, división e historial; captura de vídeo y exportación de audio con efectos. Regresión superada de proyecto, controles, puente VEGAS y layout. Pendiente de aceptación visual/de escucha del usuario y pruebas largas.
 
 Este documento acompaña el desarrollo. Se actualizará con las funciones implementadas y los resultados de las pruebas, distinguiendo las comprobaciones técnicas de la aceptación del usuario. Una función nueva no se considerará aceptada únicamente porque su código esté escrito.
 

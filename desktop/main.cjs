@@ -9,6 +9,11 @@ const execFileAsync = promisify(execFile);
 const crypto = require('node:crypto');
 const projectIO = require('./project-io.cjs');
 const renderEngine = require('./render-engine.cjs');
+const audioEffects=require('./effects-audio.cjs');
+ipcMain.handle('prepare-audio-effects',(_event,filePath,fx,segment)=>audioEffects.prepare(filePath,fx,path.join(app.getPath('userData'),'effects-cache'),segment));
+ipcMain.handle('cancel-audio-effects',()=>audioEffects.cancel());
+ipcMain.handle('audio-effects-waveform',(_event,filePath,segment)=>{const root=path.resolve(app.getPath('userData'),'effects-cache')+path.sep;if(typeof filePath!=='string'||!path.resolve(filePath).startsWith(root))return [];return audioEffects.waveform(filePath,segment);});
+app.on('before-quit',()=>audioEffects.cancel());
 let currentProjectPath = null;
 let exportJob = null;
 const startupVegas=process.argv.find(value=>/\.veg$/i.test(value));
@@ -38,13 +43,13 @@ ipcMain.handle('render-start',async(event,options)=>{
   const result=await dialog.showSaveDialog(mainWindow,{title:'Renderizar proyecto actual',defaultPath:String(options.project.name||'Proyecto').replace(/[<>:"/\\|?*]/g,'_')+'.'+options.profile,filters:[{name:preset.label,extensions:[options.profile]}]});
   if(result.canceled || !result.filePath)return {canceled:true};
   let output=result.filePath;if(path.extname(output).toLowerCase()!=='.'+options.profile)output+='.'+options.profile;
-  const job=await renderEngine.startRender({...options,output},progress=>{if(!event.sender.isDestroyed())event.sender.send('render-progress',progress);});
+  const job=await renderEngine.startRender({...options,output,effectsDirectory:path.join(app.getPath('userData'),'effects-cache')},progress=>{if(!event.sender.isDestroyed())event.sender.send('render-progress',progress);});
   exportJob=job;
   return {canceled:false,video:job.video,duration:job.duration,output};
 });
 ipcMain.handle('render-frame',async(_event,base64)=>{if(!exportJob)throw new Error('No hay exportación activa.');await exportJob.frame(base64);});
 ipcMain.handle('render-finish',async()=>{if(!exportJob)throw new Error('No hay exportación activa.');const job=exportJob;try{return await job.finish();}finally{if(exportJob===job)exportJob=null;}});
-ipcMain.handle('render-cancel',()=>{const job=exportJob;if(job){job.cancel();job.done.finally(()=>{if(exportJob===job)exportJob=null;}).catch(()=>{});}});
+ipcMain.handle('render-cancel',()=>{audioEffects.cancel();const job=exportJob;if(job){job.cancel();job.done.finally(()=>{if(exportJob===job)exportJob=null;}).catch(()=>{});}});
 app.on('before-quit',()=>exportJob?.cancel());
 
 let mainWindow;

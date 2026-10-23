@@ -1,5 +1,41 @@
 # LQTAC Studio — guía de desarrollo y continuidad
 
+## Actualización local 0.8.1 — curvas múltiples de EQ
+
+audio-effect-editor.js dibuja simultáneamente bass/mid/treble con colores, grosores/trazos y leyenda seleccionable. Hit testing prioriza nodos cercanos y luego curvas, con desempate por banda activa. El arrastre conserva la banda capturada y no altera las otras curvas. No cambia el modelo ni el DSP. verify-audio-editor.cjs comprueba tres controles de leyenda, selección automática de medios y arrastre independiente.
+
+## Actualización local 0.8.0 — efectos de audio con keyframes
+
+Aceptación expresa del editor de vídeo 0.7.0 por el usuario el 23/10/2026. Nuevo audio-effect-editor.js: borrador por efecto, onda, transporte independiente, bypass original y curvas editables. Once parámetros numéricos admiten audioFx.animation={parametro:[{time,value},...]}; tiempos relativos al evento, interpolación lineal y validación compartida. Los interruptores de filtros no se animan. Guardado, historial y copia conservan curvas; trim/split usan effects-model.slice para preservar valores de frontera.
+
+desktop/audio-automation.cjs genera un grafo FFmpeg con comandos asendcmd por etapa, bloques de 256 muestras a 48 kHz y expresiones interpoladas; los filtros pueden añadir su propio buffering. effects-audio.cjs prepara/cancela y cachea WAV float estéreo, con hash de fuente, parámetros y segmento. waveform extrae picos del WAV sin cargarlo completo. IPC de onda restringido a effects-cache. Escucha, monitor y render reutilizan el resultado. Para automatización se recorta offset/duración y aplica velocidad antes de FX; el WAV preparado se reproduce desde cero a velocidad 1. Los metadatos originales permanecen intactos; render-engine ajusta únicamente su copia del evento para evitar aplicar offset/velocidad dos veces.
+
+Modo estático conserva el procesamiento de fuente completa anterior. Por ello no se promete equivalencia bit a bit al activar animación ni continuidad de memoria DSP al cortar. Normalización dinámica: loudnorm base y ganancia relativa al objetivo; no es medición/normalización adaptativa instantánea. Reverb es ambiente multitap, no convolución. Retardo animado puede alterar tono. Preparar escucha tras cada cambio; no se promete DSP en vivo. El editor escucha el evento antes de la mezcla de pistas.
+
+Pruebas nuevas: desktop/verify-audio-animation.cjs (EQ medida y filtros decodificados), desktop/verify-audio-editor.cjs (UI, escucha/búsqueda, mezcla/exportación medida con offset y rate, persistencia, undo/redo, split/copy). build-portable.ps1 incluye audio-automation.cjs y los nuevos assets. No requiere repositorios ni conexión. La compatibilidad VEGAS mantiene sus límites existentes; no se traducen plugins VEGAS a estos filtros.
+
+## Actualización local 0.7.0 — editor de efecto y keyframes
+
+Nuevo `dist/assets/effect-editor.js`, cargado después de effects-controls: las tarjetas del catálogo abren una ventana individual. Para vídeo, usa un elemento video dedicado, una previsualización canvas propia, controles del filtro elegido y una curva editable. Los cambios viven en un borrador; solo Aplicar registra historial y reemplaza clip.dataset.videoFx. La reproducción del proyecto no avanza al previsualizar este clip.
+
+`videoFx.animation` es un objeto con curvas por nombre de parámetro numérico: por ejemplo `{ "saturation": [{"time":0,"value":1},{"time":5,"value":0}] }`. Cada curva tiene hasta 1000 puntos ordenados, valores dentro de effects-model.ranges.video y tiempos relativos al evento, no mayores que su duración. LQTACEffects.at interpola; slice recalcula fronteras de recortes/divisiones. effects-video.draw recibe el tiempo local y comparte evaluación con captura de exportación. LQTS, copiado e historial conservan las curvas.
+
+Audio: ventana individual con preparación de caché y escucha/seek de fragmento, pero sin curvas todavía. Booleanos/color de croma y LUT tampoco están animados. No inventar equivalencia con automatización/curvas Vegas: la interpolación FX actual es lineal. Nueva prueba verify-effect-editor.cjs; pruebas de controles/puente desactivan background throttling para verificar capturas aunque la ventana de pruebas no esté en primer plano.
+
+## Actualización local 0.6.0 — 23/10/2026: efectos por evento
+
+Corrección local 0.6.1: effects-controls.js añade effectsPanel como hijo de side-panel. La pestaña Video FX oculta los hermanos y muestra 15 tarjetas, aunque no haya selección. Cada tarjeta resuelve un evento del tipo apropiado y abre openClipEffects; el resto de pestañas oculta effectsPanel. verify-effects.cjs verifica el clic real de la pestaña y tarjeta, no solo la llamada directa al diálogo.
+
+La entrega añade `dist/assets/effects-model.js` (defaults, rangos, validación compartida, parser .cube y filtros FFmpeg), `effects-video.js` (shader WebGL propio) y `effects-controls.js` (diálogo modal). `desktop/effects-audio.cjs` prepara cachés WAV locales con FFmpeg, desduplica trabajos y permite cancelarlos. El empaquetador copia este módulo y todos los assets. No se han incorporado glfx, PixiJS, Tuna, Tone.js, Airwindows ni RNNoise; se usa el FFmpeg existente y código propio.
+
+El esquema LQTS 1 admite ahora `clip.videoFx` y `clip.audioFx`, validados por project-io. Se restauran, copian y dividen con el evento. Las LUT son valores JSON integrados, no paths externos. Los valores originales de LQTS sin estos campos equivalen a efectos desactivados. Las versiones antiguas pueden ignorar estos campos y perderlos al guardar: no abrir/reescribir montajes con FX en versiones previas.
+
+Preview: clipEffectsState cachea el JSON del dataset; el vídeo se procesa antes de drawCrop. El audio resuelve effectsAudioPath por IPC a una fuente procesada, sin alterar filePath ni los tiempos originales. Exportación: captura el mismo compositor de vídeo y render-engine prepara/reutiliza la misma caché para audio antes de sus filtros temporales y de ganancia.
+
+La caché se identifica por SHA-256 de ruta, tamaño/mtime y lista de filtros. Está en userData/effects-cache, no en Git ni LQTS. Se procesa la fuente completa, incluida la referencia de normalización; los tails no amplían el montaje. El usuario cancela preparación desde el diálogo; al salir se detienen hijos de este servicio. Pendiente purga/cuotas/progreso porcentual y tratamiento de modificaciones externas de la fuente durante una sesión.
+
+Límites de esta primera tanda: normalización de una pasada aproximada, reverb de multieco, blur de nueve muestras, LUT 8 bits, orden fijo, sin automatización FX ni cadenas de pista/bus. Consultar FUNCIONAMIENTO.md. La incorporación al puente VEGAS de efectos homónimos no es automática: no equivalen a plugins/curvas Vegas ni certifican sus parámetros. Nueva prueba: ejecutar verify-effects.cjs con Electron. Prueba píxeles, alfa, LUT, audio procesado, interfaz, historial, serialización, copia/división y exportación.
+
 Actualizado: 23-10-2026. Código: **0.5.3**. Proyecto privado: https://github.com/felixdroidhuerta/LQTAC_Studio.
 
 Estado vigente: ver la sección final «Transporte del reproductor — 0.5.3». Ya existe un puente estructural inicial; las secciones de 0.3.4 se conservan como contexto histórico. No declarar lectura binaria universal ni compatibilidad audiovisual completa con VEG.

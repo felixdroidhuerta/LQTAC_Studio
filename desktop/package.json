@@ -1,6 +1,6 @@
 {
   "name": "lqtac-video-desktop",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "private": true,
   "description": "LQTAC Studio · editor local de vídeo y audio",
   "main": "main.cjs",

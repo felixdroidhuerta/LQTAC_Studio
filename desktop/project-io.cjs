@@ -8,6 +8,8 @@ function validateProject(data) {
   for (const track of data.tracks) {
     for(const key of ['mute','solo'])if(track[key]!==undefined&&typeof track[key]!=='boolean')throw new Error('Estado de pista no válido.');
     if(track.vegasMix!==undefined&&typeof track.vegasMix!=='boolean')throw new Error('Modo de mezcla no válido.');
+    if(track.karaokeEnabled!==undefined&&(typeof track.karaokeEnabled!=='boolean'||track.kind!=='subtitle'))throw new Error('Estado karaoke de pista no válido.');
+    if(track.karaokeSync!==undefined){if(track.kind!=='subtitle')throw Error('Progreso karaoke en pista no válida');require('../dist/assets/karaoke-sync-model.js').validateCheckpoint(track.karaokeSync);}
     if(track.gain!==undefined&&(!Number.isFinite(track.gain)||track.gain<0||track.gain>4))throw new Error('Ganancia de pista no válida.');
     if(track.pan!==undefined&&(!Number.isFinite(track.pan)||Math.abs(track.pan)>1))throw new Error('Pan de pista no válido.');
     if (!['video','audio','subtitle'].includes(track.kind) || !Array.isArray(track.clips) || !Array.isArray(track.envelope)) throw new Error('Pista LQTS no válida.');

@@ -535,6 +535,7 @@
       const button=event.target.closest('.track-header-buttons button');if(!button)return;
       const index=$$('#trackLabels .track-label').indexOf(button.closest('.track-label')),track=$$('.track')[index];if(!track)return;
       if(button.textContent==='M'||button.textContent==='S'){historyCheckpoint();const key=button.textContent==='M'?'mute':'solo';track.dataset[key]=String(track.dataset[key]!=='true');syncTrackHeaders();void renderTimelineAt(timelineTime);}
+      else if(button.dataset.trackAction==='karaoke')window.LQTACSubtitles?.toggleTrackKaraoke(track);
       else openWorkControls(track);
     });
     const filterCards = () => { const term = $('#searchInput').value.toLowerCase(); const filter = $('.filter.active').dataset.filter; $$('.media-card').forEach(card => { const show = (filter === 'all' || card.dataset.kind === filter) && card.dataset.name.includes(term); card.style.display = show ? 'flex' : 'none'; }); };
@@ -1004,6 +1005,7 @@
         drawClipFades(clip);
       });
       renderTimelineRuler();
+      window.LQTACSubtitles?.syncKaraokeHeaders?.();
       $$('.track').forEach(track => { if ($('.envelope-layer', track)?.dataset.functional) drawEnvelope(track); });
       if (timelineDurationSeconds !== oldDuration) renderTimelineTime();
     };
@@ -1156,7 +1158,7 @@
     });
     document.addEventListener('click', event => { if (!event.target.closest('.clip-context-menu')) hideClipContextMenu(); });
     document.addEventListener('contextmenu', event => { if (!event.target.closest('.clip') && !event.target.closest('.track')) hideClipContextMenu(); });
-    const createTimelineClip = (track, item, startPercent) => {
+    const createTimelineClip = (track, item, startPercent, inheritKaraoke = true) => {
       const kind = item.kind==='subtitle'?'subtitle':item.kind === 'audio' ? 'audio wave' : 'video';
       const clip = document.createElement('div');
       const durationSeconds = Number(item.durationSeconds);
@@ -1166,7 +1168,7 @@
       clip.className = `clip ${kind}`;
       clip.textContent = item.name || 'media nuevo';
       clip.dataset.kind = item.kind || 'video';
-      if(item.kind==='subtitle'){clip.dataset.subtitleText=item.subtitleText||item.name||'Subtítulo';clip.dataset.subtitleStyle=JSON.stringify(item.subtitleStyle||{});clip.textContent=clip.dataset.subtitleText;}
+      if(item.kind==='subtitle'){clip.dataset.subtitleText=item.subtitleText||item.name||'Subtítulo';clip.dataset.subtitleStyle=JSON.stringify(inheritKaraoke&&track.dataset.karaokeEnabled==='true'&&!item.subtitleStyle?.karaoke?LQTACSubtitleModel.karaokeStyle(item.subtitleStyle,clip.dataset.subtitleText,item.durationSeconds,true):item.subtitleStyle||{});clip.textContent=clip.dataset.subtitleText;}
       clip.dataset.start = Math.max(0, startPercent).toFixed(6);
       clip.dataset.duration = String(duration);
       if (Number.isFinite(durationSeconds) && durationSeconds > 0) clip.dataset.durationSeconds = String(durationSeconds);
@@ -1332,7 +1334,7 @@
       const states=targets.map(c=>{const timing=clipTiming(c),offset=Number(c.dataset.sourceOffsetSeconds)||0;const pool=c.dataset.kind==='video'?videoPool:timelineAudioPool;
         const known=Number(c.dataset.sourceDurationSeconds)||timelineDurationCache.get(c.dataset.filePath)||pool.get(c)?.duration;
         const source=c.dataset.kind==='subtitle'?604800:Number.isFinite(known)&&known>0?known:offset+timing.durationSeconds*Number(c.dataset.playbackRate||1);
-        c.dataset.sourceDurationSeconds=String(source);return {clip:c,...timing,offset,source,crop:clipCropFrames(c),videoFx:clipEffectsState(c,'video'),audioFx:clipEffectsState(c,'audio'),rate:Number(c.dataset.playbackRate||1),fadeIn:Number(c.dataset.fadeInSeconds)||0,fadeOut:Number(c.dataset.fadeOutSeconds)||0};});
+        c.dataset.sourceDurationSeconds=String(source);return {clip:c,...timing,offset,source,subtitleStyle:JSON.parse(c.dataset.subtitleStyle||'{}'),crop:clipCropFrames(c),videoFx:clipEffectsState(c,'video'),audioFx:clipEffectsState(c,'audio'),rate:Number(c.dataset.playbackRate||1),fadeIn:Number(c.dataset.fadeInSeconds)||0,fadeOut:Number(c.dataset.fadeOutSeconds)||0};});
       const originX=event.clientX,secondsPerPixel=timelineDurationSeconds/clip.parentElement.getBoundingClientRect().width,minimum=1/24;
       let trimRecorded=false;
       const apply=delta=>{
@@ -1341,6 +1343,7 @@
           s.clip.dataset.startSeconds=String(start);s.clip.dataset.durationSeconds=String(duration);s.clip.dataset.sourceOffsetSeconds=String(s.clip.dataset.kind==='subtitle'?0:edge==='start'?s.offset+delta*s.rate:s.offset);s.clip.dataset.fadeInSeconds=String(Math.min(s.fadeIn,duration));s.clip.dataset.fadeOutSeconds=String(Math.min(s.fadeOut,duration));
           s.clip.dataset.videoFx=JSON.stringify(LQTACEffects.slice(s.videoFx,edge==='start'?delta:0,duration));
           s.clip.dataset.audioFx=JSON.stringify(LQTACEffects.slice(s.audioFx,edge==='start'?delta:0,duration));
+          if(s.clip.dataset.kind==='subtitle')s.clip.dataset.subtitleStyle=JSON.stringify(LQTACSubtitleModel.shiftedStyle(s.subtitleStyle,edge==='start'?delta:0));
           if(s.crop.length){const offset=edge==='start'?delta:0;s.clip.dataset.panCrop=JSON.stringify([{time:0,...LQTACWork.cropAt(s.crop,offset)},...s.crop.filter(f=>f.time>offset&&f.time<offset+duration).map(f=>({...f,time:f.time-offset})),{time:duration,...LQTACWork.cropAt(s.crop,offset+duration)}]);}}
         refreshTimelineScale();void renderTimelineAt(timelineTime);
       };
@@ -1364,6 +1367,7 @@
         const right=createTimelineClip(clip.parentElement,{subtitleText:clip.dataset.subtitleText,subtitleStyle:JSON.parse(clip.dataset.subtitleStyle||'{}'),name:clip.firstChild?.textContent||'Media',kind:clip.dataset.kind,filePath:clip.dataset.filePath,durationSeconds:timing.durationSeconds-leftDuration,sourceOffsetSeconds:offset+leftDuration*Number(clip.dataset.playbackRate||1),sourceDurationSeconds:Number(clip.dataset.sourceDurationSeconds)||undefined,playbackRate:Number(clip.dataset.playbackRate||1),gain:Number(clip.dataset.gain??1),mute:clip.dataset.mute==='true'},timelineTime/timelineDurationSeconds*100);
         const crop=clipCropFrames(clip);right.dataset.panCrop=JSON.stringify([{time:0,...LQTACWork.cropAt(crop,leftDuration)},...crop.filter(f=>f.time>leftDuration).map(f=>({...f,time:f.time-leftDuration}))]);clip.dataset.panCrop=JSON.stringify([...crop.filter(f=>f.time<leftDuration),{time:leftDuration,...LQTACWork.cropAt(crop,leftDuration)}]);
         right.dataset.startSeconds=String(timelineTime);right.dataset.transition=clip.dataset.transition||'fade';
+        if(clip.dataset.kind==='subtitle')right.dataset.subtitleStyle=JSON.stringify(LQTACSubtitleModel.shiftedStyle(JSON.parse(clip.dataset.subtitleStyle||'{}'),leftDuration));
         for(const key of ['autoCrossfade','vegasCurves','fadeInCurve','fadeOutCurve','fadeInReciprocalCurve','fadeOutReciprocalCurve'])right.dataset[key]=clip.dataset[key];
         const originalFx=clipEffectsState(clip,'video');right.dataset.videoFx=JSON.stringify(LQTACEffects.slice(originalFx,leftDuration,timing.durationSeconds-leftDuration));clip.dataset.videoFx=JSON.stringify(LQTACEffects.slice(originalFx,0,leftDuration));const originalAudioFx=clipEffectsState(clip,'audio');right.dataset.audioFx=JSON.stringify(LQTACEffects.slice(originalAudioFx,leftDuration,timing.durationSeconds-leftDuration));clip.dataset.audioFx=JSON.stringify(LQTACEffects.slice(originalAudioFx,0,leftDuration));
         const mask=transitionMasks.get(clip);if(mask)transitionMasks.set(right,{...mask});
@@ -1676,7 +1680,7 @@
       let number = 1;
       while ($$('.track').some(track => track.dataset.track === `${prefix}${number}`)) number++;
       const label = `${prefix}${number}`;
-      $('#trackLabels').insertAdjacentHTML('beforeend', `<div class="track-label ${isAudio ? 'audio' : ''} dynamic"><div class="track-label-title"><b></b><strong>${label} · nueva pista</strong></div><div class="track-header-buttons"><button type="button">M</button><button type="button">S</button><button type="button">FX</button></div><div class="track-meter"></div></div>`);
+      $('#trackLabels').insertAdjacentHTML('beforeend', `<div class="track-label ${isAudio ? 'audio' : ''} dynamic"><div class="track-label-title"><b></b><strong>${label} · nueva pista</strong></div><div class="track-header-buttons"><button type="button">M</button>${kind==='subtitle'?'<button type="button" data-track-action="karaoke" aria-label="Activar karaoke en toda la pista" aria-pressed="false" title="Activar karaoke en toda la pista">K</button>':''}<button type="button">S</button><button type="button">FX</button></div><div class="track-meter"></div></div>`);
       const row = document.createElement('div'); row.className = 'track'; row.dataset.track = label; row.dataset.kind = kind==='subtitle'?'subtitle':isAudio ? 'audio' : 'video';
       row.innerHTML = `<div class="clip ${isAudio ? 'audio wave' : 'video alt'}" style="width:34%;">${isAudio ? 'audio listo' : 'video listo'}</div><div class="envelope-layer" data-envelope="${isAudio ? 'volume' : 'opacity'}"><span class="envelope-label">${isAudio ? 'volumen' : 'opacidad'}</span><svg viewBox="0 0 640 46" preserveAspectRatio="none"><polyline class="envelope-line${isAudio ? '' : ' opacity'}" points="0,23 220,18 420,28 640,20"></polyline><circle class="envelope-handle${isAudio ? '' : ' opacity'}" data-index="0" cx="0" cy="23" r="4"></circle><circle class="envelope-handle${isAudio ? '' : ' opacity'}" data-index="1" cx="220" cy="18" r="4"></circle><circle class="envelope-handle${isAudio ? '' : ' opacity'}" data-index="2" cx="420" cy="28" r="4"></circle><circle class="envelope-handle${isAudio ? '' : ' opacity'}" data-index="3" cx="640" cy="20" r="4"></circle></svg></div>`;
       $('.clip', row)?.remove();
@@ -1850,7 +1854,7 @@
       time:timelineTime,zoom:timelineZoom,zoomStart,video:window.projectVideoSettings,compatibility:window.vegasCompatibility,
       library:$$('.media-card').filter(c=>c.dataset.filePath).map(c=>({name:$('strong',c)?.textContent||c.dataset.name,kind:c.dataset.kind,filePath:c.dataset.filePath})),
       tracks:$$('.track').map((track,index)=>({id:track.dataset.track,kind:track.dataset.kind||'video',role:track.dataset.role||'',name:$$('#trackLabels .track-label strong')[index]?.textContent||track.dataset.track,
-        ...trackWorkState(track),vegasMix:track.dataset.vegasMix==='true',envelopeVisible:track.classList.contains('envelope-visible'),envelope:getEnvelopePoints(track).map(p=>({...p})),
+        ...trackWorkState(track),karaokeSync:track.dataset.kind==='subtitle'&&track.dataset.karaokeSync?JSON.parse(track.dataset.karaokeSync):undefined,karaokeEnabled:track.dataset.kind==='subtitle'?track.dataset.karaokeEnabled==='true':undefined,vegasMix:track.dataset.vegasMix==='true',envelopeVisible:track.classList.contains('envelope-visible'),envelope:getEnvelopePoints(track).map(p=>({...p})),
         clips:timelineClips().filter(c=>c.parentElement===track).map(c=>{
           const mask=transitionMasks.get(c);
           return {subtitleText:c.dataset.subtitleText,subtitleStyle:c.dataset.kind==='subtitle'?JSON.parse(c.dataset.subtitleStyle||'{}'):undefined,name:c.firstChild?.textContent||c.textContent,kind:c.dataset.kind||track.dataset.kind,filePath:c.dataset.filePath||'',...clipTiming(c),videoFx:clipEffectsState(c,'video'),audioFx:clipEffectsState(c,'audio'),playbackRate:Number(c.dataset.playbackRate||1),gain:Number(c.dataset.gain??1),mute:c.dataset.mute==='true',panCrop:clipCropFrames(c),fadeInSeconds:Number(c.dataset.fadeInSeconds)||0,fadeOutSeconds:Number(c.dataset.fadeOutSeconds)||0,sourceOffsetSeconds:Number(c.dataset.sourceOffsetSeconds)||0,sourceDurationSeconds:Number(c.dataset.sourceDurationSeconds)||undefined,groupId:c.dataset.groupId||'',groupType:c.dataset.groupType||'',transition:c.dataset.transition||'fade',
@@ -1885,10 +1889,12 @@
         const track=addTimelineTrack(data.kind);track.dataset.track=String(data.id||track.dataset.track);track.dataset.role=String(data.role||'');
         track.dataset.mute=String(!!data.mute);track.dataset.solo=String(!!data.solo);track.dataset.gain=String(data.gain??1);track.dataset.pan=String(data.pan||0);
         track.dataset.vegasMix=String(!!data.vegasMix);
+        track.dataset.karaokeEnabled=String(!!data.karaokeEnabled);
+        if(data.karaokeSync)track.dataset.karaokeSync=JSON.stringify(data.karaokeSync);
         $$('#trackLabels .track-label strong').at(-1).textContent=String(data.name||track.dataset.track);
         envelopePoints.set(track,data.envelope.map(p=>({...p})));track.classList.toggle('envelope-visible',!!data.envelopeVisible);
         for(const item of data.clips){
-          const clip=createTimelineClip(track,item,item.startSeconds/timelineDurationSeconds*100);
+          const clip=createTimelineClip(track,item,item.startSeconds/timelineDurationSeconds*100,false);
           clip.dataset.startSeconds=String(item.startSeconds);clip.dataset.durationSeconds=String(item.durationSeconds);
           clip.dataset.groupId=String(item.groupId||'');clip.dataset.groupType=String(item.groupType||'');clip.classList.toggle('grouped',!!item.groupId);
           clip.dataset.transition=LQTACTransitions.catalog.some(e=>e.id===item.transition)?item.transition:'fade';
@@ -1902,9 +1908,24 @@
       } finally {historyMuted--;}
     };
     const saveLqts=async(saveAs=false)=>{
-      if(exporting||historyBusy)return;
-      try {await demoReady;const result=await window.lqtacDesktop.saveProject(projectSnapshot(),saveAs);if(!result.canceled)toast('Proyecto guardado · '+result.filePath);}
-      catch(error){alert('No se pudo guardar el proyecto:\n'+error.message);}
+      if(exporting||historyBusy)return false;
+      try {await demoReady;const result=await window.lqtacDesktop.saveProject(projectSnapshot(),saveAs);if(!result.canceled)toast('Proyecto guardado · '+result.filePath);return !result.canceled;}
+      catch(error){alert('No se pudo guardar el proyecto:\n'+error.message);return false;}
+    };
+    let newProjectBusy=false;
+    const newLqts=async()=>{
+      if(exporting||historyBusy||newProjectBusy||document.querySelector('dialog[open]')||modal.classList.contains('open')||compatModal.classList.contains('open'))return;
+      newProjectBusy=true;
+      try{
+        await demoReady;
+        const decision=window.lqtacDesktop?.confirmNewProject?await window.lqtacDesktop.confirmNewProject():(confirm('¿Crear un proyecto nuevo? Los cambios sin guardar se perderán.')?'discard':'cancel');
+        if(decision==='cancel'||(decision==='save'&&!await saveLqts()))return;
+        await restoreProject({format:'LQTAC Studio',version:1,name:'Proyecto sin título',fps:24,time:0,zoom:1,zoomStart:0,library:[],tracks:[{id:'V1',name:'V1 · Vídeo',kind:'video',role:'video',envelope:[],clips:[]},{id:'A1',name:'A1 · Audio',kind:'audio',role:'video-audio',envelope:[],clips:[]}]});
+        await window.lqtacDesktop?.resetProjectPath?.();
+        resetEditHistory();clipClipboard=null;selectedEnvelopePoint=null;hideClipContextMenu();
+        $('#renderResolution').value='1280,720';$('#renderFps').value='24';
+        toast('Nuevo proyecto · listo para importar medios');
+      }catch(error){alert('No se pudo crear el proyecto:\n'+error.message);}finally{newProjectBusy=false;}
     };
     const openLqts=async()=>{
       if(exporting||historyBusy)return;
@@ -1913,7 +1934,7 @@
       catch(error){alert('No se pudo abrir el proyecto:\n'+error.message);}
     };
     const fileMenu=document.createElement('div');fileMenu.className='clip-context-menu';fileMenu.style.zIndex='1000';
-    fileMenu.innerHTML='<button data-file="open">Abrir proyecto .LQTS… · Ctrl+O</button><button data-file="save">Guardar proyecto · Ctrl+S</button><button data-file="saveAs">Guardar proyecto como… · Ctrl+Mayús+S</button><button data-file="render">Renderizar vídeo o audio…</button>';
+    fileMenu.innerHTML='<button data-file="new">Nuevo proyecto · Ctrl+N</button><button data-file="open">Abrir proyecto .LQTS… · Ctrl+O</button><button data-file="save">Guardar proyecto · Ctrl+S</button><button data-file="saveAs">Guardar proyecto como… · Ctrl+Mayús+S</button><button data-file="render">Renderizar vídeo o audio…</button>';
     document.body.append(fileMenu);
     function toggleFileMenu(button){editMenu.classList.remove('open');const rect=button.getBoundingClientRect();fileMenu.style.left=rect.left+'px';fileMenu.style.top=rect.bottom+'px';fileMenu.classList.toggle('open');}
     const editMenu=document.createElement('div');editMenu.className='clip-context-menu';editMenu.style.zIndex='1000';
@@ -1922,7 +1943,7 @@
     function toggleEditMenu(button){fileMenu.classList.remove('open');const rect=button.getBoundingClientRect();editMenu.style.left=rect.left+'px';editMenu.style.top=rect.bottom+'px';$('[data-edit="undo"]',editMenu).disabled=!undoHistory.length;$('[data-edit="redo"]',editMenu).disabled=!redoHistory.length;$('[data-edit="copy"]',editMenu).disabled=!selectedTimelineClips.length;$('[data-edit="paste"]',editMenu).disabled=!clipClipboard;editMenu.classList.toggle('open');}
     editMenu.addEventListener('click',event=>{if(historyBusy||exporting)return;const action=event.target.dataset.edit;editMenu.classList.remove('open');if(action==='copy')copySelectedClips();if(action==='paste')void pasteCopiedClips();if(action==='undo')void navigateHistory(false);if(action==='redo')void navigateHistory(true);});
     document.addEventListener('click',event=>{if(!event.target.closest('.menu-item')&&!editMenu.contains(event.target))editMenu.classList.remove('open');});
-    fileMenu.addEventListener('click',event=>{const action=event.target.dataset.file;fileMenu.classList.remove('open');if(action==='open')void openLqts();if(action==='save')void saveLqts();if(action==='saveAs')void saveLqts(true);if(action==='render')openRenderDialog();});
+    fileMenu.addEventListener('click',event=>{const action=event.target.dataset.file;fileMenu.classList.remove('open');if(action==='new')void newLqts();if(action==='open')void openLqts();if(action==='save')void saveLqts();if(action==='saveAs')void saveLqts(true);if(action==='render')openRenderDialog();});
     document.addEventListener('click',event=>{if(!event.target.closest('.menu-item')&&!fileMenu.contains(event.target))fileMenu.classList.remove('open');});
     const renderDialog=document.createElement('dialog');renderDialog.id='renderDialog';
     renderDialog.style.cssText='background:#0c1c35;color:#eaf2ff;border:1px solid #355078;border-radius:12px;padding:24px;width:520px;max-width:90vw';
@@ -1979,7 +2000,7 @@
       }catch(error){await window.lqtacDesktop.renderCancel();$('#renderStatus').textContent=error.message;}
       finally{unsubscribe();exporting=false;exportSize=null;$('#renderGo').disabled=false;$('#renderProfile').disabled=false;$('#renderClose').textContent='Cerrar';await renderTimelineAt(previousTime);}
     });
-    document.addEventListener('keydown',event=>{if(event.ctrlKey||event.metaKey){if(event.key.toLowerCase()==='s'){event.preventDefault();void saveLqts(event.shiftKey);}if(event.key.toLowerCase()==='o'){event.preventDefault();void openLqts();}}});
+    document.addEventListener('keydown',event=>{if(event.ctrlKey||event.metaKey){if(event.key.toLowerCase()==='n'&&!event.altKey){event.preventDefault();void newLqts();}if(event.key.toLowerCase()==='s'){event.preventDefault();void saveLqts(event.shiftKey);}if(event.key.toLowerCase()==='o'){event.preventDefault();void openLqts();}}});
     document.addEventListener('keydown', e => {
       if(exporting || renderDialog.open || historyBusy || document.querySelector('dialog[open]'))return;
       if (e.key === 'Escape') { modal.classList.remove('open'); compatModal.classList.remove('open'); hideClipContextMenu(); }
@@ -2002,5 +2023,8 @@
 <script src="assets/effect-editor.js"></script>
 <script src="assets/audio-effect-editor.js"></script>
 <script src="assets/pan-crop-editor.js"></script>
+<script src="assets/karaoke-editor.js"></script>
 <script src="assets/subtitles-controls.js"></script>
+<script src="assets/karaoke-sync-model.js"></script>
+<script src="assets/track-karaoke-sync.js"></script>
 </html>

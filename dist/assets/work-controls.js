@@ -3,7 +3,7 @@ function syncTrackHeaders(){
   $$('#trackLabels .track-label').forEach((label,i)=>{
     const track=$$('.track')[i];if(!track)return;
     const buttons=$$('.track-header-buttons button',label);
-    buttons.forEach(b=>{const key=b.textContent==='M'?'mute':b.textContent==='S'?'solo':null;if(key){b.classList.toggle('active',track.dataset[key]==='true');b.setAttribute('aria-pressed',String(track.dataset[key]==='true'));b.title=key==='mute'?'Silenciar pista':'Solo (mismo tipo de pista)';}else{b.textContent='⚙';b.title='Propiedades de pista';}});
+    buttons.forEach(b=>{if(b.dataset.trackAction==='karaoke'){window.LQTACSubtitles?.syncTrackKaraoke(track,b);return;}const key=b.textContent==='M'?'mute':b.textContent==='S'?'solo':null;if(key){b.classList.toggle('active',track.dataset[key]==='true');b.setAttribute('aria-pressed',String(track.dataset[key]==='true'));b.title=key==='mute'?'Silenciar pista':'Solo (mismo tipo de pista)';}else{b.textContent='⚙';b.title='Propiedades de pista';}});
     label.style.opacity=trackIsEnabled(track)?'1':'.55';
   });
 }

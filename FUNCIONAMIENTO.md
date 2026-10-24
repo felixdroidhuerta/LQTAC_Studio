@@ -490,4 +490,55 @@ Corregido el icono de retroceder: los caracteres se dividían en dos líneas den
 Nuevo botón «Reproducir desde el inicio»: lleva el cabezal a cero y comienza la reproducción, tanto si estaba pausada como si estaba reproduciendo. El botón habitual mantiene reproducir/pausar desde la posición actual y actualiza su etiqueta accesible. La prueba verify-layout.cjs comprueba los controles sin saltos de línea en cuatro anchos, retroceso con límite en cero, avance, reproducción desde cero, pausa, continuación y reinicio durante la reproducción.
 # Corrección de detección de audio para subtítulos
 
+## Respaldo y publicación 0.12.0 — 24/10/2026
+
+Esta versión incorpora en el portable todos los cambios descritos más abajo como posteriores a 0.11.0: Nuevo proyecto, Karaoke por bloque y pista, menú K, sincronización continua por palabras o sílabas, edición de separación silábica y aplicación parcial con continuación guardada en LQTS. No se cambia el motor: sigue whisper.cpp v1.9.2 con Small multilingüe, ejecutable y modelo incluidos para funcionar offline. No se instala faster-whisper ni se inicia una migración como parte de este respaldo. Las releases históricas no se sobrescriben.
+
+## Subtítulos Karaoke (cambio local posterior al portable 0.11.0)
+
+### Botón K de pista
+
+#### Sincronizar toda la letra con Espacio
+
+##### Elegir Palabras o Sílabas
+
+El selector «Marcar por» permite sincronizar por Palabras (modo inicial) o Sílabas. Con sílabas se mantiene Espacio durante cada sílaba y se suelta al terminarla. El contador, la siguiente unidad y «Repetir anterior» se adaptan al modo elegido. El color avanza dentro de la palabra según las marcas silábicas, tanto en el monitor como en el vídeo exportado, sin introducir guiones ni separadores en el texto original.
+
+En «Revisar separación silábica» se muestra una sugerencia local orientativa para español, no un análisis lingüístico garantizado ni un detector de canto. Revísala para otros idiomas, nombres y formas de cantar. Puedes ajustar sílabas con el punto medio «·»: por ejemplo «can·ci·ón a·zul». Se usa una línea por bloque y espacios entre palabras. No se permite alterar letras, acentos, signos ni el número de palabras. Pulsa «Usar esta separación» antes de grabar; si la has editado, la grabación y Aplicar permanecen bloqueados hasta validarla.
+
+Cambiar de Palabras a Sílabas, o modificar la separación tras marcar unidades, pide confirmación y reinicia las marcas del borrador; no convierte automáticamente los tiempos anteriores. Lo aplicado al proyecto se conserva hasta volver a Aplicar. La aplicación parcial funciona desde una sílaba, incluso dentro de una palabra. LQTS conserva modo, separación y punto de continuación. Al reabrir el editor se recupera la sílaba siguiente. SRT no contiene esta información. Límite: 50000 unidades por sesión, sean palabras o sílabas.
+
+Botón derecho sobre K → «Sincronizar letra completa…». Abre un editor de la pista entera: recorre sus bloques ordenados por inicio y muestra la palabra siguiente. La sesión comienza en cero y permite buscar con el deslizador. «Reproducir» escucha la mezcla real de las pistas habilitadas, respetando silencios/solo y efectos del proyecto.
+
+Mantén pulsada la barra espaciadora mientras se canta la palabra mostrada y suelta cuando termine. La pulsación registra el inicio y la liberación su final; al soltar pasa a la siguiente palabra, también entre bloques. Durante la sesión Espacio NO reproduce/pausa: usa el botón Reproducir/Pausar. La repetición automática del teclado se ignora. Los silencios entre palabras se conservan.
+
+«Repetir palabra anterior» borra la última marca, retrocede un segundo antes de su inicio y permite repetirla. Pausar, buscar o perder el foco cancela la palabra que aún estaba pulsada; las palabras terminadas se mantienen. «Reiniciar marcas…» borra las marcas de la sesión con confirmación. La compensación de -1000 a +1000 ms desplaza todas las marcas al aplicar, sin modificar el audio.
+
+«Aplicar» se habilita al terminar la primera palabra, aunque queden otras pendientes o estés a mitad de un bloque. Su etiqueta muestra cuántas palabras aplicarás y el contador indica las pendientes. Si aún mantienes Espacio pulsado, hay que soltarlo para cerrar esa palabra. No mueve vídeo ni audio, conserva letra/colores/modo y cada aplicación se deshace con un único Ctrl+Z.
+
+Los bloques completos se ajustan a sus marcas. En un bloque incompleto se guardan las marcas confirmadas y se amplía su intervalo solo si hace falta para mostrarlas; los tiempos originales de las palabras pendientes se conservan como referencia, sin resaltarlas como si ya estuvieran sincronizadas. Los bloques aún no empezados no cambian.
+
+Al volver a «Sincronizar letra completa…» se recuperan las palabras aplicadas y se selecciona la siguiente, incluso dentro de una frase. La escucha se sitúa un segundo antes de la última marca para tener referencia. Guarda el proyecto LQTS después de Aplicar para conservar también el avance al cerrar el programa; SRT no contiene este progreso. La compensación parte de cero al retomar y no se vuelve a sumar automáticamente.
+
+Cancelar/Escape descarta solo el borrador nuevo, con confirmación si hubo cambios; lo aplicado antes se mantiene. Si editas manualmente el texto, el orden de eventos o sus tiempos después de aplicar, el editor puede invalidar la continuación y lo indica: conserva el efecto aplicado, pero inicia una nueva sesión para evitar asociar marcas a palabras equivocadas. Los cambios de color o modo no invalidan por sí solos la continuación. No hay autoguardado de marcas que aún no hayas aplicado. Límite de 50000 palabras por sesión.
+
+Las pistas de subtítulos tienen «K» justo después de «M». Un clic activa Karaoke en todos sus bloques; otro lo desactiva sin borrar colores ni tiempos. Los bloques con ajustes existentes conservan su modo (por palabra o progresivo), color y sincronización al reactivarlos. Los bloques que no tenían Karaoke reciben relleno progresivo amarillo con un reparto de tiempos orientativo que hay que revisar con la canción.
+
+El botón iluminado indica que todos los bloques están activos. Un borde discontinuo indica que solo algunos lo están: pulsarlo activa los demás. Toda la operación se deshace con un solo Ctrl+Z. En una pista vacía, K establece el modo para los nuevos subtítulos; los bloques nuevos sin configuración propia también heredan la activación de una pista existente. El estado se guarda en LQTS. No afecta a Mute/Solo ni a otras pistas. Sigue siendo posible personalizar cada bloque por separado.
+
+1. Crea, importa o genera subtítulos. Abre un bloque con doble clic o «Propiedades del evento».
+2. En Karaoke elige «Resaltar por palabra» o «Relleno progresivo». «Subtítulo normal» desactiva el efecto. El color habitual, dentro de «Tipografía, colores y posición», corresponde al texto pendiente; «Color cantado» es el resaltado acumulativo.
+3. Los tiempos iniciales se reparten uniformemente en el bloque: son una guía, NO alineación automática de canto ni detección del ritmo. Para canciones puedes escribir/corregir la letra y sincronizarla manualmente.
+4. Pulsa «Escuchar proyecto» para oír sus pistas habilitadas desde la posición indicada. El deslizador permite revisar y buscar dentro del bloque; la vista previa muestra el color según el tiempo. «Marcar siguiente palabra» registra la entrada de cada palabra y cierra la anterior; al terminar, revisa los finales y los silencios.
+5. Ajusta inicio y fin por palabra en segundos relativos al bloque, o arrastra las barras y sus extremos. Se validan orden, duraciones positivas y ausencia de solapamiento entre palabras. «Repartir tiempos» sustituye los ajustes con confirmación. Cambiar las palabras del texto vuelve a repartirlos; revisa después la sincronización.
+6. «Aplicar» guarda los ajustes como una edición deshacible; «Cancelar» no los modifica. Al cerrar se detiene la escucha.
+
+El efecto se reproduce en el monitor y se incrusta en MP4/WebM al renderizar con «Incrustar subtítulos» activado. LQTS conserva colores, modo y tiempos de palabras; SRT solo conserva el texto y los tiempos de los bloques, no el karaoke. Mover/copiar bloques mantiene sus tiempos relativos; recortar o dividir conserva la fase de resaltado mediante un desplazamiento interno, en lugar de reiniciarla. No se separa la voz de la música ni se garantiza una transcripción correcta de canciones.
+
+Validado con audio local, controles de escucha/pausa, entradas marcadas, ajuste numérico y arrastre, vista previa, deshacer/rehacer, recorte/división, guardado/apertura LQTS y comparación de píxeles de color en un MP4 codificado. Los subtítulos normales y Nuevo proyecto mantienen sus pruebas satisfactorias.
+
+## Archivo → Nuevo proyecto
+
+Disponible desde Archivo o Ctrl+N. Antes de vaciar el montaje se pregunta Guardar, No guardar o Cancelar. Si se cancela el diálogo de guardado o falla la escritura, se conserva el montaje actual. El nuevo proyecto se llama «Proyecto sin título», contiene una pista vacía de vídeo y otra de audio, biblioteca vacía y cabezal en cero. Se reinician zoom, historial y portapapeles interno de clips. El primer Guardar solicita un archivo nuevo y no reutiliza la ruta del proyecto anterior. No se eliminan archivos de medios ni proyectos del disco.
+
 Los archivos de audio arrastrados a una pista de vídeo se insertan en una pista de audio existente o en una nueva si no existe. El selector de subtítulos reconoce los eventos de audio por su contenido, incluso en pistas de vídeo de proyectos anteriores. Al analizar una pista mixta solo se procesan sus eventos de audio; no se interpreta la envolvente de opacidad como volumen.

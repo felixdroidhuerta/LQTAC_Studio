@@ -15,6 +15,11 @@ ipcMain.handle('cancel-audio-effects',()=>audioEffects.cancel());
 ipcMain.handle('audio-effects-waveform',(_event,filePath,segment)=>{const root=path.resolve(app.getPath('userData'),'effects-cache')+path.sep;if(typeof filePath!=='string'||!path.resolve(filePath).startsWith(root))return [];return audioEffects.waveform(filePath,segment);});
 app.on('before-quit',()=>audioEffects.cancel());
 let currentProjectPath = null;
+ipcMain.handle('confirm-new-project',async()=>{
+  const result=await dialog.showMessageBox(mainWindow,{type:'question',title:'Nuevo proyecto',message:'¿Guardar el proyecto actual antes de crear uno nuevo?',detail:'Si continúas sin guardar, se perderán los cambios actuales.',buttons:['Guardar','No guardar','Cancelar'],defaultId:0,cancelId:2,noLink:true});
+  return ['save','discard','cancel'][result.response]||'cancel';
+});
+ipcMain.handle('reset-project-path',()=>{currentProjectPath=null;mainWindow.setTitle('Proyecto sin título — LQTAC Studio');});
 let exportJob = null;
 const startupVegas=process.argv.find(value=>/\.veg$/i.test(value));
 if(process.argv.includes('--review-vegas'))app.setPath('userData',path.join(app.getPath('temp'),'lqtac-vegas-review-'+process.pid));

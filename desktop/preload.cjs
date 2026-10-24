@@ -12,6 +12,8 @@ contextBridge.exposeInMainWorld('lqtacDesktop', {
   audioEffectsWaveform:(filePath,segment)=>ipcRenderer.invoke('audio-effects-waveform',filePath,segment),
   saveProject: (data,saveAs=false) => ipcRenderer.invoke('save-lqts',data,saveAs),
   openProject: () => ipcRenderer.invoke('open-lqts'),
+  confirmNewProject: () => ipcRenderer.invoke('confirm-new-project'),
+  resetProjectPath: () => ipcRenderer.invoke('reset-project-path'),
   renderStart: options => ipcRenderer.invoke('render-start',options),
   renderFrame: base64 => ipcRenderer.invoke('render-frame',base64),
   renderFinish: () => ipcRenderer.invoke('render-finish'),

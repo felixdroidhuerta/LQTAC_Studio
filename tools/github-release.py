@@ -37,9 +37,15 @@ def upload(token, release, file):
                        "Content-Length": str(file.stat().st_size)}.items():
         connection.putheader(key, value)
     connection.endheaders()
+    sent = 0
+    checkpoint = 64 * 1024 * 1024
     with file.open("rb") as stream:
         while block := stream.read(1024 * 1024):
             connection.send(block)
+            sent += len(block)
+            if sent >= checkpoint:
+                print("Upload: " + str(round(100 * sent / file.stat().st_size, 1)) + "%", flush=True)
+                checkpoint += 64 * 1024 * 1024
     response = connection.getresponse()
     result = json.loads(response.read())
     if response.status != 201:
@@ -53,6 +59,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("action", choices=["list", "create", "upload", "publish"])
     parser.add_argument("--tag")
+    parser.add_argument("--release-id", type=int)
     parser.add_argument("--commit")
     parser.add_argument("--notes", type=pathlib.Path)
     parser.add_argument("--file", type=pathlib.Path)
@@ -69,13 +76,21 @@ def main():
             "body": args.notes.read_text(encoding="utf-8"), "draft": True, "prerelease": False})
         print(json.dumps({"id": result["id"], "tag": result["tag_name"], "draft": result["draft"]}))
     else:
-        releases = api(token, "/releases?per_page=100")
-        release = next(r for r in releases if r["tag_name"] == args.tag)
+        if args.release_id:
+            release = api(token, "/releases/" + str(args.release_id))
+        else:
+            releases = api(token, "/releases?per_page=100")
+            release = next(r for r in releases if r["tag_name"] == args.tag)
         if args.action == "upload":
             upload(token, release, args.file)
         else:
+            update = {"draft": False, "make_latest": "true"}
+            if args.commit:
+                update["target_commitish"] = args.commit
+            if args.notes:
+                update["body"] = args.notes.read_text(encoding="utf-8")
             request = urllib.request.Request("https://api.github.com/repos/" + REPO + "/releases/" + str(release["id"]),
-                method="PATCH", data=json.dumps({"draft": False, "make_latest": "true"}).encode(),
+                method="PATCH", data=json.dumps(update).encode(),
                 headers={"Authorization": "Bearer " + token, "Accept": "application/vnd.github+json",
                          "User-Agent": "LQTAC-Studio-release"})
             with urllib.request.urlopen(request, timeout=90) as response:

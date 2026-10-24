@@ -2,6 +2,10 @@
 
 ## Empaquetado 0.14.0 — 24/10/2026
 
+Artefacto verificado: LQTAC_Studio_0.14.0_Windows_x64_Portable.zip, 1.179.984.538 bytes, SHA-256 2a103660b12d7b31185d5d38e36c9f1dea535f26e14152a0547d3729945311aa. ZIP íntegro (1166 entradas); verify-portable-runtime ejecuta código empaquetado y ambos ASR con muestra española, verifica hashes, FFmpeg, FX/Pan y menús de captura. Subida del asset confirmada por tamaño/digest en GitHub. Registro de asociaciones probado en árbol aislado y shell/icono validado previamente.
+
+Retención local: auditoría confirma las copias remotas por SHA-256/tamaño y CRC/contenido de las carpetas 0.7.0, 0.8.0, 0.8.1, 0.10.1 y 0.11.0, sin medios personales ni ejecución detectada. Su eliminación fue rechazada por política automática; no se aplicó un método alternativo. Permanecen localmente, además de las tres a conservar (0.14.0, 0.13.0 y 0.12.0). Releases/activos históricos de GitHub se conservan.
+
 Versión de entrega que consolida todos los cambios locales posteriores a 0.13.0 descritos abajo: ambos ASR, capturas, menús y exportaciones PNG/GIF, icono y shell .LQTS, fast path del BAT. Las notas históricas de no empaquetado se refieren a sus entregas originales. Build offline desde dependencias/modelos presentes, sin actualizar librerías; no se reemplazan ZIPs históricos. Código publicado en felixdroidhuerta/LQTAC_Studio desde clon dedicado para conservar historial y no usar origin del antiguo sitio.
 
 ## Icono y shell Windows — local posterior a 0.13.0 (24/10/2026)

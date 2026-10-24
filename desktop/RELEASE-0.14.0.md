@@ -2,6 +2,8 @@
 
 Descarga **LQTAC_Studio_0.14.0_Windows_x64_Portable.zip**, extrae la carpeta completa y abre **LQTAC Studio.exe**. No ejecutes el programa dentro del ZIP ni muevas solo el EXE.
 
+Tamaño: 1.179.984.538 bytes. SHA-256: 2a103660b12d7b31185d5d38e36c9f1dea535f26e14152a0547d3729945311aa. También se adjunta RELEASE-SHA256SUMS.txt.
+
 - Dos motores de subtítulos offline: Faster Whisper INT8 como opción inicial y whisper.cpp como alternativa.
 - Grabación de micrófono a WAV; grabación de cámara y pantalla/ventana a WebM, con audio opcional e inserción en pistas.
 - Menús reorganizados: Archivo, Insertar y Herramientas con submenús de efectos de vídeo/audio y subtítulos.

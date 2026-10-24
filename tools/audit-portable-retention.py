@@ -24,7 +24,6 @@ plan = {"directory": str(directory), "keep": [str(versions[v]) for v in keep], "
 for version, folder in sorted(versions.items()):
     if version in keep:
         continue
-    archive = folder.with_suffix(".zip")  # version dots are part of basename, not a suffix
     archive = pathlib.Path(str(folder) + ".zip")
     try:
         if not archive.is_file() or not folder.is_dir() or folder.is_symlink() or folder.is_junction():

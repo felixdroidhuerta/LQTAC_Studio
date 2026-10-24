@@ -1,6 +1,76 @@
 # LQTAC Studio — Funcionamiento y validación
 
-Última actualización: 23 de octubre de 2026.
+Última actualización: 24 de octubre de 2026.
+
+## Portable 0.14.0
+
+Empaquetado solicitado del estado actual: motores Faster Whisper INT8 y whisper.cpp offline; grabación de micrófono, cámara y pantalla/ventana con audio opcional; menús Archivo/Insertar/Herramientas, editores FX y exportación PNG/GIF; icono propio, asociación .LQTS y apertura en la ventana existente; corrección de arranque del BAT. Todas las secciones que siguen marcadas como posteriores a 0.13.0 forman parte de 0.14.0. Se conservan límites y pruebas de hardware descritos; el empaquetado no convierte las pruebas de sonido simulado en una validación del loopback real.
+
+Extraer todo el ZIP en una carpeta y abrir **LQTAC Studio.exe**. FFmpeg, iconos, ambos motores/modelos de voz y licencias están incluidos. No se necesita conexión, acceso al repositorio ni instalar dependencias para editar/capturar/renderizar/transcribir. Los proyectos y medios del usuario se guardan aparte; no se incluyen medios personales en el portable.
+
+## Icono y apertura desde Windows — cambio local posterior a 0.13.0
+
+Corrección de arranque: el BAT abre directamente el motor con icono si ya está preparado. No calcula hashes del EXE ni ejecuta PowerShell en cada lanzamiento; la preparación solo se ejecuta cuando falta la copia con icono. La comprobación de asociación se inicia después de cargar la interfaz y no bloquea su aparición. Si falla preparar el icono, se abre el motor original disponible con el icono de ventana de LQTAC.
+
+Se utiliza la imagen proporcionada por el usuario como icono del programa y de los proyectos **.LQTS**. El formato del proyecto conserva su extensión y estructura. La imagen original se guarda sin redibujar y se convierte a ICO con tamaños de 16, 24, 32, 48, 64, 128 y 256 píxeles; el ejecutable y la ventana utilizan este icono.
+
+En la carpeta de desarrollo abrir **LQTAC Video.bat**: prepara el motor con icono propio y lo ejecuta con el editor. El ejecutable interno del motor no es el programa completo por sí solo. El próximo portable incorporará el icono en su LQTAC Studio.exe; no se ha generado todavía un paquete nuevo.
+
+Al arrancar el programa o abrir un proyecto, se comprueba la asociación de .LQTS para el usuario actual. Si no existe un programa asociado, se registra LQTAC Studio, su icono y el comando de apertura. No requiere permisos de administrador. Si ya hay otro programa elegido se conserva; LQTAC queda disponible como alternativa en Abrir con. No se cambia la asociación de MP4, WAV, imágenes u otros tipos compartidos.
+
+Un doble clic en un .LQTS puede iniciar el programa con ese proyecto. Si ya está abierto, se utiliza la misma ventana y se ofrece Guardar, No guardar o Cancelar antes de sustituir el proyecto. Cancelar conserva el montaje actual; un archivo inválido no lo sustituye. Si hay un editor modal, grabación o render en curso, se informa de que hay que finalizarlo primero. Las referencias de medios y sus avisos se mantienen.
+
+Si se mueve la carpeta del programa, abrir de nuevo su BAT/EXE desde la nueva ubicación para actualizar las rutas propias de Windows. No se modifican elecciones explícitas de otro programa. Los iconos pueden requerir actualizar la vista del Explorador si conserva una imagen anterior en caché.
+
+Validado en este equipo: registro real por usuario para .LQTS, icono extraído por Windows tanto del EXE como de un proyecto, ejecutable modificado arrancable, apertura inicial con rutas Unicode/espacios y recepción de apertura en la misma ventana; cancelar, guardar antes de cambiar y rechazar archivo inválido. Las asociaciones ajenas y la actualización de rutas se prueban en claves de registro aisladas, que se eliminan al terminar. Nuevos proyectos y menús/exportaciones mantienen sus pruebas aprobadas.
+
+## Organización de menús y exportaciones — cambio local posterior a 0.13.0
+
+**Archivo:** Nuevo proyecto, Abrir LQTS, Abrir VEGAS, Guardar, Guardar como, submenú **Exportar** (Fotograma PNG, Proyecto GIF animado, Subtítulos SRT) y Renderizar vídeo/audio. Se conservan Ctrl+N/O/S y Ctrl+Mayús+S y los flujos de confirmación de proyecto existentes.
+
+**Insertar** tiene tres grupos separados:
+
+- Biblioteca del proyecto: Insertar vídeo, audio o imagen. Cada entrada abre un selector filtrado por ese tipo y solo añade los archivos a la biblioteca; no crea eventos ni pistas. Admite selección múltiple y Deshacer/Rehacer de la importación.
+- Crear pistas: pista de audio, de vídeo o de subtítulos, siempre vacías.
+- Generar medios: Grabar audio, Grabar vídeo con cámara y Capturar pantalla/ventana. Estos accesos se retiran de Archivo y del lateral para despejar la navegación. Sus diálogos y comportamiento siguen siendo los ya implementados.
+
+**Herramientas:** Separar clip (S), Efectos de vídeo con listado desplegable (incluye Pan/Crop y filtros creativos), Efectos de audio con listado desplegable y Subtítulos (generar, editar selección, añadir bloque manual, importar SRT y abrir panel). Cada filtro abre su editor individual actual. Los filtros aparecen deshabilitados si no hay un evento seleccionado del tipo correspondiente. Los accesos laterales FX/Subtítulos se conservan como atajos.
+
+Los desplegables respetan colores y tipografías existentes, separan grupos y ajustan su posición al área visible. Se abren con clic o teclado; flechas arriba/abajo, Inicio/Fin, derecha/izquierda para submenús y Escape para volver/cerrar. Clic exterior y cambio de tamaño cierran los menús. Editar conserva Copiar/Pegar y Deshacer/Rehacer.
+
+**Exportar fotograma:** guarda la composición completa en la posición del cabezal, con capas, FX, transparencias y subtítulos visibles, como PNG sin pérdida en 720p, Full HD o 4K. La resolución es de salida: ampliar una fuente pequeña no añade detalle. Conserva el cabezal y no modifica los medios. Si el nombre ya existe, elegir uno nuevo; no se sobrescribe.
+
+**Exportar GIF:** abre Renderizar con GIF, 640 × 360 y 15 fps como valores iniciales; permite otras resoluciones/fps. Usa todo el proyecto y el mismo compositor que el vídeo, sin audio, en bucle infinito y con paleta de hasta 256 colores por fotograma. Para tamaño/tiempo razonables convienen montajes cortos y resolución/fps moderados. No se añade selección de un rango de exportación en esta fase. El render normal MP4/WebM y los formatos de audio se conservan.
+
+Validación: verify-menus comprueba menús/teclado, disponibilidad contextual, selectores nativos por tipo, biblioteca sin inserción automática, pistas vacías, editores de vídeo/audio reales, división agrupada y undo, exportación PNG 3840 × 2160 y GIF real decodificado sin audio. Nuevos proyectos, proyecto/renderizado y layout se comprueban como regresión. Cambios en código principal; sin nuevo portable ni publicación.
+
+## Captura de pantalla o ventana — cambio local posterior a 0.13.0
+
+Disponible en el lateral **Grabar pantalla** y en **Archivo → Grabar pantalla o ventana…**. Selecciona una pantalla completa o una ventana de la lista; **Actualizar entradas** renueva las fuentes disponibles. No se inicia la captura al abrir el diálogo. **Preparar captura** activa una vista previa silenciosa de la fuente elegida. Desde ese momento se comparte la imagen con el grabador local, aunque todavía no se escribe una toma.
+
+El audio está desactivado por defecto. Puedes marcar **Grabar también micrófono**, **Grabar audio del sistema**, ambos o ninguno. Al capturar una ventana, el audio del sistema es TODO lo que suena en el equipo, no solo esa aplicación. Si se eligen ambos, se mezclan a media ganancia por entrada en una sola pista de audio; no quedan disponibles por separado. Si Windows no entrega el audio del sistema solicitado, se informa del fallo y se liberan las fuentes, sin grabar silenciosamente una toma incompleta.
+
+Selecciona posición e inserción automática y pulsa **Grabar vídeo…** para elegir un WebM nuevo. **Detener y guardar** libera pantalla/micrófono/audio, finaliza la toma y la añade a la biblioteca. Con inserción se crean pistas nuevas de vídeo y, si hay sonido, audio agrupado con la misma posición y duración real. Sin sonido se crea solo vídeo. Se mantienen la vista previa de la toma, inserción manual posterior, Deshacer/Rehacer, guardado LQTS y exportación del proyecto a MP4. No se sobrescriben grabaciones existentes. Cancelar el destino, desconectar, cerrar o descartar libera las fuentes; un fallo de guardado conserva la toma para intentar otra ruta.
+
+Puedes minimizar LQTAC mientras graba y regresar para **Detener y guardar**. Si seleccionas la pantalla donde está LQTAC, se verá el editor; su propia vista previa puede crear una imagen repetida. Seleccionar otra ventana evita esa repetición. La calidad solicitada limita la altura orientativa a 480/720/1080 y pide hasta 30 fps; se conserva la proporción de la fuente y se indica resolución/fps reales. Algunas ventanas minimizadas, contenido protegido o superficies no capturables pueden mostrar negro/congelarse. Cambiar de fuente exige desconectar y preparar de nuevo.
+
+Todo funciona offline con Electron/FFmpeg incluidos. Comparte los límites de cámara: WebM VP8/Opus comprimido, una toma hasta dos horas u 8 GiB, sin pausa, selección de región, webcam superpuesta ni recuperación garantizada tras cierre forzado. La reproducción del proyecto se detiene durante el grabador. No hay un control flotante de parada; regresar al diálogo para detener.
+
+Validación: captura nativa de una ventana de prueba propia, píxeles no negros, WebM decodificado/reproducido, duración/posición reales, historial, LQTS y cancelación; mezcla de dos tonos sintéticos (sistema/micrófono), confirmados en el audio decodificado, y liberación de fuentes. Se comprueba selección obligatoria de un solo uso, marco local exacto y rechazo de ventanas desaparecidas. Cámara y micrófono mantienen sus pruebas aprobadas. El audio loopback real del equipo queda pendiente de prueba del usuario; no se grabó el sonido personal del sistema durante las pruebas. Código principal actualizado, sin nuevo portable ni publicación.
+
+## Grabación de cámara — cambio local posterior a 0.13.0
+
+El usuario ha probado y validado la grabación de micrófono anterior. Ahora se añade **Grabar vídeo**, en el lateral y en **Archivo → Grabar vídeo desde cámara…**.
+
+1. Selecciona cámara, calidad solicitada (480p, 720p o 1080p a 30 fps) y, opcionalmente, micrófono. Desmarca **Grabar también micrófono** para capturar solo vídeo.
+2. Pulsa **Activar cámara** y acepta el permiso local. Abrir el diálogo no activa dispositivos. La vista previa es silenciosa; el indicador informa de resolución y fps reales. La cámara puede entregar una calidad distinta de la solicitada.
+3. Elige la posición de inserción. **Grabar vídeo…** solicita un archivo nuevo `.webm` antes de empezar. Se graba vídeo VP8 y, si está habilitado, audio Opus en el mismo contenedor. Todo funciona localmente y offline.
+4. **Detener y guardar** finaliza el archivo, libera cámara/micrófono y añade la toma a la biblioteca. Con inserción automática se crean pistas nuevas: vídeo y, cuando existe, audio separado con la misma duración y posición, agrupados para editar sincronizados. Sin audio se crea solo vídeo. También se puede insertar después con **Insertar toma guardada**.
+5. La vista previa de la toma guardada permite reproducir, escuchar y desplazarse. Desde el proyecto puede exportarse a MP4 con el render habitual. Un paso de Deshacer retira la importación/inserción; no elimina el archivo grabado.
+
+Cancelar la elección de destino o descartar libera los dispositivos. No se sobrescriben archivos existentes; si falla el destino, se conserva la toma temporal para **Guardar en otra ruta…**. Cerrar el programa con una toma pendiente requiere volver al grabador o descartarla explícitamente. Cerrar el diálogo mientras solo hay vista previa desconecta los dispositivos.
+
+Límites: una cámara, micrófono opcional, hasta dos horas u 8 GB; no hay pausa, grabación del proyecto mientras reproduce, audio del sistema, captura de pantalla, captura multicámara ni recuperación garantizada de tomas temporales tras un cierre forzado. WebM utiliza compresión con pérdida. La grabación WAV independiente mantiene su formato PCM sin pérdida. El proyecto se pausa al abrir el grabador. Las pruebas automatizadas utilizan dispositivos generados por Chromium: guardado, decodificación FFmpeg, reproducción/seek, agrupación, duración, historial, LQTS, cancelación, descarte, permisos denegados y reintento de guardado. Pendiente validación con cámara física del usuario. Código principal actualizado; no se ha generado ni publicado otro portable.
 
 ## Subtítulos locales y reorganización de paneles — 0.11.0
 
@@ -489,6 +559,43 @@ Corregido el icono de retroceder: los caracteres se dividían en dos líneas den
 
 Nuevo botón «Reproducir desde el inicio»: lleva el cabezal a cero y comienza la reproducción, tanto si estaba pausada como si estaba reproduciendo. El botón habitual mantiene reproducir/pausar desde la posición actual y actualiza su etiqueta accesible. La prueba verify-layout.cjs comprueba los controles sin saltos de línea en cuatro anchos, retroceso con límite en cero, avance, reproducción desde cero, pausa, continuación y reinicio durante la reproducción.
 # Corrección de detección de audio para subtítulos
+
+## Grabar audio desde micrófono — primera fase de captura
+
+Disponible desde el botón lateral **Grabar audio** o **Archivo → Grabar audio desde micrófono…**. No se activa el micrófono solo por abrir el diálogo: primero selecciona una entrada y pulsa **Activar micrófono**. En el primer acceso permite el micrófono cuando el programa lo pregunte; si Windows lo bloquea, revisar Privacidad → Micrófono → aplicaciones de escritorio. Actualizar entradas no inicia una grabación. Cambiar de dispositivo desconecta el anterior y exige activarlo de nuevo.
+
+El medidor muestra nivel RMS en dBFS y aviso de saturación por picos; la ganancia digital ajusta la señal que se graba entre 0 y 200 %. La señal no se reproduce por altavoces durante la captura. Preparar el micrófono lo mantiene activo solo para comprobar el nivel, indicado en pantalla; **Desconectar** lo libera sin grabar.
+
+**Grabar WAV…** pide una ruta de archivo nuevo antes de empezar. **Detener y guardar** libera la entrada y produce un WAV PCM mono de 24 bits a 48 kHz. No se usa MP3/Opus como formato intermedio: las muestras flotantes del navegador se guardan por bloques y FFmpeg convierte a PCM24. Esto no aumenta la resolución real de un dispositivo que capture a menor precisión. No se sobrescriben archivos existentes, ni siquiera si aparecen después de elegir la ruta. Si falla la ruta de salida, se conserva la toma temporal para probar otra ruta o descartarla.
+
+La toma guardada se añade a la biblioteca y, por defecto, se inserta en una pista de audio nueva en la posición indicada. Puedes elegir otra pista de audio, cambiar la posición antes de grabar o desmarcar «Insertar en timeline al terminar». En ese caso puedes escuchar el WAV y pulsar «Insertar toma guardada» después. La importación/inserción automática es una acción deshacible; deshacer no elimina el archivo WAV del disco. Los proyectos LQTS guardan la referencia al WAV como al resto de medios.
+
+Cerrar o descartar libera las pistas del dispositivo y el contexto de audio. Se pide confirmación para descartar una toma en curso; al cerrar la aplicación con una toma pendiente se permite volver al grabador o descartarla. No se eliminan grabaciones que ya se hayan guardado. Los errores de permiso, ausencia de dispositivo o dispositivo ocupado se explican en el diálogo.
+
+Límites del grabador de audio: una toma mono de hasta dos horas, sin pausa, punch-in, calibración de latencia ni monitorización por altavoces. La timeline se detiene al abrir el grabador: no es aún doblaje sincronizado durante reproducción. Solo captura el micrófono; la cámara dispone ahora de un grabador separado descrito arriba. No hay recuperación garantizada de una toma temporal tras fallo brusco o apagado; hay que detener y guardar. Pruebas automatizadas con dispositivo simulado de Chromium; el usuario ha validado el micrófono real.
+
+### Pendientes acordados
+
+- Grabación de cámara implementada; pendiente validación con cámara física.
+- Captura de pantalla/ventana implementada; pendiente validar loopback real con el equipo del usuario.
+- Autoguardado y recuperación de proyectos.
+- Mezclador de audio con medidores por pista y máster.
+
+## Portable local 0.13.0 — dos motores
+
+Medición final: el ZIP con dos motores ocupa 1177942111 bytes, frente a 628469244 bytes del 0.12.0. Son 549,47 MB decimales adicionales (+87,43 %). Verificados ambos motores desde el paquete. La carpeta extraída ocupa aproximadamente 1,69 GB decimales. Los resultados se documentan aquí después de generar el ZIP; el manual dentro de esa copia conserva la nota de preparación anterior a la medición.
+
+Paquete local solicitado para medir el incremento de tamaño respecto al ZIP 0.12.0 (628469244 bytes). Incluye Faster Whisper INT8 como opción inicial y whisper.cpp como alternativa, con ambos motores/modelos, bibliotecas y avisos locales. No se cambia el filtrado de voz ni se intenta corregir automáticamente el caso instrumental descrito. Este paquete no se publica en GitHub sin nueva solicitud. Extraer todo el ZIP y ejecutar LQTAC Studio.exe; no mover solo el ejecutable.
+
+## Selector de motor de subtítulos — cambio local posterior a 0.12.0
+
+En «Subtítulos → Generar subtítulos», «Motor de transcripción» permite elegir **Faster Whisper INT8 · principal** o **Whisper.cpp · alternativa**. Cada apertura empieza con Faster INT8 seleccionado. El idioma, la fuente de audio y el funcionamiento con pistas de audio o audio separado de vídeo se conservan.
+
+El botón Generar solo se habilita si el motor seleccionado y su modelo están preparados. Si falta uno, se indica y puedes seleccionar el otro; el programa no descarga recursos ni cambia de motor silenciosamente. Durante el trabajo no se permite cambiar fuente, idioma o motor. Cancelar detiene el reconocimiento y no añade una pista incompleta. Las nuevas pistas incluyen «Faster INT8» o «Whisper.cpp» en el nombre para facilitar la comparación del mismo audio.
+
+Validado con voz española real de prueba por ambos motores desde el diálogo y con audio independiente, cancelación durante el reconocimiento, controles restaurados y estado de motores ausentes. El ejecutable Faster también se probó tras copiar motor y modelo a otra carpeta, con PATH reducido a Windows, PYTHONHOME/PYTHONPATH vacíos, entrada con nombre Unicode y detección automática de idioma: no necesitó el Python del entorno de desarrollo. Las pruebas previas de subtítulos, SRT, LQTS y exportación MP4 continúan pasando.
+
+Faster se ejecuta mediante su EXE y bibliotecas incluidos, sin instalar Python ni CUDA y sin red. El paquete conserva también el motor/modelo whisper.cpp. Esto cambia la transcripción, no el editor Karaoke: sus marcas de palabras/sílabas siguen requiriendo el flujo de sincronización existente. No se importan tiempos de palabra de Faster ni se promete alineación automática del canto en este cambio. El portable 0.12.0 publicado no se modifica; la opción está disponible en la carpeta principal actualizada.
 
 ## Respaldo y publicación 0.12.0 — 24/10/2026
 

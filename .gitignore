@@ -1,6 +1,8 @@
 node_modules/
 desktop/speech/bin/
 desktop/speech/models/
+desktop/speech/faster/bin/
+desktop/speech/faster/models/
 desktop/speech/*.zip
 *.download
 tools/vegas/diagnostics/

@@ -2,7 +2,7 @@
 setlocal
 if exist "%~dp0LQTAC Studio.exe" (
   set "ELECTRON_RUN_AS_NODE="
-  start "" "%~dp0LQTAC Studio.exe"
+  start "" "%~dp0LQTAC Studio.exe" %*
   exit /b 0
 )
 cd /d "%~dp0desktop"
@@ -14,5 +14,13 @@ if not exist "node_modules\electron\dist\electron.exe" (
   exit /b 1
 )
 set "ELECTRON_RUN_AS_NODE="
-start "" "node_modules\electron\dist\electron.exe" "%~dp0desktop"
+if not exist "%~dp0desktop\node_modules\electron\dist\LQTAC Studio.exe" (
+  powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%~dp0tools\prepare-runtime.ps1"
+  if errorlevel 1 (
+    echo No se pudo preparar el icono. Abriendo el motor disponible.
+    start "" "%~dp0desktop\node_modules\electron\dist\electron.exe" "%~dp0desktop" %*
+    exit /b 0
+  )
+)
+start "" "%~dp0desktop\node_modules\electron\dist\LQTAC Studio.exe" "%~dp0desktop" %*
 endlocal

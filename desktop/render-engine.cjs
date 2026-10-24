@@ -5,6 +5,7 @@ const {promisify} = require('node:util');
 const {validateProject} = require('./project-io.cjs');
 const {enabled,balance,calibrated} = require('../dist/assets/work-model.js');
 const presets = {
+  gif:{label:'GIF animado · sin audio',video:true,silent:true,args:['-loop','0']},
   mp4:{label:'Vídeo MP4 · H.264 + AAC',video:true,args:['-c:v','libx264','-preset','fast','-crf','20','-pix_fmt','yuv420p','-c:a','aac','-b:a','192k','-movflags','+faststart']},
   webm:{label:'Vídeo WebM · VP9 + Opus',video:true,args:['-c:v','libvpx-vp9','-crf','32','-b:v','0','-deadline','realtime','-cpu-used','6','-pix_fmt','yuv420p','-c:a','libopus','-b:a','160k']},
   wav:{label:'Audio WAV · PCM 24 bits',args:['-c:a','pcm_s24le']},
@@ -42,24 +43,24 @@ async function hasAudio(filePath) {
 async function startRender({project,profile,width=1280,height=720,fps=24,output,effectsDirectory},progress=()=>{}) {
   validateProject(project);
   const preset=presets[profile];
-  if(!preset || ![24,25,30].includes(fps) || ![640,1280,1920].includes(width) || ![360,720,1080].includes(height)) throw new Error('Formato de exportación no válido.');
+  if(!preset || ![10,15,24,25,30].includes(fps) || ![640,1280,1920].includes(width) || ![360,720,1080].includes(height)) throw new Error('Formato de exportación no válido.');
   const clips=project.tracks.flatMap(t=>t.clips);
   if(!clips.length) throw new Error('El proyecto no tiene eventos que exportar.');
   if(clips.some(c=>c.kind!=='subtitle'&&path.resolve(c.filePath).toLowerCase()===path.resolve(output).toLowerCase())) throw new Error('El destino no puede sobrescribir un medio del proyecto.');
   for(const c of clips.filter(c=>c.kind!=='subtitle')) if(!c.filePath || !fs.existsSync(c.filePath)) throw new Error('Medio no encontrado: '+c.filePath);
   project=structuredClone(project);
   const cache=effectsDirectory||path.join(require('node:os').tmpdir(),'lqtac-effects-cache');
-  for(const track of project.tracks)for(const clip of track.clips)if(clip.kind==='audio'&&clip.audioFx?.enabled){const animated=require('../dist/assets/effects-model.js').animatedAudio(clip.audioFx);clip.filePath=await require('./effects-audio.cjs').prepare(clip.filePath,clip.audioFx,cache,{offset:clip.sourceOffsetSeconds||0,duration:clip.durationSeconds,rate:clip.playbackRate||1});if(animated){clip.sourceOffsetSeconds=0;clip.playbackRate=1;}}
+  if(!preset.silent)for(const track of project.tracks)for(const clip of track.clips)if(clip.kind==='audio'&&clip.audioFx?.enabled){const animated=require('../dist/assets/effects-model.js').animatedAudio(clip.audioFx);clip.filePath=await require('./effects-audio.cjs').prepare(clip.filePath,clip.audioFx,cache,{offset:clip.sourceOffsetSeconds||0,duration:clip.durationSeconds,rate:clip.playbackRate||1});if(animated){clip.sourceOffsetSeconds=0;clip.playbackRate=1;}}
   const renderClips=project.tracks.flatMap(t=>t.clips);
   const duration=Math.max(...clips.map(c=>c.startSeconds+c.durationSeconds));
   const temporary=path.join(path.dirname(output),`.lqtac-render-${process.pid}-${Date.now()}.${profile}`);
   const args=['-hide_banner','-y'];
   let input=0;
   if(preset.video) {args.push('-f','image2pipe','-framerate',String(fps),'-vcodec','png','-i','pipe:0');input++;}
-  const audioPaths=[...new Set(renderClips.filter(c=>c.kind==='audio').map(c=>c.filePath))];
+  const audioPaths=preset.silent?[]:[...new Set(renderClips.filter(c=>c.kind==='audio').map(c=>c.filePath))];
   const available=new Map(await Promise.all(audioPaths.map(async p=>[p,await hasAudio(p)])));
   const filters=[],labels=[];
-  for(const track of project.tracks.filter(t=>enabled(t,project.tracks))) for(const clip of track.clips.filter(c=>!c.mute&&c.kind==='audio'&&available.get(c.filePath))) {
+  for(const track of project.tracks.filter(t=>!preset.silent&&enabled(t,project.tracks))) for(const clip of track.clips.filter(c=>!c.mute&&c.kind==='audio'&&available.get(c.filePath))) {
     args.push('-i',clip.filePath);
     let gain=envelopeExpression(track.envelope).replace(/\bt\b/g,`(t+${number(clip.startSeconds)})`);
     gain+=`*${number((track.gain??1)*(clip.gain??1))}`;
@@ -78,10 +79,12 @@ async function startRender({project,profile,width=1280,height=720,fps=24,output,
     labels.push(`[${label}]`);
   }
   if(labels.length) filters.push(`${labels.join('')}amix=inputs=${labels.length}:normalize=0,apad${project.compatibility?'':',alimiter=limit=0.98:level=false'}[aout]`);
-  else {args.push('-f','lavfi','-i','anullsrc=r=48000:cl=stereo');filters.push(`[${input}:a]anull[aout]`);}
+  else if(!preset.silent){args.push('-f','lavfi','-i','anullsrc=r=48000:cl=stereo');filters.push(`[${input}:a]anull[aout]`);}
+  if(profile==='gif')filters.push('[0:v]split[gifframes][gifcolors];[gifcolors]palettegen=stats_mode=single[palette];[gifframes][palette]paletteuse=new=1:dither=sierra2_4a[gifout]');
   const filterFile=temporary+'.filters.txt';await fs.promises.writeFile(filterFile,filters.join(';'),'utf8');args.push('-filter_complex_script',filterFile);
-  if(preset.video) args.push('-map','0:v');
-  args.push('-map','[aout]','-t',number(duration),...preset.args,'-progress','pipe:1','-nostats',temporary);
+  if(preset.video) args.push('-map',profile==='gif'?'[gifout]':'0:v');
+  if(!preset.silent)args.push('-map','[aout]');
+  args.push('-t',number(duration),...preset.args,'-progress','pipe:1','-nostats',temporary);
   const child=spawn(ffmpegPath(),args,{windowsHide:true,stdio:['pipe','pipe','pipe']});
   let stderr='',cancelled=false,settled=false,frames=0;
   child.stderr.on('data',data=>{stderr=(stderr+data).slice(-10000);});

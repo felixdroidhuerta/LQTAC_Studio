@@ -1950,7 +1950,7 @@
     renderDialog.innerHTML='<h2>Renderizar proyecto</h2><p>Exporta todas las pistas y sus envolventes. Funciona sin conexión.</p><label>Formato <select id="renderProfile"><option value="mp4">Vídeo MP4 · H.264 + AAC</option><option value="webm">Vídeo WebM · VP9 + Opus</option><option value="wav">Audio WAV · PCM 24 bits</option><option value="mp3">Audio MP3 · 320 kb/s</option><option value="flac">Audio FLAC · sin pérdida</option><option value="m4a">Audio M4A · AAC 256 kb/s</option></select></label><p id="renderVideoOptions"><label>Resolución <select id="renderResolution"><option value="1280,720">1280 × 720</option><option value="1920,1080">1920 × 1080</option><option value="640,360">640 × 360</option></select></label> <label>FPS <select id="renderFps"><option>24</option><option>25</option><option>30</option></select></label></p><p id="renderStatus" aria-live="polite">Se exporta hasta el final del último evento.</p><progress id="renderProgress" max="1" value="0" style="width:100%"></progress><p><button class="solid-btn" id="renderGo">Guardar archivo…</button> <button class="ghost-btn" id="renderClose">Cerrar</button></p>';
     document.body.append(renderDialog);
     function openRenderDialog(){if(historyBusy)return;if(!window.lqtacDesktop?.renderStart){toast('Abre LQTAC Studio con su ejecutable para exportar.');return;}if(!renderDialog.open)renderDialog.showModal();}
-    $('#renderProfile').addEventListener('change',()=>{$('#renderVideoOptions').hidden=!['mp4','webm'].includes($('#renderProfile').value);});
+    $('#renderProfile').addEventListener('change',()=>{$('#renderVideoOptions').hidden=!['mp4','webm','gif'].includes($('#renderProfile').value);});
     let cancelExport=false;
     const closeRender=()=>{if(exporting){cancelExport=true;void window.lqtacDesktop.renderCancel();$('#renderStatus').textContent='Cancelando…';}else renderDialog.close();};
     $('#renderClose').addEventListener('click',closeRender);
@@ -1987,7 +1987,7 @@
       if(exporting)return;await demoReady;stopTimelinePlayback();const previousTime=timelineTime;
       const [width,height]=$('#renderResolution').value.split(',').map(Number),fps=Number($('#renderFps').value),profile=$('#renderProfile').value;
       exporting=true;cancelExport=false;exportSize={width,height};$('#renderGo').disabled=true;$('#renderProfile').disabled=true;$('#renderClose').textContent='Cancelar';$('#renderProgress').value=0;$('#renderStatus').textContent='Preparando exportación…';
-      const unsubscribe=window.lqtacDesktop.onRenderProgress(value=>{if(!['mp4','webm'].includes(profile)){$('#renderProgress').value=value;$('#renderStatus').textContent=`Renderizando audio · ${Math.round(value*100)} %`;}});
+      const unsubscribe=window.lqtacDesktop.onRenderProgress(value=>{if(!['mp4','webm','gif'].includes(profile)){$('#renderProgress').value=value;$('#renderStatus').textContent=`Renderizando audio · ${Math.round(value*100)} %`;}});
       try {
         const result=await window.lqtacDesktop.renderStart({project:projectSnapshot(),profile,width,height,fps});
         if(result.canceled){$('#renderStatus').textContent='Exportación cancelada. No se ha creado ningún archivo.';return;}
@@ -2027,4 +2027,10 @@
 <script src="assets/subtitles-controls.js"></script>
 <script src="assets/karaoke-sync-model.js"></script>
 <script src="assets/track-karaoke-sync.js"></script>
+<script src="assets/microphone-pcm.js"></script>
+<script src="assets/microphone-controls.js"></script>
+<script src="assets/camera-controls.js"></script>
+<script src="assets/screen-controls.js"></script>
+<script src="assets/export-controls.js"></script>
+<script src="assets/menu-controls.js"></script>
 </html>

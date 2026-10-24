@@ -1,10 +1,10 @@
 # LQTAC Studio
 
-Editor local de vídeo y audio para Windows. Versión 0.12.0 con subtítulos automáticos offline y Karaoke por palabras o sílabas.
+Editor local de vídeo y audio para Windows. Versión 0.14.0 con dos motores de subtítulos offline, captura de medios, menús reorganizados e integración con Windows.
 
 ## Descargar el programa
 
-Para un equipo nuevo, abre [Releases](https://github.com/felixdroidhuerta/LQTAC_Studio/releases), entra en **v0.12.0-portable** y descarga **LQTAC_Studio_0.12.0_Windows_x64_Portable.zip** dentro de Assets.
+Para un equipo nuevo, abre [Releases](https://github.com/felixdroidhuerta/LQTAC_Studio/releases/tag/v0.14.0-portable) y descarga **LQTAC_Studio_0.14.0_Windows_x64_Portable.zip** dentro de Assets.
 
 Extrae todo el ZIP y abre **LQTAC Studio.exe**. El motor y sus bibliotecas están incluidos; no requiere Node, pnpm ni Internet en el equipo destino. La carpeta Shapes junto al ejecutable contiene la máscara LQTAC de ejemplo.
 
@@ -13,6 +13,14 @@ Los archivos automáticos **Source code** contienen únicamente fuentes y no el 
 La versión local añade pista de subtítulos editable, Whisper small multilingüe offline, importación/exportación SRT e incrustación en vídeo. Acceso desde la pestaña «Subtítulos». El modelo y runtime están instalados en este equipo; para preparar otro entorno de desarrollo ejecutar tools/setup-whisper.ps1. El empaquetado incluye ambos y sus licencias; no requiere descargas durante el uso.
 
 ## Funciones actuales
+
+Icono propio del programa y de proyectos .LQTS. Al iniciar se comprueba/registra la asociación de Windows por usuario cuando no existe y se actualizan rutas propias, respetando otros programas predeterminados. Doble clic admite apertura inicial o en la ventana existente con confirmación de guardado. En desarrollo usar LQTAC Video.bat; el próximo portable incluirá el EXE con icono. Cambios locales posteriores a 0.13.0.
+
+Menús reorganizados: Archivo para proyecto/render/exportación (PNG hasta 4K, GIF animado y SRT), Insertar para biblioteca/pistas/grabaciones y Herramientas para división, efectos de vídeo/audio y subtítulos. Las importaciones por tipo solo alimentan la biblioteca. GIF usa el montaje completo, sin audio; se recomienda baja resolución/fps para proyectos cortos. Cambios posteriores al ZIP 0.13.0, todavía sin nuevo portable.
+
+Cambio local posterior al ZIP 0.13.0: grabación de micrófono desde «Grabar audio» (validada por el usuario), cámara desde «Grabar vídeo» y pantalla/ventana desde «Grabar pantalla», también accesibles en Archivo. Captura de pantalla sin audio o con micrófono/sistema/ambos, vista previa y WebM local, biblioteca e inserción de vídeo/audio agrupados. El audio del sistema es global; ambas entradas se mezclan si se habilitan juntas. WAV independiente PCM24 mono48k conserva su formato sin pérdida. Todo offline. Pantalla probada con ventana propia y mezcla sintética; pendiente validar loopback real. Cámara probada con dispositivos simulados. Consultar FUNCIONAMIENTO.md. El ZIP anterior todavía no incorpora estas capturas.
+
+Cambio local posterior al portable 0.12.0: al generar subtítulos se puede elegir Faster Whisper INT8 (seleccionado inicialmente) o Whisper.cpp. Ambos tienen motor/modelo locales; las pistas indican cuál se utilizó. El paquete publicado 0.12.0 mantiene el motor anterior. Desarrollo de Faster: tools/setup-faster-whisper.ps1; uso y límites en FUNCIONAMIENTO.md.
 
 El sincronizador Karaoke permite elegir Palabras o Sílabas. La división silábica sugerida se puede corregir antes de marcar con Espacio; admite aplicación parcial y continuación guardada en LQTS. El resaltado silábico se ve dentro de la palabra, sin cambiar la letra ni añadir guiones al vídeo. Incluido en el portable 0.12.0.
 

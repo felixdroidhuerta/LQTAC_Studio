@@ -1,5 +1,7 @@
 # Reconocimiento local de subtítulos
 
+Actualización local posterior al portable 0.12.0: el motor predeterminado es Faster Whisper INT8 y la ventana permite elegir Whisper.cpp como alternativa. Ambos funcionan localmente; no hay cambio automático de motor. Consultar faster/README.md para preparación, ejecutable autónomo, modelo convertido y licencias. La instalación whisper.cpp descrita abajo se mantiene intacta como alternativa. El modelo y ejecutable Faster se incluyen al crear futuros portables; los portables históricos no cambian.
+
 Motor: whisper.cpp v1.9.2, binario oficial Windows x64 CPU. Modelo: ggml-small.bin multilingüe, revisión ggerganov/whisper.cpp 5359861c739e955e79d9a303bcbc70fb988958b1. Código/modelo MIT; se incluyen sus avisos LICENSE-whisper.cpp.txt y LICENSE-model.txt.
 
 Preparación de desarrollo: tools/setup-whisper.ps1 descarga y verifica SHA-256 de motor y modelo. bin/ y models/ se excluyen de Git por ser dependencias binarias; build-portable.ps1 exige el modelo y empaqueta esta carpeta. El programa no descarga ni llama servicios remotos. No se exige Python, CUDA ni cuenta/API key al usuario.

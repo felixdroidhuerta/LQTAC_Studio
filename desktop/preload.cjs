@@ -1,6 +1,17 @@
 const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 contextBridge.exposeInMainWorld('lqtacDesktop', {
+  cameraRecordingStart:mode=>ipcRenderer.invoke('camera-recording-start',mode),
+  screenCaptureSources:()=>ipcRenderer.invoke('screen-capture-sources'),
+  screenCaptureSelect:(id,systemAudio)=>ipcRenderer.invoke('screen-capture-select',id,systemAudio),
+  screenCaptureCancel:()=>ipcRenderer.invoke('screen-capture-cancel'),
+  cameraRecordingAppend:(id,data)=>ipcRenderer.invoke('camera-recording-append',id,data),
+  cameraRecordingFinish:(id,saveAs=false)=>ipcRenderer.invoke('camera-recording-finish',id,saveAs),
+  cameraRecordingAbort:id=>ipcRenderer.invoke('camera-recording-abort',id),
+  microphoneRecordingStart:sampleRate=>ipcRenderer.invoke('microphone-recording-start',sampleRate),
+  microphoneRecordingAppend:(id,data)=>ipcRenderer.invoke('microphone-recording-append',id,data),
+  microphoneRecordingFinish:(id,saveAs=false)=>ipcRenderer.invoke('microphone-recording-finish',id,saveAs),
+  microphoneRecordingAbort:id=>ipcRenderer.invoke('microphone-recording-abort',id),
   subtitleStatus:()=>ipcRenderer.invoke('subtitle-status'),
   transcribeSubtitles:options=>ipcRenderer.invoke('subtitle-transcribe',options),
   cancelSubtitles:()=>ipcRenderer.invoke('subtitle-cancel'),
@@ -22,7 +33,8 @@ contextBridge.exposeInMainWorld('lqtacDesktop', {
   pathForFile: (file) => webUtils.getPathForFile(file),
   saveTransitionMask: (dataUrl) => ipcRenderer.invoke('save-transition-mask', dataUrl),
   openVegasProject: filePath => ipcRenderer.invoke('open-vegas-project',filePath),
-  openMedia: () => ipcRenderer.invoke('open-media'),
+  openMedia: kind => ipcRenderer.invoke('open-media',kind),
+  exportStill: options => ipcRenderer.invoke('export-still',options),
   openTransitionMask: () => ipcRenderer.invoke('open-transition-mask'),
   readFileText: (filePath) => ipcRenderer.invoke('read-file-text', filePath),
   getDemoMedia: () => ipcRenderer.invoke('get-demo-media'),

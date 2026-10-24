@@ -1,5 +1,11 @@
 # LQTAC Studio — guía de desarrollo y continuidad
 
+## Publicación 0.14.1 — corrección de apertura
+
+Validado el entregable: verify-portable-runtime pasa con ambos ASR sobre muestra española, hashes del código/modelos y electron.exe original; integrationConfig apunta al lanzador raíz. Se lanza el EXE del paquete con el proyecto existente y perfil de prueba aislado: inspección visual de la ventana de 0.14.1 confirma nombre de archivo, cuatro medios, tres pistas y cinco clips. Se cierra solo esa sesión de prueba sin guardar. ZIP íntegro con 1167 entradas, 1.179.919.931 bytes y SHA-256 f5202600dc2f54145e858a90a14a095f17ebdc36307a8bf4b65c78443c132670. No se reintenta la limpieza local bloqueada por política ni se modifican publicaciones históricas.
+
+Se empaqueta el hotfix de Explorer y el lanzador nativo descritos bajo 0.14.0. Layout entregable: LQTAC Studio.exe (lanzador C#/.NET Framework de Windows), electron.exe original, resources/app con todo el editor y modelos/binarios offline. No se sustituye ni se reempaqueta el ZIP histórico 0.14.0. La validación del entregable incluye carga de su propio código/binarios, ambos ASR y apertura con el EXE raíz del paquete.
+
 ## Empaquetado 0.14.0 — 24/10/2026
 
 Segundo hotfix de shell, tras reproducir la objeción del usuario: doble clic literal desde Explorer seguía lanzando el EXE de desarrollo con solo el documento, mientras ShellExecute desde una herramienta usaba el registro correcto. Registrar Applications/LQTAC Studio.exe, usar ProgID versionado y SHChangeNotify FLUSH no bastó para esa sesión. No se modificó UserChoice/hash ni se reinició Explorer. Se conserva registro Applications/SupportedTypes y ProgID LQTACStudio.Project.1 con alias legado actualizado.

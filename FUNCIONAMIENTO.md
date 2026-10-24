@@ -2,6 +2,14 @@
 
 Última actualización: 24 de octubre de 2026.
 
+## Portable 0.14.1 — apertura desde el Explorador corregida
+
+Esta entrega incorpora las correcciones locales de apertura descritas bajo 0.14.0. Extraer todo el ZIP nuevo y abrir **LQTAC Studio.exe** una vez para registrar las rutas de esta carpeta; después los .LQTS se abren con doble clic. El EXE visible es un lanzador propio con icono, que inicia el motor interno electron.exe con el directorio del editor antes del documento. Se aceptan también comandos antiguos de Windows que pasen solo el proyecto. No separar el lanzador del motor ni de resources.
+
+Se incluyen las entradas de asociación del tipo de proyecto y de Abrir con para el ejecutable, con actualización de rutas propias y preservación de elecciones ajenas. La asociación no modifica UserChoice ni su hash. Para Windows 10/11 se utiliza .NET Framework del sistema en el lanzador; no hay descarga, instalación de motores ni conexión durante el uso. Las demás funciones de 0.14.0 y ambos motores ASR se conservan.
+
+El ZIP 0.14.0 publicado se conserva intacto. Las notas históricas que indican corrección local pendiente de empaquetar quedan incorporadas en 0.14.1.
+
 ## Portable 0.14.0
 
 Corrección adicional validada por doble clic literal en el Explorador: algunas sesiones de Windows conservan un comando antiguo EXE + documento aunque ShellExecute use el registro actualizado. Se añade un lanzador propio que siempre dirige el archivo al editor y evita que el motor intente ejecutarlo como JavaScript. El BAT mantiene arranque directo y el próximo empaquetado conserva electron.exe como motor interno junto al lanzador LQTAC Studio.exe. La carpeta principal y el portable extraído están corregidos; el ZIP publicado sigue sin alterarse. Se comprueba visualmente el proyecto del usuario tras doble clic en el Explorador, con 4 medios, 3 pistas y 5 eventos.

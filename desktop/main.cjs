@@ -10,7 +10,7 @@ const crypto = require('node:crypto');
 const projectIO = require('./project-io.cjs');
 const renderEngine = require('./render-engine.cjs');
 const windowsIntegration=require('./windows-integration.cjs');
-const shellEntry=app.isPackaged||[__dirname,path.join(__dirname,'main.cjs')].includes(path.resolve(process.argv[1]||'.'));
+const shellEntry=app.isPackaged||[__dirname,path.join(__dirname,'main.cjs'),windowsIntegration.applicationDirectory()].includes(path.resolve(process.argv[1]||'.'));
 app.setName('LQTAC Studio');
 if(process.platform==='win32')app.setAppUserModelId('LQTAC.Studio');
 const ownsInstance=!shellEntry||app.requestSingleInstanceLock();

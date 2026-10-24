@@ -9,8 +9,7 @@ if (!$OutputDirectory) { $OutputDirectory = Join-Path (Split-Path -Parent $proje
 if (Test-Path -LiteralPath $OutputDirectory) { throw 'La carpeta de salida ya existe. Elige otra para no sobrescribirla.' }
 New-Item -ItemType Directory -Path $OutputDirectory | Out-Null
 Get-ChildItem -LiteralPath $runtime -Force | Where-Object { $_.Name -notin @('LQTAC Studio.exe','lqtac-icon.sha256') } | ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination $OutputDirectory -Recurse }
-Rename-Item -LiteralPath (Join-Path $OutputDirectory 'electron.exe') -NewName 'LQTAC Studio.exe'
-& (Join-Path $projectRoot 'tools\set-executable-icon.ps1') -Executable (Join-Path $OutputDirectory 'LQTAC Studio.exe') -Icon (Join-Path $PSScriptRoot 'assets\lqtac-studio.ico')
+& (Join-Path $projectRoot 'tools\build-launcher.ps1') -Output (Join-Path $OutputDirectory 'LQTAC Studio.exe') -Icon (Join-Path $PSScriptRoot 'assets\lqtac-studio.ico')
 $appRoot = Join-Path $OutputDirectory 'resources\app'
 $desktopTarget = Join-Path $appRoot 'desktop'
 New-Item -ItemType Directory -Path $desktopTarget -Force | Out-Null

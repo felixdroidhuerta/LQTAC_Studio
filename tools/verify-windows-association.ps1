@@ -11,6 +11,8 @@ try{
   $command=[Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($root+'\Classes\LQTACStudio.Project\shell\open\command')
   try{Assert ($command.GetValue('') -ceq ('"'+$config.executable+'" "'+$config.appDirectory+'" "%1"')) 'Command quoting/Unicode incorrect'}finally{$command.Dispose()}
   Assert (!(Run-Registration).changed) 'Registration is not idempotent'
+  $appCommand=[Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($root+'\Classes\Applications\LQTAC Studio.exe\shell\open\command')
+  try{Assert ($appCommand.GetValue('') -ceq $first.command) 'Explorer executable command does not match ProgID'}finally{$appCommand.Dispose()}
   $foreign=[Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($root+'\Classes\Other.Editor\shell\open\command')
   $foreign.SetValue('','"C:\Other App\editor.exe" "%1"');$foreign.Dispose()
   $extension=[Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($root+'\Classes\.lqts');$extension.SetValue('','Other.Editor');$extension.Dispose()

@@ -76,7 +76,7 @@ ipcMain.handle('render-start',async(event,options)=>{
   let output=result.filePath;if(path.extname(output).toLowerCase()!=='.'+options.profile)output+='.'+options.profile;
   const job=await renderEngine.startRender({...options,output,effectsDirectory:path.join(app.getPath('userData'),'effects-cache')},progress=>{if(!event.sender.isDestroyed())event.sender.send('render-progress',progress);});
   exportJob=job;
-  return {canceled:false,video:job.video,duration:job.duration,output};
+  return {canceled:false,video:job.video,duration:job.duration,startSeconds:job.startSeconds,output};
 });
 ipcMain.handle('render-frame',async(_event,base64)=>{if(!exportJob)throw new Error('No hay exportación activa.');await exportJob.frame(base64);});
 ipcMain.handle('render-finish',async()=>{if(!exportJob)throw new Error('No hay exportación activa.');const job=exportJob;try{return await job.finish();}finally{if(exportJob===job)exportJob=null;}});
@@ -214,6 +214,23 @@ ipcMain.handle('open-vegas-project', async (_event,requestedPath) => {
   }
   if(filePath.toLowerCase().endsWith('.lqtac.json')){const loaded=await require('./vegas-bridge.cjs').readBridge(filePath);if(loaded.project)currentProjectPath=null;return {canceled:false,...loaded};}
   return { canceled: false, project: { filePath, fileName: path.basename(filePath), format: ext.toUpperCase(), warnings: ['Este formato se ha seleccionado; el lector estructural VEGAS se centra en .VEG y .VF.'] } };
+});
+
+let systemFontCache=null,systemFontScan=null;
+ipcMain.handle('system-fonts',async(event,refresh=false)=>{
+ recordingSender(event);
+ if(systemFontScan)return systemFontScan;
+ if(!refresh&&systemFontCache&&Date.now()-systemFontCache.scannedAt<120000)return systemFontCache;
+ systemFontScan=(async()=>{const {stdout}=await execFileAsync('powershell.exe',['-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',path.join(__dirname,'assets','windows-fonts.ps1')],{windowsHide:true,timeout:15000,maxBuffer:16*1024*1024,encoding:'utf8'});const data=JSON.parse(stdout.trim().replace(/^\uFEFF/,'')),valid=require('../dist/assets/font-model.js').valid;const families=[...new Set((Array.isArray(data)?data:[data]).filter(valid))].sort((a,b)=>a.localeCompare(b,undefined,{sensitivity:'base'}));if(!families.length)throw Error('Windows no ha devuelto fuentes instaladas');return systemFontCache={families,scannedAt:Date.now()};})();
+ try{return await systemFontScan;}finally{systemFontScan=null;}
+});
+
+ipcMain.handle('browse-media-folder',async(event,folder)=>{
+  recordingSender(event);
+  if(folder===undefined){const chosen=await dialog.showOpenDialog(mainWindow,{title:'Explorar carpeta de medios',properties:['openDirectory']});if(chosen.canceled||!chosen.filePaths[0])return {canceled:true};folder=chosen.filePaths[0];}
+  if(typeof folder!=='string'||!path.isAbsolute(folder))throw Error('Carpeta no válida');
+  const entries=await fs.promises.readdir(folder,{withFileTypes:true});const media=entries.filter(e=>!e.isSymbolicLink()&&(e.isDirectory()||e.isFile()&&mediaExtensions.includes(path.extname(e.name).slice(1).toLowerCase()))).sort((a,b)=>Number(b.isDirectory())-Number(a.isDirectory())||a.name.localeCompare(b.name,undefined,{numeric:true}));
+  return {canceled:false,folder,parent:path.dirname(folder),truncated:media.length>5000,entries:media.slice(0,5000).map(e=>({name:e.name,filePath:path.join(folder,e.name),directory:e.isDirectory(),extension:path.extname(e.name).slice(1).toLowerCase()}))};
 });
 
 ipcMain.handle('open-media', async (event,kind) => {

@@ -130,7 +130,7 @@ app.whenReady().then(async()=>{
     const fadedOutput=path.join(root,'faded-audio.wav');const fadedJob=await engine.startRender({project:fadedProject,profile:'wav',output:fadedOutput});await fadedJob.finish();
     await run(ffmpeg,['-v','error','-i',fadedOutput,'-f','null','-'],{windowsHide:true});console.log('Audio fade export decoded OK');
     console.log(await js(`(async()=>{
-      updateTimelineViewport(4,.2);await renderTimelineAt(.3);const head=ensureTimelinePlayhead(),grip=head.querySelector('.timeline-playhead-grip'),rect=$('#tracks').getBoundingClientRect(),count=timelineClips().length,history=undoHistory.length;
+      updateTimelineViewport(4,.2);await renderTimelineAt(.3);const head=ensureTimelinePlayhead(),grip=$('#rulerPlayhead .timeline-playhead-grip'),rect=$('#tracks').getBoundingClientRect(),count=timelineClips().length,history=undoHistory.length;
       const pointer=(type,x)=>new PointerEvent(type,{clientX:x,button:0,pointerId:42,bubbles:true,cancelable:true});
       grip.dispatchEvent(pointer('pointerdown',rect.left+rect.width*.1));window.dispatchEvent(pointer('pointermove',rect.left+rect.width*.4));window.dispatchEvent(pointer('pointerup',rect.left+rect.width*.4));
       if(Math.abs(timelineTime-timelineDurationSeconds*.4)>.001||head.classList.contains('dragging'))throw Error('Playhead drag failed at zoom');

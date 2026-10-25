@@ -40,20 +40,23 @@ async function hasAudio(filePath) {
   try {await promisify(execFile)(ffmpegPath(),['-hide_banner','-i',filePath],{windowsHide:true,maxBuffer:1024*1024});return false;}
   catch(error) {return /Stream .*Audio:/.test(error.stderr||'');}
 }
-async function startRender({project,profile,width=1280,height=720,fps=24,output,effectsDirectory},progress=()=>{}) {
+async function startRender({project,profile,width=1280,height=720,fps=24,output,effectsDirectory,range=project.renderRange},progress=()=>{}) {
   validateProject(project);
   const preset=presets[profile];
   if(!preset || ![10,15,24,25,30].includes(fps) || ![640,1280,1920].includes(width) || ![360,720,1080].includes(height)) throw new Error('Formato de exportación no válido.');
   const clips=project.tracks.flatMap(t=>t.clips);
   if(!clips.length) throw new Error('El proyecto no tiene eventos que exportar.');
   if(clips.some(c=>c.kind!=='subtitle'&&path.resolve(c.filePath).toLowerCase()===path.resolve(output).toLowerCase())) throw new Error('El destino no puede sobrescribir un medio del proyecto.');
-  for(const c of clips.filter(c=>c.kind!=='subtitle')) if(!c.filePath || !fs.existsSync(c.filePath)) throw new Error('Medio no encontrado: '+c.filePath);
+  const bounds=require('../dist/assets/render-range-model.js').bounds(project,range);
+  project=structuredClone(project);
+  project.tracks=project.tracks.filter(t=>enabled(t,project.tracks)).map(t=>({...t,clips:t.clips.filter(c=>!c.mute&&c.startSeconds<bounds.end&&c.startSeconds+c.durationSeconds>bounds.start)}));
+  for(const c of project.tracks.flatMap(t=>t.clips).filter(c=>c.kind!=='subtitle'&&!c.generator)) if(!c.filePath || !fs.existsSync(c.filePath)) throw new Error('Medio no encontrado: '+c.filePath);
   project=structuredClone(project);
   const cache=effectsDirectory||path.join(require('node:os').tmpdir(),'lqtac-effects-cache');
   if(!preset.silent)for(const track of project.tracks)for(const clip of track.clips)if(clip.kind==='audio'&&clip.reverse){clip.filePath=await require('./reverse-media.cjs').prepare({filePath:clip.filePath,kind:'audio',offset:clip.sourceOffsetSeconds||0,duration:clip.durationSeconds*(clip.playbackRate||1)},path.join(cache,'reverse'));clip.sourceOffsetSeconds=0;clip.sourceDurationSeconds=clip.durationSeconds*(clip.playbackRate||1);clip.reverse=false;}
   if(!preset.silent)for(const track of project.tracks)for(const clip of track.clips)if(clip.kind==='audio'&&clip.audioFx?.enabled){const animated=require('../dist/assets/effects-model.js').animatedAudio(clip.audioFx);clip.filePath=await require('./effects-audio.cjs').prepare(clip.filePath,clip.audioFx,cache,{offset:clip.sourceOffsetSeconds||0,duration:clip.durationSeconds,rate:clip.playbackRate||1});if(animated){clip.sourceOffsetSeconds=0;clip.playbackRate=1;}}
   const renderClips=project.tracks.flatMap(t=>t.clips);
-  const duration=Math.max(...clips.map(c=>c.startSeconds+c.durationSeconds));
+  const duration=bounds.duration;
   const temporary=path.join(path.dirname(output),`.lqtac-render-${process.pid}-${Date.now()}.${profile}`);
   const args=['-hide_banner','-y'];
   let input=0;
@@ -81,6 +84,7 @@ async function startRender({project,profile,width=1280,height=720,fps=24,output,
   }
   if(labels.length) filters.push(`${labels.join('')}amix=inputs=${labels.length}:normalize=0,apad${project.compatibility?'':',alimiter=limit=0.98:level=false'}[aout]`);
   else if(!preset.silent){args.push('-f','lavfi','-i','anullsrc=r=48000:cl=stereo');filters.push(`[${input}:a]anull[aout]`);}
+  if(!preset.silent){for(let i=0;i<filters.length;i++)filters[i]=filters[i].replace(/\[aout\]$/, '[amixed]');filters.push(`[amixed]atrim=start=${number(bounds.start)}:end=${number(bounds.end)},asetpts=PTS-STARTPTS[aout]`);}
   if(profile==='gif')filters.push('[0:v]split[gifframes][gifcolors];[gifcolors]palettegen=stats_mode=single[palette];[gifframes][palette]paletteuse=new=1:dither=sierra2_4a[gifout]');
   const filterFile=temporary+'.filters.txt';await fs.promises.writeFile(filterFile,filters.join(';'),'utf8');args.push('-filter_complex_script',filterFile);
   if(preset.video) args.push('-map',profile==='gif'?'[gifout]':'0:v');
@@ -103,7 +107,7 @@ async function startRender({project,profile,width=1280,height=720,fps=24,output,
     });
   });
   done.catch(()=>{});
-  return {duration,video:!!preset.video,done,
+  return {duration,startSeconds:bounds.start,video:!!preset.video,done,
     async frame(base64){if(settled||cancelled)throw new Error('La exportación se ha detenido.');const bytes=Buffer.from(base64,'base64');if(bytes.length>32*1024*1024)throw new Error('Fotograma demasiado grande.');await new Promise((resolve,reject)=>child.stdin.write(bytes,error=>error?reject(error):resolve()));frames++;},
     finish(){child.stdin.end();return done;},
     cancel(){cancelled=true;child.kill();}

@@ -19,7 +19,7 @@ app.whenReady().then(async()=>{
     })()`));
     const project=await js('projectSnapshot()'),output=path.join(root,'animated.wav');await(await engine.startRender({project,profile:'wav',output,effectsDirectory:path.join(app.getPath('userData'),'effects-cache')})).finish();
     const {stdout}=await run(engine.ffmpegPath(),['-v','error','-i',output,'-ac','1','-ar','48000','-f','f32le','pipe:1'],{windowsHide:true,encoding:'buffer',maxBuffer:2*1024*1024});
-    const rms=(a,b)=>{let sum=0,n=0;for(let i=Math.floor(a*48000);i<Math.min(stdout.length/4,b*48000);i++){const v=stdout.readFloatLE(i*4);sum+=v*v;n++;}return Math.sqrt(sum/n);};assert(rms(3.5,3.9)>rms(2.1,2.5)*3);assert(rms(0,1)<1e-6);console.log('Final export measured ramp, leading silence, source offset and 1.5x speed OK');
+    const rms=(a,b)=>{let sum=0,n=0;for(let i=Math.floor(a*48000);i<Math.min(stdout.length/4,b*48000);i++){const v=stdout.readFloatLE(i*4);sum+=v*v;n++;}return Math.sqrt(sum/n);};assert(rms(1.5,1.9)>rms(.1,.5)*3);assert.equal(stdout.length/4/48000,2);console.log('Final export measured ramp, active range without leading silence, source offset and 1.5x speed OK');
     const lqts=path.join(root,'animation.LQTS');await io.saveProject(lqts,project);const loaded=await io.openProject(lqts);assert.equal(loaded.project.tracks[0].clips[0].audioFx.animation.bass[1].value,12);
     console.log(await js(`(async()=>{
       await navigateHistory(false);if(clipEffectsState(timelineClips()[0],'audio').animation?.bass)throw Error('Audio undo failed');await navigateHistory(true);

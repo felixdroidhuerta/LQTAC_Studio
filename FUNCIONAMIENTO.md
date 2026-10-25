@@ -2,6 +2,75 @@
 
 Última actualización: 25 de octubre de 2026.
 
+## Editar puntos directamente en las curvas del generador
+
+En la curva inferior de los títulos, elige **Opacidad**, **Escala**, **Posición X** o **Posición Y**. **Clic sobre la curva** añade un punto en ese tiempo y valor; también puedes usar **botón derecho → Añadir punto** en una zona sin puntos. Al pulsar un punto existente se selecciona; arrastrarlo horizontalmente cambia su tiempo y verticalmente cambia su valor. El resultado animado y los valores del panel se actualizan durante el arrastre.
+
+**Suprimir**, **Eliminar punto** o **botón derecho sobre el punto → Eliminar punto** lo borran. **Escape** durante el arrastre cancela ese gesto y recupera los puntos anteriores. Se mantienen el botón Añadir/actualizar y el campo para retimar con precisión. Los puntos se guardan en LQTS y afectan al resultado, no solo al dibujo de la curva. Como antes, al existir puntos propios estos sustituyen el movimiento del preset.
+
+Validado con clic y arrastre reales en las cuatro curvas, menú contextual de creación/borrado, Suprimir, cancelación, diferencias de opacidad en los píxeles renderizados y guardado/reapertura.
+
+## Editor compacto de títulos y gráficos
+
+El editor mantiene el **visor, la línea de tiempo y Cancelar/Guardar/Añadir siempre visibles**, sin desplazar toda la ventana para acceder a las herramientas.
+
+- **Diseño:** lienzo editable para seleccionar, arrastrar, redimensionar, girar y escribir; arriba están Añadir texto, Añadir forma y Eliminar objeto.
+- **Resultado animado:** usa el mismo espacio del visor para reproducir la composición. Reproducir o desplazar el tiempo cambia automáticamente a esta vista; Diseño permite volver a manipular los objetos.
+- **Texto:** contenido, fuentes instaladas, búsqueda/actualización, tamaño, negrita y alineación.
+- **Estilo:** color, contorno y sombra.
+- **Animación:** preset, entrada/salida, interpolación y valores de X/Y, escala y opacidad de los puntos. Seleccionar/manipular puntos abre este panel automáticamente.
+- **Lienzo:** fondo transparente/color y duración de la fuente generada.
+- **Línea de tiempo inferior:** reproducción, tiempo, curva, añadir/actualizar/eliminar puntos, lista y cambio preciso del tiempo del punto. La ayuda de puntos está en una sección desplegable de Animación.
+
+Solo el panel lateral de propiedades tiene desplazamiento cuando hace falta. El lienzo se ajusta al espacio disponible y mantiene la proporción 16:9; no cambia la resolución ni las posiciones del diseño guardado. Se conservan todas las herramientas, las fuentes instaladas y el formato LQTS anterior.
+
+Validado en ventanas de 1540×900 a 800×600: sin desplazamiento global del diálogo, con visor/timeline/pie visibles, cambio de pestañas, arrastre real de un objeto después de redimensionar, edición de texto/puntos y guardado.
+
+## Fuentes instaladas en el equipo
+
+Los selectores de **Fuente** de Generadores y **Tipografía** de Subtítulos muestran las familias instaladas en Windows, con búsqueda por nombre, muestra visual y botón **Actualizar fuentes**. Los nombres siguen siendo legibles con la tipografía de la interfaz; la muestra y el contenido se dibujan con la fuente elegida. Se pueden usar también en los subtítulos con karaoke, que conservan el mismo estilo tipográfico.
+
+La lista se consulta al abrir el selector y se reutiliza en memoria; no se escanean fuentes al arrancar ni se descarga nada. Si instalas fuentes mientras LQTAC Studio está abierto, pulsa **Actualizar fuentes**. Los proyectos guardan el nombre de la familia tanto en los diseños generados como en los estilos de subtítulo. Si falta una fuente en otro ordenador, su nombre se conserva y el selector avisa de que se está mostrando una sustitución. No se copian ni instalan archivos de fuentes dentro de LQTS o del portable: para reproducir exactamente el diseño en otro equipo, esa familia debe estar instalada allí.
+
+Validado con catálogo real de 276 familias de Windows, selección de Impact, cambio de píxeles respecto a Segoe UI en ambos motores de texto, búsqueda sin pérdida de selección, actualización del catálogo, fuente ausente preservada, composición y guardado/reapertura LQTS.
+
+## Project Media, Explorer y Generadores
+
+Las tres entradas tienen vistas independientes:
+
+- **Project Media:** muestra únicamente la biblioteca del proyecto, incluidos sus diseños generados.
+- **Explorer:** elige una carpeta del equipo, entra en subcarpetas o sube al directorio padre. Selecciona un vídeo, audio o imagen para previsualizarlo; **Añadir a Project Media** lo importa a la biblioteca sin crear eventos en el timeline. Los archivos de vídeo/audio también se pueden arrastrar directamente a una pista compatible. Cambiar de vista detiene la previsualización del explorador. No modifica ni mueve los originales.
+- **Generadores:** catálogo de **Texto**, **Títulos**, **Rótulos**, **Créditos** y **Carteles**. Abre un editor independiente; no muestra otra copia de la biblioteca.
+
+En el editor de Generadores puedes escribir sobre el lienzo (doble clic), añadir textos o formas, arrastrarlos, redimensionarlos, girarlos y eliminarlos. El objeto seleccionado tiene controles de texto, fuente, tamaño, color, negrita, alineación, contorno y sombra. La composición puede tener fondo transparente u opaco. El diseño se hace a 1920 × 1080 y se escala al render; el selector permite las fuentes instaladas en el equipo.
+
+Elige **Sin animación**, **Fundido**, **Entrada lateral**, **Zoom**, **Máquina de escribir** o **Créditos verticales**. Ajusta entrada, salida e interpolación y reproduce la previsualización con su línea de tiempo. Los puntos propios de la composición permiten animar X, Y, escala y opacidad; puedes añadir/actualizar, seleccionar, retimar arrastrando o con el campo preciso y eliminar con botón o menú contextual. Los puntos propios sustituyen el movimiento del preset mientras existan. La duración es la de la fuente generada; al reeditar un clip recortado no puede quedar más corta que el fragmento que este utiliza.
+
+**Guardar en Project Media** conserva el diseño en la biblioteca; desde allí puedes arrastrarlo a una pista de vídeo. **Añadir a timeline** crea también un evento en una pista superior de títulos, con fondo transparente cuando corresponda. Doble clic sobre un clip generado reabre su diseño. Al editar un clip, **Aplicar al clip** modifica solo ese evento y **Guardar copia en Project Media** crea una copia independiente. Los diseños se guardan dentro de LQTS y no dependen de un PNG externo. Soportan división, recorte, velocidad, repetición, inversión, FX de vídeo y Pan/Crop; la composición del monitor es la misma que utiliza el render. Esta primera versión admite texto y rectángulos; todavía no incorpora imágenes/SVG dentro del lienzo ni el editor completo de escenas de Motion Canvas.
+
+Fabric.js y las funciones de tiempo de Motion Canvas Core están incluidas en un bundle local de aproximadamente 296 KB con sus licencias. La prueba bloquea HTTP/HTTPS y confirma edición, animación, guardado/reapertura y MP4 sin conexión. Los portables anteriores no incluyen estas funciones nuevas.
+
+## Efectos de audio: escucha mientras editas
+
+Abre un efecto de audio desde **FX**, pulsa **Escuchar clip** y cambia los valores: la escucha continúa y el sonido responde sin regenerar un archivo con cada cambio. Se evalúan también las curvas animadas durante la reproducción. El selector **Escuchar original sin filtros** permite comparar sin cerrar el editor. Al cerrar se liberan la reproducción, los nodos y el contexto de audio.
+
+La **preescucha en directo es aproximada**, mediante Web Audio y un AudioWorklet local: ecualizador, compresor, limitador, reducción de ruido, normalización, eco y reverberación. Ruido usa una expansión de nivel y normalización usa una estimación RMS; no equivalen a la reducción espectral y la medición de sonoridad de FFmpeg. El limitador directo tampoco reproduce el lookahead del render. Para evaluar el resultado del motor final conserva **Preparar escucha exacta**. Al aplicar, se prepara/valida ese audio exacto; la exportación mantiene el motor FFmpeg anterior.
+
+Validaciones: cambio real de RMS al editar el ecualizador sin pausar, comparación con original, apertura/reproducción/cierre de los siete efectos, procesamiento exacto de una curva de EQ, offsets, velocidad 1.5×, guardado, división y deshacer/rehacer. Primera implementación funcional pendiente de tu prueba de uso.
+
+## Pistas, navegación y tramo de renderizado
+
+- **Eliminar una pista:** botón derecho en su cabecera o en una zona vacía de la fila → **Eliminar pista**. Elimina esa pista y sus eventos; conserva los archivos de la biblioteca y del disco. **Ctrl+Z** recupera la pista con sus clips y ajustes.
+- **Regla fija:** los tiempos, el contador y la flecha del cabezal permanecen arriba del timeline al bajar por las pistas. Las marcas de tiempo corresponden a su posición real en la regla.
+- **Mover el cabezal:** arrastrar su flecha o contador; **← / →** retroceden o avanzan un fotograma (24 fps de la regla actual), **Mayús+← / →** un segundo. No actúa al escribir en un campo o con un editor abierto. Al salir horizontalmente del área visible, el timeline sigue el desplazamiento por teclado.
+- **Ventanas:** secciones colapsables **Medios**, **Edición**, **Proyecto** y **Grabaciones**. Esta última incluye audio, cámara y pantalla, también disponibles en Insertar.
+- **Elegir tramo:** **Mayús+arrastrar sobre la regla** crea una selección. Arrastra sus extremos para ajustarla. Los botones **Inicio I** y **Fin O** fijan los límites en el cabezal; **Todo** borra el tramo. También puedes pulsar botón derecho dentro de la selección sobre la regla y elegir **Quitar selección**, o usar **Ctrl+Supr**. Este atajo también funciona en la ventana de render antes de iniciar la exportación; no cancela un render en curso. La tecla **Esc** cancela un arrastre.
+- **Renderizar:** la ventana permite activar/desactivar el tramo y escribir inicio/fin en segundos. Sin tramo, exporta desde el inicio del primer evento activo hasta el fin del último; no añade el espacio inicial vacío ni la cola de pistas silenciadas. Respeta **Mute** de pista/evento y **Solo** por tipo de pista. Los huecos internos se conservan. Un tramo explícito puede incluir huecos, pero debe contener algún clip activo; si no hay ninguno, no se renderiza.
+- **Render terminado:** al guardar correctamente el archivo, la ventana de renderizado se cierra automáticamente y aparece **Renderización finalizada**, con la ruta del archivo y un botón **Aceptar**. Si se cancela o hay un error, no aparece un aviso de éxito: la ventana queda abierta con el estado correspondiente.
+- El tramo se guarda en **LQTS**. Audio, vídeo y GIF usan los mismos límites; las animaciones, envolventes, fades y subtítulos conservan su posición absoluta en el montaje. Un PNG sigue exportando únicamente el fotograma del cabezal.
+
+Validado con audio WAV real (frecuencia y duración del tramo), exportación MP4 desde el botón Guardar archivo, clips rojos/azules antes y después del corte, clips/pistas silenciados, Solo, regla fija con 23 pistas, borrado/deshacer, selección por arrastre a 300 % y guardado/restauración de LQTS.
+
 ## Fotogramas y ondas reales en los clips del timeline
 
 Los clips de vídeo muestran automáticamente una **tira de miniaturas extraídas del archivo**, repartidas a lo largo de su duración. Los de audio —incluidos el sonido de un vídeo y las grabaciones WAV/WebM— muestran una **onda calculada a partir de su señal**, sustituyendo las rayas decorativas anteriores. Los silencios quedan planos; un medio sin pista de sonido se indica como «Sin audio».

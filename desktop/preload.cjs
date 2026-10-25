@@ -43,6 +43,8 @@ contextBridge.exposeInMainWorld('lqtacDesktop', {
   pathForFile: (file) => webUtils.getPathForFile(file),
   saveTransitionMask: (dataUrl) => ipcRenderer.invoke('save-transition-mask', dataUrl),
   openVegasProject: filePath => ipcRenderer.invoke('open-vegas-project',filePath),
+  systemFonts: refresh => ipcRenderer.invoke('system-fonts',!!refresh),
+  browseMediaFolder: folder => ipcRenderer.invoke('browse-media-folder',folder),
   openMedia: kind => ipcRenderer.invoke('open-media',kind),
   exportStill: options => ipcRenderer.invoke('export-still',options),
   openTransitionMask: () => ipcRenderer.invoke('open-transition-mask'),

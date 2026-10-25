@@ -1,10 +1,10 @@
 # LQTAC Studio
 
-Editor local de vídeo y audio para Windows. Versión 0.14.1 con apertura de proyectos corregida, dos motores de subtítulos offline, captura de medios, menús reorganizados e integración con Windows.
+Editor local de vídeo y audio para Windows. Versión 0.16.0: generadores editables con Fabric y Motion Canvas Core, editor compacto, fuentes de Windows, escucha directa de FX de audio y renderizado por tramos. Incluye dos motores de subtítulos offline, captura de medios e integración con Windows.
 
 ## Descargar el programa
 
-Para un equipo nuevo, abre [Releases](https://github.com/felixdroidhuerta/LQTAC_Studio/releases/tag/v0.14.1-portable) y descarga **LQTAC_Studio_0.14.1_Windows_x64_Portable.zip** dentro de Assets.
+Para un equipo nuevo, abre [Releases](https://github.com/felixdroidhuerta/LQTAC_Studio/releases/tag/v0.16.0-portable) y descarga **LQTAC_Studio_0.16.0_Windows_x64_Portable.zip** dentro de Assets.
 
 Extrae todo el ZIP y abre **LQTAC Studio.exe**. El motor y sus bibliotecas están incluidos; no requiere Node, pnpm ni Internet en el equipo destino. La carpeta Shapes junto al ejecutable contiene la máscara LQTAC de ejemplo.
 

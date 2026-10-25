@@ -1,0 +1,12 @@
+{
+  "fabric": "6.7.1",
+  "motionCanvasCore": "3.17.2",
+  "bundler": "esbuild 0.25.12",
+  "sources": [
+    "<define:import.meta.env>",
+    "desktop/generator-vendor-entry.js",
+    "node_modules/fabric/dist/index.min.mjs",
+    "node_modules/@motion-canvas/core/lib/tweening/timingFunctions.js",
+    "node_modules/@motion-canvas/core/lib/tweening/interpolationFunctions.js"
+  ]
+}

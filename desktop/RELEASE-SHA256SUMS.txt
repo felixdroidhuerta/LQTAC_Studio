@@ -1,1 +1,1 @@
-9c93eeef842e1020a378592b4342c5b9794af5223f9e79e971f51e7a68ddb58a  LQTAC_Studio_0.15.0_Windows_x64_Portable.zip
+f009653e10a8e5235b7863b62e3c57518dad36738fd80aa260d76c4d7e82c2f5  LQTAC_Studio_0.16.0_Windows_x64_Portable.zip

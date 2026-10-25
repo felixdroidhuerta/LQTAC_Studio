@@ -14,3 +14,7 @@ LQTAC_Studio_Portable_*/
 LQTAC_Studio_Portable_*.zip
 LQTAC_Studio_*_Windows_x64_Portable/
 LQTAC_Studio_*_Windows_x64_Portable.zip
+
+__pycache__/
+*.pyc
+*.pyo

@@ -1,0 +1,19 @@
+(function(root){
+const types=['text','title','lower-third','credits','poster'],motions=['none','fade','slide','zoom','typewriter','credits'];
+const props=['left','top','width','height','fontSize','angle','scaleX','scaleY','opacity','strokeWidth','rx','ry'];
+function create(type='title'){
+ const text=(value,top,size=84)=>({type:'textbox',text:value,left:180,top,width:1560,fontSize:size,fontFamily:'Segoe UI',fontWeight:'normal',fill:'#ffffff',textAlign:'center',scaleX:1,scaleY:1,opacity:1,angle:0});
+ const objects=type==='credits'?[text('CRÉDITOS\n\nDirección\nNombre Apellido\n\nProducción\nLQTAC Studio\n\nGracias por acompañarnos',120,64)]:[text(type==='poster'?'PRÓXIMAMENTE':type==='lower-third'?'Nombre Apellido':type==='text'?'Tu texto aquí':'TU TÍTULO',type==='lower-third'?810:400)];
+ if(type==='title'||type==='poster')objects.push(text('Una historia que merece ser contada',540,42));
+ if(type==='lower-third'){objects.unshift({type:'rect',left:120,top:780,width:1680,height:210,fill:'#0b203d',opacity:0.9});objects.push(text('Cargo · Descripción',915,40));}
+ return {version:1,type,name:{text:'Texto',title:'Título','lower-third':'Rótulo',credits:'Créditos',poster:'Cartel'}[type],duration:type==='credits'?20:8,background:type==='poster'?'#081a32':null,objects,motion:{preset:type==='credits'?'credits':'fade',in:1,out:1,easing:'smooth'},keys:[]};
+}
+function validate(g){
+ if(!g||g.version!==1||!types.includes(g.type)||typeof g.name!=='string'||g.name.length>200||!Number.isFinite(g.duration)||g.duration<0.1||g.duration>3600||!Array.isArray(g.objects)||g.objects.length>100||JSON.stringify(g).length>250000)throw Error('Diseño generado no válido');
+ const color=v=>v==null||/^#[0-9a-f]{6}$/i.test(v);if(!color(g.background))throw Error('Fondo generado no válido');
+ for(const o of g.objects){if(!['textbox','rect'].includes(o.type)||Object.keys(o).some(k=>!['type','text','fontFamily','fontWeight','fill','stroke','textAlign','shadow',...props].includes(k))||typeof o.text==='string'&&o.text.length>20000||o.type==='textbox'&&typeof o.text!=='string'||!color(o.fill)||!color(o.stroke)||o.fontFamily!==undefined&&!(root.LQTACFontModel||(typeof module==='object'?require('./font-model.js'):null)).valid(o.fontFamily)||o.fontWeight&&!['normal','bold'].includes(o.fontWeight)||o.textAlign&&!['left','center','right'].includes(o.textAlign))throw Error('Objeto generado no válido');if(o.shadow&&(Object.keys(o.shadow).some(k=>!['color','blur','offsetX','offsetY'].includes(k))||!color(o.shadow.color)||!Number.isFinite(o.shadow.blur)||o.shadow.blur<0||o.shadow.blur>100||!Number.isFinite(o.shadow.offsetX)||Math.abs(o.shadow.offsetX)>200||!Number.isFinite(o.shadow.offsetY)||Math.abs(o.shadow.offsetY)>200))throw Error('Sombra generada no válida');for(const p of props)if(o[p]!==undefined&&(!Number.isFinite(o[p])||Math.abs(o[p])>20000))throw Error('Geometría generada no válida');if((o.fontSize??1)<=0||(o.width??1)<=0||(o.scaleX??1)<=0||(o.scaleY??1)<=0)throw Error('Tamaño generado no válido');}
+ if(!g.motion||!motions.includes(g.motion.preset)||!['smooth','linear'].includes(g.motion.easing)||!Number.isFinite(g.motion.in)||!Number.isFinite(g.motion.out)||g.motion.in<0||g.motion.out<0||g.motion.in>g.duration||g.motion.out>g.duration)throw Error('Animación generada no válida');
+ if(!Array.isArray(g.keys)||g.keys.length>1000)throw Error('Puntos generados no válidos');let last=-1;for(const k of g.keys){if(!Number.isFinite(k.time)||k.time<0||k.time>g.duration||k.time<=last||!Number.isFinite(k.x)||Math.abs(k.x)>3840||!Number.isFinite(k.y)||Math.abs(k.y)>2160||!Number.isFinite(k.scale)||k.scale<0.01||k.scale>10||!Number.isFinite(k.opacity)||k.opacity<0||k.opacity>1)throw Error('Punto generado no válido');last=k.time;}return g;
+}
+const api={create,validate,types,motions,props};if(typeof module==='object'&&module.exports)module.exports=api;else root.LQTACGeneratorModel=api;
+})(typeof globalThis==='object'?globalThis:this);

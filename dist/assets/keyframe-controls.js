@@ -36,7 +36,7 @@ window.LQTACKeyframes={
     const context=e=>{if(o.busy?.())return;const entry=e.currentTarget===canvas?hit(e):resolve();if(!entry)return;e.preventDefault();e.stopPropagation();select(entry);menu.style.left=Math.max(0,Math.min(innerWidth-170,e.clientX))+'px';menu.style.top=Math.max(0,Math.min(innerHeight-50,e.clientY))+'px';menu.hidden=false;};canvas.addEventListener('contextmenu',context);list.addEventListener('contextmenu',context);menu.onclick=erase;
     const key=e=>{const typing=e.target.matches('input,textarea,[contenteditable=true]');if((e.key==='Delete'||e.key==='Backspace')&&!typing){e.preventDefault();e.stopImmediatePropagation();erase();}if(e.key==='Escape')menu.hidden=true;};dialog.addEventListener('keydown',key,true);
     const dismiss=e=>{if(e.target!==menu)menu.hidden=true;};dialog.addEventListener('pointerdown',dismiss);
-    const close=()=>{finishDrag?.();dialog.removeEventListener('keydown',key,true);dialog.removeEventListener('pointerdown',dismiss);};dialog.addEventListener('close',close,{once:true});
+    const close=()=>{if(dialog.open)return;finishDrag?.();dialog.removeEventListener('keydown',key,true);dialog.removeEventListener('pointerdown',dismiss);dialog.removeEventListener('close',close);};dialog.addEventListener('close',close);
     refresh();return {refresh,erase,select};
   }
 };

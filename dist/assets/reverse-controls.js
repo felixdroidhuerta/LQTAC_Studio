@@ -13,7 +13,7 @@ window.LQTACReverse=(()=>{
     hideClipContextMenu();stopTimelinePlayback();historyBusy=true;updateHistoryButtons();
     const previousInert=$('.workspace').inert;$('.workspace').inert=true;
     const dialog=document.createElement('dialog');dialog.className='work-dialog';dialog.id='reverseDialog';dialog.style.width='min(460px,90vw)';dialog.innerHTML='<h2>Preparando reproducción invertida</h2><p>Se conserva el archivo original. La preparación es local.</p><progress max="1" value="0" style="width:100%"></progress><p role="status"></p><footer><button type="button">Cancelar</button></footer>';document.body.append(dialog);dialog.showModal();
-    let cancelled=false,index=0,committed=false;const jobs=media.filter(c=>c.dataset.reverse!=='true');
+    let cancelled=false,index=0,committed=false;const jobs=media.filter(c=>c.dataset.reverse!=='true'&&!c.dataset.generator);
     const previous=targets.map(c=>({clip:c,start:c.dataset.startSeconds,reverse:c.dataset.reverse})),oldUndo=[...undoHistory],oldRedo=[...redoHistory];
     const cancel=()=>{cancelled=true;dialog.querySelector('button').disabled=true;dialog.querySelector('[role=status]').textContent='Cancelando…';void window.lqtacDesktop.cancelReverse();};
     dialog.querySelector('button').onclick=cancel;dialog.oncancel=e=>{e.preventDefault();cancel();};

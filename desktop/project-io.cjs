@@ -4,6 +4,8 @@ const {calibrated}=require('../dist/assets/work-model.js');
 
 function validateProject(data) {
   if (!data || data.format !== 'LQTAC Studio' || data.version !== 1 || !Array.isArray(data.tracks) || data.tracks.length > 200 || !Array.isArray(data.library)) throw new Error('No es un proyecto LQTS compatible (versión 1).');
+  if(data.renderRange!==undefined&&data.renderRange!==null)require('../dist/assets/render-range-model.js').validate(data.renderRange);
+  for(const item of data.library)if(item.generator)require('../dist/assets/generator-model.js').validate(item.generator);
   let count = 0;
   for (const track of data.tracks) {
     for(const key of ['mute','solo'])if(track[key]!==undefined&&typeof track[key]!=='boolean')throw new Error('Estado de pista no válido.');
@@ -16,6 +18,7 @@ function validateProject(data) {
     for (const p of track.envelope) if (!Number.isFinite(p.time) || p.time < 0 || !Number.isFinite(p.value) || p.value < 0 || p.value > 1) throw new Error('Envolvente no válida.');
     track.envelope.sort((a,b)=>a.time-b.time);
     for (const clip of track.clips) {
+      if(clip.generator){if(clip.kind!=='video'||track.kind!=='video'||clip.filePath)throw Error('Pista de generador no válida');require('../dist/assets/generator-model.js').validate(clip.generator);if((clip.sourceOffsetSeconds||0)+clip.durationSeconds*(clip.playbackRate||1)>clip.generator.duration+.002)throw Error('El generador no cubre el clip');}
       if(clip.kind==='subtitle'){if(track.kind!=='subtitle'||clip.filePath)throw Error('Pista de subtítulos no válida');require('../dist/assets/subtitle-model.js').validate(clip);}else if(track.kind==='subtitle')throw Error('Una pista de subtítulos no admite medios');
       const effects=require('../dist/assets/effects-model.js');effects.validate(clip.videoFx,'video');effects.validate(clip.audioFx,'audio');
       for(const points of Object.values(clip.videoFx?.animation||{}))if(points.at(-1).time>clip.durationSeconds+.002)throw Error('La animación FX excede la duración del evento');

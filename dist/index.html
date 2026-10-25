@@ -410,7 +410,7 @@
       card.draggable = false;
       card.addEventListener('click', () => selectMediaCard(card));
       card.addEventListener('dragstart', event => {
-        const payload = { name: card.querySelector('strong')?.textContent || card.dataset.name, kind: card.dataset.kind, filePath: card.dataset.filePath || '' };
+        const payload = { name: card.querySelector('strong')?.textContent || card.dataset.name, kind: card.dataset.kind, filePath: card.dataset.filePath || '',generator:card.dataset.generator?JSON.parse(card.dataset.generator):undefined };
         nativeMediaDrag = true;
         pointerMediaDrag = null;
         event.dataTransfer.effectAllowed = 'copy';
@@ -421,7 +421,7 @@
       card.addEventListener('dragend', () => { nativeMediaDrag = false; card.classList.remove('dragging'); });
       card.addEventListener('pointerdown', event => {
         if (event.button !== 0) return;
-        const payload = { name: card.querySelector('strong')?.textContent || card.dataset.name, kind: card.dataset.kind, filePath: card.dataset.filePath || '' };
+        const payload = { name: card.querySelector('strong')?.textContent || card.dataset.name, kind: card.dataset.kind, filePath: card.dataset.filePath || '',generator:card.dataset.generator?JSON.parse(card.dataset.generator):undefined };
         pointerMediaDrag = { card, payload, startX: event.clientX, startY: event.clientY, active: false, target: null };
         const move = moveEvent => {
           if (!pointerMediaDrag || pointerMediaDrag.card !== card) { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', stop); return; }
@@ -478,6 +478,7 @@
     };
     const renderVegasProject = (project) => {
       if (!project || project.canceled) return;
+      window.lqtacRenderRange=null;
       $('#projectName').textContent = project.fileName || 'Proyecto VEGAS';
       $('#compatFileName').textContent = project.fileName || 'archivo.veg';
       const mediaCount = project.media?.length || 0;
@@ -558,6 +559,7 @@
       const playhead = ensureTimelinePlayhead();
       if (playhead) {
         playhead.style.left = `${Math.max(0, Math.min(100, (timelineTime / timelineDurationSeconds) * 100))}%`;
+        $('#rulerPlayhead').style.left=playhead.style.left;
         $('#timelinePlayheadTime').textContent = `00:${minutes}:${seconds}:${String(frame % 24).padStart(2, '0')}`;
       }
     };
@@ -569,9 +571,13 @@
         playhead = document.createElement('div');
         playhead.id = 'timelinePlayhead';
         playhead.className = 'timeline-playhead';
-        playhead.innerHTML = '<span class="timeline-playhead-grip" title="Arrastra para mover el cabezal" aria-label="Mover cabezal"></span><span class="timeline-playhead-time" id="timelinePlayheadTime" title="Arrastra para mover el cabezal">00:00:00:00</span>';
+        playhead.innerHTML = '';
         tracks.append(playhead);
       }
+      const ruler=$('.ruler',tracks);
+      let grip=$('#rulerPlayhead');
+      if(ruler&&!grip){grip=document.createElement('div');grip.id='rulerPlayhead';grip.innerHTML='<span class="timeline-playhead-grip" title="Arrastra para mover el cabezal"></span><span class="timeline-playhead-time" id="timelinePlayheadTime">00:00:00:00</span>';ruler.append(grip);}
+      if(grip){grip.style.left=playhead.style.left||'0%';$('#timelinePlayheadTime').textContent=$('#timecode').textContent;}
       return playhead;
     };
     const timelineClips = () => $$('.clip').filter(clip => !clip.classList.contains('transition-zone'));
@@ -785,9 +791,9 @@
       timelineTime = Math.max(0, Math.min(timelineDurationSeconds, seconds));
       renderTimelineTime();
       const ticket = ++renderTicket;
-      const active = timelineClips().filter(clip => clip.dataset.filePath && clip.dataset.mute!=='true' && trackIsEnabled(clip.parentElement) && clipIsActiveAt(clip, timelineTime));
+      const active = timelineClips().filter(clip => (clip.dataset.filePath||clip.dataset.generator) && clip.dataset.mute!=='true' && trackIsEnabled(clip.parentElement) && clipIsActiveAt(clip, timelineTime));
       for (const [clip, media] of [...videoPool, ...timelineAudioPool]) {
-        if (!active.includes(clip)) { media.pause(); if (media.tagName === 'VIDEO') {media.style.display = 'none';if(media.workCanvas)media.workCanvas.style.display='none';} }
+        if (!active.includes(clip)) { media.pause(); if (media.tagName === 'VIDEO'||media.tagName==='CANVAS') {media.style.display = 'none';if(media.workCanvas)media.workCanvas.style.display='none';} }
         if (!clip.isConnected) { media.workCanvas?.remove();media.removeAttribute('src'); media.load(); media.remove();const graph=audioGraphs.get(media);if(graph){Object.values(graph).forEach(n=>n.disconnect());audioGraphs.delete(media);}videoPool.delete(clip); timelineAudioPool.delete(clip); }
       }
       previewVideo.pause(); previewVideo.style.display = 'none';
@@ -797,6 +803,7 @@
       $('#frameTitle').style.display = 'none';
       $('#audioPreviewState').classList.toggle('visible', !videos.length && active.length > 0);
       for (const clip of active) {
+        if(clip.dataset.generator){await window.LQTACGenerators.renderClip(clip,timelineTime,exportSize,tracks,videos,()=>ticket===renderTicket);if(ticket!==renderTicket)return;continue;}
         const isVideo = clip.dataset.kind === 'video';
         const pool = isVideo ? videoPool : timelineAudioPool;
         let media = pool.get(clip);
@@ -978,7 +985,8 @@
       const ruler = $('.ruler', $('#tracks'));
       if (!ruler) return;
       const divisions = 6;
-      ruler.innerHTML = Array.from({ length: divisions }, (_, index) => `<span>${formatTimelineLabel((timelineDurationSeconds / (divisions - 1)) * index)}</span>`).join('');
+      ruler.innerHTML = Array.from({ length: divisions }, (_, index) => `<span class="ruler-tick" style="left:${index/(divisions-1)*100}%;transform:translateX(${index===0?0:index===divisions-1?-100:-50}%)">${formatTimelineLabel((timelineDurationSeconds / (divisions - 1)) * index)}</span>`).join('');
+      ensureTimelinePlayhead();window.LQTACTimelineTools?.refreshRange();
     };
     const refreshTimelineScale = () => {
       const clips = timelineClips();
@@ -1180,6 +1188,7 @@
       clip.className = `clip ${kind}`;
       clip.textContent = item.name || 'media nuevo';
       clip.dataset.kind = item.kind || 'video';
+      if(item.generator){LQTACGeneratorModel.validate(item.generator);clip.dataset.generator=JSON.stringify(item.generator);clip.classList.add('generator-clip');}
       if(item.kind==='subtitle'){clip.dataset.subtitleText=item.subtitleText||item.name||'Subtítulo';clip.dataset.subtitleStyle=JSON.stringify(inheritKaraoke&&track.dataset.karaokeEnabled==='true'&&!item.subtitleStyle?.karaoke?LQTACSubtitleModel.karaokeStyle(item.subtitleStyle,clip.dataset.subtitleText,item.durationSeconds,true):item.subtitleStyle||{});clip.textContent=clip.dataset.subtitleText;}
       clip.dataset.start = Math.max(0, startPercent).toFixed(6);
       clip.dataset.duration = String(duration);
@@ -1206,6 +1215,7 @@
     };
     const addMediaToTimeline = async (track, item, startPercent) => {
       if(track.dataset.kind==='subtitle'){toast('Esta pista solo admite subtítulos. Usa Añadir subtítulo o Importar SRT.');return null;}
+      if(item.generator)return window.LQTACGenerators.insert(track,item,startPercent);
       if (!item.filePath) { toast('No se pudo obtener la ruta del archivo. Importa desde Archivo.'); return null; }
       const insertionSeconds = Math.max(0, startPercent / 100 * timelineDurationSeconds);
       const durationSeconds = await mediaDurationSeconds(item);
@@ -1442,7 +1452,7 @@
       stopTimelinePlayback();const rightGroups=new Map(),rightClips=[];
       for(const clip of targets){
         const timing=clipTiming(clip),leftDuration=timelineTime-timing.startSeconds,offset=Number(clip.dataset.sourceOffsetSeconds)||0;
-        const right=createTimelineClip(clip.parentElement,{subtitleText:clip.dataset.subtitleText,subtitleStyle:JSON.parse(clip.dataset.subtitleStyle||'{}'),name:clip.firstChild?.textContent||'Media',kind:clip.dataset.kind,filePath:clip.dataset.filePath,durationSeconds:timing.durationSeconds-leftDuration,sourceOffsetSeconds:clip.dataset.reverse==='true'?offset:offset+leftDuration*Number(clip.dataset.playbackRate||1),reverse:clip.dataset.reverse==='true',sourceDurationSeconds:Number(clip.dataset.sourceDurationSeconds)||undefined,playbackRate:Number(clip.dataset.playbackRate||1),gain:Number(clip.dataset.gain??1),mute:clip.dataset.mute==='true'},timelineTime/timelineDurationSeconds*100);
+        const right=createTimelineClip(clip.parentElement,{subtitleText:clip.dataset.subtitleText,subtitleStyle:JSON.parse(clip.dataset.subtitleStyle||'{}'),name:clip.firstChild?.textContent||'Media',kind:clip.dataset.kind,filePath:clip.dataset.filePath,generator:clip.dataset.generator?JSON.parse(clip.dataset.generator):undefined,durationSeconds:timing.durationSeconds-leftDuration,sourceOffsetSeconds:clip.dataset.reverse==='true'?offset:offset+leftDuration*Number(clip.dataset.playbackRate||1),reverse:clip.dataset.reverse==='true',sourceDurationSeconds:Number(clip.dataset.sourceDurationSeconds)||undefined,playbackRate:Number(clip.dataset.playbackRate||1),gain:Number(clip.dataset.gain??1),mute:clip.dataset.mute==='true'},timelineTime/timelineDurationSeconds*100);
         const crop=clipCropFrames(clip);right.dataset.panCrop=JSON.stringify([{time:0,...LQTACWork.cropAt(crop,leftDuration)},...crop.filter(f=>f.time>leftDuration).map(f=>({...f,time:f.time-leftDuration}))]);clip.dataset.panCrop=JSON.stringify([...crop.filter(f=>f.time<leftDuration),{time:leftDuration,...LQTACWork.cropAt(crop,leftDuration)}]);
         right.dataset.startSeconds=String(timelineTime);right.dataset.transition=clip.dataset.transition||'fade';
         if(clip.dataset.kind==='subtitle')right.dataset.subtitleStyle=JSON.stringify(LQTACSubtitleModel.shiftedStyle(JSON.parse(clip.dataset.subtitleStyle||'{}'),leftDuration));
@@ -1929,13 +1939,13 @@
     demoReady.then(()=>{historyReady=true;resetEditHistory();});
     const projectSnapshot = () => ({
       format:'LQTAC Studio',version:1,name:$('#projectName').textContent,fps:24,
-      time:timelineTime,zoom:timelineZoom,zoomStart,video:window.projectVideoSettings,compatibility:window.vegasCompatibility,
-      library:$$('.media-card').filter(c=>c.dataset.filePath).map(c=>({name:$('strong',c)?.textContent||c.dataset.name,kind:c.dataset.kind,filePath:c.dataset.filePath})),
+      time:timelineTime,renderRange:window.lqtacRenderRange?{...window.lqtacRenderRange}:undefined,zoom:timelineZoom,zoomStart,video:window.projectVideoSettings,compatibility:window.vegasCompatibility,
+      library:$$('.media-card').filter(c=>c.dataset.filePath||c.dataset.generator).map(c=>({name:$('strong',c)?.textContent||c.dataset.name,kind:c.dataset.kind,filePath:c.dataset.filePath||'',generator:c.dataset.generator?JSON.parse(c.dataset.generator):undefined})),
       tracks:$$('.track').map((track,index)=>({id:track.dataset.track,kind:track.dataset.kind||'video',role:track.dataset.role||'',name:$$('#trackLabels .track-label strong')[index]?.textContent||track.dataset.track,
         ...trackWorkState(track),karaokeSync:track.dataset.kind==='subtitle'&&track.dataset.karaokeSync?JSON.parse(track.dataset.karaokeSync):undefined,karaokeEnabled:track.dataset.kind==='subtitle'?track.dataset.karaokeEnabled==='true':undefined,vegasMix:track.dataset.vegasMix==='true',envelopeVisible:track.classList.contains('envelope-visible'),envelope:getEnvelopePoints(track).map(p=>({...p})),
         clips:timelineClips().filter(c=>c.parentElement===track).map(c=>{
           const mask=transitionMasks.get(c);
-          return {subtitleText:c.dataset.subtitleText,subtitleStyle:c.dataset.kind==='subtitle'?JSON.parse(c.dataset.subtitleStyle||'{}'):undefined,name:c.firstChild?.textContent||c.textContent,kind:c.dataset.kind||track.dataset.kind,filePath:c.dataset.filePath||'',...clipTiming(c),videoFx:clipEffectsState(c,'video'),audioFx:clipEffectsState(c,'audio'),playbackRate:Number(c.dataset.playbackRate||1),reverse:c.dataset.reverse==='true',gain:Number(c.dataset.gain??1),mute:c.dataset.mute==='true',panCrop:clipCropFrames(c),fadeInSeconds:Number(c.dataset.fadeInSeconds)||0,fadeOutSeconds:Number(c.dataset.fadeOutSeconds)||0,sourceOffsetSeconds:Number(c.dataset.sourceOffsetSeconds)||0,sourceDurationSeconds:Number(c.dataset.sourceDurationSeconds)||undefined,repeatIndex:Number(c.dataset.repeatIndex)||undefined,groupId:c.dataset.groupId||'',groupType:c.dataset.groupType||'',transition:c.dataset.transition||'fade',
+          return {generator:c.dataset.generator?JSON.parse(c.dataset.generator):undefined,subtitleText:c.dataset.subtitleText,subtitleStyle:c.dataset.kind==='subtitle'?JSON.parse(c.dataset.subtitleStyle||'{}'):undefined,name:c.firstChild?.textContent||c.textContent,kind:c.dataset.kind||track.dataset.kind,filePath:c.dataset.filePath||'',...clipTiming(c),videoFx:clipEffectsState(c,'video'),audioFx:clipEffectsState(c,'audio'),playbackRate:Number(c.dataset.playbackRate||1),reverse:c.dataset.reverse==='true',gain:Number(c.dataset.gain??1),mute:c.dataset.mute==='true',panCrop:clipCropFrames(c),fadeInSeconds:Number(c.dataset.fadeInSeconds)||0,fadeOutSeconds:Number(c.dataset.fadeOutSeconds)||0,sourceOffsetSeconds:Number(c.dataset.sourceOffsetSeconds)||0,sourceDurationSeconds:Number(c.dataset.sourceDurationSeconds)||undefined,repeatIndex:Number(c.dataset.repeatIndex)||undefined,groupId:c.dataset.groupId||'',groupType:c.dataset.groupType||'',transition:c.dataset.transition||'fade',
             autoCrossfade:c.dataset.autoCrossfade!=='false',...vegasClipState(c),fadeInReciprocalCurve:c.dataset.fadeInReciprocalCurve||'Linear',fadeOutReciprocalCurve:c.dataset.fadeOutReciprocalCurve||'Linear',mask:mask?Object.fromEntries(Object.entries(mask).filter(([key])=>!['image','filePath'].includes(key))):undefined};
         })}))
     });
@@ -1959,10 +1969,11 @@
       const ruler=$('.ruler',$('#tracks'))||Object.assign(document.createElement('div'),{className:'ruler'});
       $('#tracks').replaceChildren(ruler);$('#trackLabels').replaceChildren();$('#mediaList').replaceChildren();applyTimelineSelection([]);selectedTransitionPair=null;
       timelineDurationSeconds=75;$('#projectName').textContent=String(project.name||'Proyecto');
+      window.lqtacRenderRange=project.renderRange?{...project.renderRange}:null;
       window.vegasCompatibility=project.compatibility;
       window.projectVideoSettings=project.video;
       if(project.video){const resolution=`${project.video.width},${project.video.height}`;if([...$('#renderResolution').options].some(o=>o.value===resolution))$('#renderResolution').value=resolution;}
-      for(const item of [...project.library].reverse())addImportedCard({name:String(item.name||'Media'),filePath:item.filePath},formatOf(item.name||''),item.kind);
+      for(const item of [...project.library].reverse()){if(item.generator)window.LQTACGenerators.card(item.generator);else addImportedCard({name:String(item.name||'Media'),filePath:item.filePath},formatOf(item.name||''),item.kind);}
       for(const data of project.tracks){
         const track=addTimelineTrack(data.kind);track.dataset.track=String(data.id||track.dataset.track);track.dataset.role=String(data.role||'');
         track.dataset.mute=String(!!data.mute);track.dataset.solo=String(!!data.solo);track.dataset.gain=String(data.gain??1);track.dataset.pan=String(data.pan||0);
@@ -2027,6 +2038,8 @@
     renderDialog.style.cssText='background:#0c1c35;color:#eaf2ff;border:1px solid #355078;border-radius:12px;padding:24px;width:520px;max-width:90vw';
     renderDialog.innerHTML='<h2>Renderizar proyecto</h2><p>Exporta todas las pistas y sus envolventes. Funciona sin conexión.</p><label>Formato <select id="renderProfile"><option value="mp4">Vídeo MP4 · H.264 + AAC</option><option value="webm">Vídeo WebM · VP9 + Opus</option><option value="wav">Audio WAV · PCM 24 bits</option><option value="mp3">Audio MP3 · 320 kb/s</option><option value="flac">Audio FLAC · sin pérdida</option><option value="m4a">Audio M4A · AAC 256 kb/s</option></select></label><p id="renderVideoOptions"><label>Resolución <select id="renderResolution"><option value="1280,720">1280 × 720</option><option value="1920,1080">1920 × 1080</option><option value="640,360">640 × 360</option></select></label> <label>FPS <select id="renderFps"><option>24</option><option>25</option><option>30</option></select></label></p><p id="renderStatus" aria-live="polite">Se exporta hasta el final del último evento.</p><progress id="renderProgress" max="1" value="0" style="width:100%"></progress><p><button class="solid-btn" id="renderGo">Guardar archivo…</button> <button class="ghost-btn" id="renderClose">Cerrar</button></p>';
     document.body.append(renderDialog);
+    const renderCompleteDialog=document.createElement('dialog');renderCompleteDialog.id='renderCompleteDialog';renderCompleteDialog.className='work-dialog';renderCompleteDialog.setAttribute('aria-labelledby','renderCompleteTitle');renderCompleteDialog.style.width='min(520px,90vw)';renderCompleteDialog.innerHTML='<h2 id="renderCompleteTitle">Renderización finalizada</h2><p>El archivo se ha guardado correctamente.</p><p id="renderCompletePath" style="overflow-wrap:anywhere;user-select:text"></p><footer><button type="button" id="renderCompleteOk" autofocus>Aceptar</button></footer>';document.body.append(renderCompleteDialog);$('#renderCompleteOk').onclick=()=>renderCompleteDialog.close();
+
     function openRenderDialog(){if(historyBusy)return;if(!window.lqtacDesktop?.renderStart){toast('Abre LQTAC Studio con su ejecutable para exportar.');return;}if(!renderDialog.open)renderDialog.showModal();}
     $('#renderProfile').addEventListener('change',()=>{$('#renderVideoOptions').hidden=!['mp4','webm','gif'].includes($('#renderProfile').value);});
     let cancelExport=false;
@@ -2067,14 +2080,14 @@
       exporting=true;cancelExport=false;exportSize={width,height};$('#renderGo').disabled=true;$('#renderProfile').disabled=true;$('#renderClose').textContent='Cancelar';$('#renderProgress').value=0;$('#renderStatus').textContent='Preparando exportación…';
       const unsubscribe=window.lqtacDesktop.onRenderProgress(value=>{if(!['mp4','webm','gif'].includes(profile)){$('#renderProgress').value=value;$('#renderStatus').textContent=`Renderizando audio · ${Math.round(value*100)} %`;}});
       try {
-        const result=await window.lqtacDesktop.renderStart({project:projectSnapshot(),profile,width,height,fps});
+        const result=await window.lqtacDesktop.renderStart({project:projectSnapshot(),range:window.LQTACTimelineTools?.exportRange(),profile,width,height,fps});
         if(result.canceled){$('#renderStatus').textContent='Exportación cancelada. No se ha creado ningún archivo.';return;}
         if(result.video){const frames=Math.ceil(result.duration*fps);for(let frame=0;frame<frames;frame++){
           if(cancelExport)throw new Error('Exportación cancelada.');
-          await window.lqtacDesktop.renderFrame(await captureProjectFrame(frame/fps,width,height));
+          await window.lqtacDesktop.renderFrame(await captureProjectFrame((result.startSeconds||0)+frame/fps,width,height));
           $('#renderProgress').value=(frame+1)/frames;$('#renderStatus').textContent=`Renderizando vídeo · ${Math.round((frame+1)/frames*100)} % · ${frame+1}/${frames}`;
         }}
-        const saved=await window.lqtacDesktop.renderFinish();$('#renderProgress').value=1;$('#renderStatus').textContent='Archivo guardado: '+saved.output;toast('Exportación terminada');
+        const saved=await window.lqtacDesktop.renderFinish();$('#renderProgress').value=1;$('#renderStatus').textContent='Archivo guardado: '+saved.output;renderDialog.close();$('#renderCompletePath').textContent=saved.output;renderCompleteDialog.showModal();
       }catch(error){await window.lqtacDesktop.renderCancel();$('#renderStatus').textContent=error.message;}
       finally{unsubscribe();exporting=false;exportSize=null;$('#renderGo').disabled=false;$('#renderProfile').disabled=false;$('#renderClose').textContent='Cerrar';await renderTimelineAt(previousTime);}
     });
@@ -2094,7 +2107,10 @@
     });
   </script>
 </body>
+<script src="assets/font-model.js"></script>
+<script src="assets/system-fonts.js"></script>
 <script src="assets/subtitle-model.js"></script>
+<script src="assets/render-range-model.js"></script>
 <script src="assets/work-controls.js"></script>
 <script src="assets/reverse-controls.js"></script>
 <script src="assets/timeline-visual-model.js"></script>
@@ -2102,6 +2118,7 @@
 <script src="assets/keyframe-controls.js"></script>
 <script src="assets/effects-controls.js"></script>
 <script src="assets/effect-editor.js"></script>
+<script src="assets/audio-live-preview.js"></script>
 <script src="assets/audio-effect-editor.js"></script>
 <script src="assets/pan-crop-editor.js"></script>
 <script src="assets/karaoke-editor.js"></script>
@@ -2114,4 +2131,9 @@
 <script src="assets/screen-controls.js"></script>
 <script src="assets/export-controls.js"></script>
 <script src="assets/menu-controls.js"></script>
+<script src="assets/timeline-tools.js"></script>
+<script src="assets/generator-model.js"></script>
+<script src="assets/workspace-panels.js"></script>
+<script src="assets/generator-layout.js"></script>
+<script src="assets/generators.js"></script>
 </html>

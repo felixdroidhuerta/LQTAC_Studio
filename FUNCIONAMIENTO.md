@@ -1,6 +1,83 @@
 # LQTAC Studio — Funcionamiento y validación
 
-Última actualización: 24 de octubre de 2026.
+Última actualización: 25 de octubre de 2026.
+
+## Fotogramas y ondas reales en los clips del timeline
+
+Los clips de vídeo muestran automáticamente una **tira de miniaturas extraídas del archivo**, repartidas a lo largo de su duración. Los de audio —incluidos el sonido de un vídeo y las grabaciones WAV/WebM— muestran una **onda calculada a partir de su señal**, sustituyendo las rayas decorativas anteriores. Los silencios quedan planos; un medio sin pista de sonido se indica como «Sin audio».
+
+Las vistas siguen el zoom y el desplazamiento horizontal, el recorte, la velocidad y la dirección del clip. Las repeticiones vuelven a mostrar su propio fragmento de origen y mantienen sus marcas cian. Las miniaturas son muestras representativas, no todos los fotogramas; acercar el timeline permite localizar intervalos más cortos. Las ondas representan picos de la fuente antes de FX, ganancia y envolventes; las miniaturas también pertenecen al original, antes de FX/PAN. El resultado procesado se sigue viendo y oyendo en el monitor.
+
+Se utiliza una escala visual compensada para que la actividad de un audio suave siga siendo visible; no es un medidor de dB y no modifica su volumen. La onda combina los picos de los canales sin cancelar una señal estéreo en contrafase. El análisis usa audio a 48 kHz/estéreo y conserva picos en bloques de 1 ms.
+
+La primera vez puede aparecer «Analizando audio…» o «Cargando fotogramas…». El trabajo se hace en segundo plano, para la parte visible, con caché local reutilizable. Al cambiar de vista se descarta el trabajo pendiente obsoleto. Los lienzos fuera de pantalla se liberan; los archivos originales y los .SFK no se modifican. Si falta un medio o no puede decodificarse, se muestra el estado de análisis en lugar de inventar contenido.
+
+La generación nueva de estas vistas se aplaza mientras se está grabando micrófono, cámara o pantalla; las vistas que ya estén en caché pueden seguir mostrándose. Al finalizar, cancelar o descartar la toma se reanuda el análisis pendiente. Así la preparación visual no tiene prioridad sobre una grabación.
+
+Se conserva el nombre legible en una cabecera pequeña y se aprovecha el alto de las pistas existente, manteniendo la distribución de la ventana. Las nuevas capas dejan pasar el ratón: mover, seleccionar, agrupar, recortar, repetir, estirar con Ctrl y ajustar fades siguen funcionando. Son ayudas visuales del editor y no se graban en el vídeo final ni se añaden como imágenes al proyecto.
+
+El análisis y las miniaturas se regeneran a partir de los medios al abrir un LQTS; no se almacenan dentro del proyecto ni se necesitan repositorios o servicios externos. Validado con fotogramas JPEG reales, cambios de imagen, silencios y amplitudes de audio, WAV y WebM/Opus de ensayo, estéreo en contrafase, zoom, recorte, velocidad, inversión de la onda y las miniaturas, liberación fuera de pantalla, reutilización de caché y persistencia LQTS. Código local; no se ha creado ni publicado otro portable.
+
+## Botón derecho → Invertir clip / Invertir grupo
+
+- **Invertir clip** reproduce desde el final al principio únicamente el evento sobre el que pulsaste, aunque forme parte de un grupo. No cambia la dirección de su audio agrupado; para invertir ambos, utiliza **Invertir grupo**.
+- **Invertir grupo** cambia la dirección de todos sus vídeos y audios y refleja sus posiciones dentro del intervalo del grupo. Una secuencia A–B–C pasa a C–B–A, conservando duraciones, separaciones, pistas y agrupación. Una pareja de vídeo y audio coincidente continúa sincronizada.
+- Los clips invertidos muestran **⏪**. El menú ofrece **Restaurar clip hacia delante** o **Restaurar grupo hacia delante** para cambiar de nuevo la dirección. Dos inversiones de grupo recuperan su disposición original. Los subtítulos de un grupo cambian de posición con el grupo y conservan su texto legible; no tienen inversión individual de sonido/imagen.
+
+La inversión respeta el fragmento recortado y su velocidad actual. Los ajustes de FX, PAN/Crop y fades siguen en el tiempo del evento: se procesa el medio invertido con esos ajustes. Las envolventes de pista permanecen en sus tiempos de proyecto. Se puede recortar, dividir, repetir o cambiar la velocidad del material invertido; sus rangos de origen se ajustan para mantener la dirección correcta.
+
+La primera inversión prepara un derivado local con progreso y botón **Cancelar**. Hasta que termina no se modifican los eventos; cancelar conserva el montaje y su historial. Los clips largos necesitan tiempo de preparación y espacio de caché. El vídeo se prepara por bloques con H.264 de alta calidad, manteniendo resolución y normalizando la cadencia a su FPS nominal (máximo 120); es una recodificación, no copia sin pérdida ni conservación HDR. El audio derivado usa PCM flotante, 48 kHz, estéreo. Se mantiene el archivo original intacto y el proceso funciona offline.
+
+LQTS guarda la dirección y las rutas originales, sin depender de rutas de caché de este ordenador: los derivados se pueden volver a preparar a partir de esos medios. La inversión se utiliza en el monitor, los editores individuales de FX/PAN, la escucha de audio y la exportación. Se deshace/rehace en una sola operación. Código local, sin nueva publicación ni portable.
+
+Prueba funcional con vídeo rojo→azul y audio 440→880 Hz: después de invertir, píxeles azul→rojo y frecuencias 880→440 Hz comprobados en el derivado, WAV y MP4 codificado. Validación de menú contextual sobre audio agrupado, inversión del orden del grupo, segunda inversión, guardado/apertura LQTS, cancelación, recorte de ambos bordes, división, repetición, Ctrl-estiramiento y audio con ecualización animada a 2×. Regresiones de repetición, velocidad y propiedades también satisfactorias.
+
+## Repetir un medio al estirar sus extremos
+
+Arrastra un extremo **sin Ctrl**. Si lo encoges, recortas como antes. Si lo estiras, primero recuperas el material que había quedado fuera del recorte; al llegar al final del archivo se crea otra copia desde su principio, tantas veces como dure la extensión. La última copia puede quedar parcial. Por ejemplo, un medio de 2 segundos extendido a 5 queda como **2 + 2 + 1 segundos**, manteniendo su velocidad.
+
+Las uniones se distinguen por una **línea vertical cian** y una etiqueta **↻ 1, ↻ 2, ↻ 3…**. Son eventos reales consecutivos, editables de forma independiente; las marcas solo pertenecen al timeline, no se incrustan en el vídeo exportado. Puedes recortar, mover, borrar o volver a extender la última copia. Cada repetición nueva conserva sus propios ajustes de FX, PAN/Crop y fades, con los puntos limitados a su duración. Los fades existentes también se copian; no se añade un fundido entre copias que simplemente se tocan.
+
+Funciona también desde el extremo izquierdo, si hay espacio antes del evento: al sobrepasar el principio del medio se añaden sus repeticiones anteriores, incluida una primera parte parcial cuando corresponde. El inicio del proyecto permanece en cero.
+
+Con vídeo y audio agrupados, cada repetición mantiene su pareja sincronizada y forma un grupo nuevo, separado del grupo de la copia anterior. Si sus duraciones de contenedor difieren ligeramente, se usa el final común disponible para no acumular desajustes. Se conserva la velocidad que ya tuviera el clip. **Ctrl** y **Ctrl+Alt** siguen reservados al cambio de velocidad y no generan repeticiones.
+
+Una extensión completa se deshace de una vez y se puede rehacer. Escape/cancelación elimina las copias provisionales y recupera el historial; si arrastras hacia fuera y vuelves hacia dentro antes de soltar, desaparecen las copias sobrantes. Se respetan los límites existentes de siete días y 10 000 eventos por proyecto. LQTS guarda los eventos, sus grupos y sus marcas; reproducción y render utilizan las copias normales, sin instalar un motor de bucles ni añadir dependencias.
+
+Validado con vídeo/audio reales de ensayo: ambos extremos, última copia parcial, recuperación de recorte antes de repetir, velocidad previa de 2×, grupos A/V independientes por repetición, deshacer/rehacer, cancelación y arrastre de vuelta. Apertura LQTS con marcas, comparación de fotogramas repetidos con FX/PAN, WAV audible de cinco segundos y MP4 codificado desde el montaje. Código local; no se ha generado ni publicado otro portable.
+
+## Cambiar velocidad arrastrando un extremo · Ctrl / Ctrl+Alt
+
+- **Sin modificadores:** arrastrar un extremo sigue recortando el contenido.
+- **Ctrl + arrastrar un extremo:** conserva el fragmento de origen y cambia su velocidad. Estirar ralentiza; encoger acelera. Si el clip está agrupado, se aplica el mismo factor a todos los miembros: vídeo, audio asociado y otros clips del grupo.
+- **Ctrl + Alt + arrastrar un extremo:** aplica el cambio únicamente al clip arrastrado. La pertenencia al grupo no se elimina, pero esta operación puede desincronizarlo deliberadamente de sus compañeros.
+
+Mantén la combinación desde que empiezas a arrastrar. Funciona desde el extremo izquierdo y el derecho; el extremo opuesto del clip arrastrado actúa como ancla. En un grupo también se escalan las separaciones y los inicios respecto a esa ancla, para mantener sus posiciones relativas y sincronía. No afecta a otros elementos que solo estén seleccionados sin pertenecer al grupo. Ctrl en una esquina tiene prioridad sobre el tirador de fade; sin Ctrl los fades funcionan como antes.
+
+El rango es **0,25× a 4×**, limitado por todos los miembros del grupo, una duración mínima de un fotograma a 24 fps y los límites del proyecto (inicio cero y máximo siete días). No se lee material fuera del fragmento: el inicio en el archivo y la cantidad de contenido utilizada se conservan. El audio mantiene el tono con el motor existente.
+
+Las duraciones, las posiciones y la etiqueta de velocidad cambian durante el arrastre. Al soltar se actualiza el monitor; así no se lanzan renderizados de FX de audio por cada movimiento del ratón. Se reajustan proporcionalmente fades, puntos PAN/Crop, animaciones de FX de vídeo y audio, y tiempos de karaoke si hay subtítulos en el grupo. Las envolventes de pista permanecen en sus tiempos absolutos de proyecto. Los solapamientos y sus transiciones se recalculan.
+
+Toda la operación se deshace con un Ctrl+Z y se rehace con Ctrl+Y. **Escape** o cancelar el arrastre restauran los valores y el historial anteriores. La velocidad y los tiempos reajustados quedan guardados en LQTS y se utilizan al reproducir y renderizar. Validado con gestos de ambos extremos, grupos A/V y clips separados temporalmente, aislamiento Ctrl+Alt, límites, recorte normal, cancelación, FX/PAN/fades, reapertura LQTS, duración y tono de WAV acelerado/ralentizado y codificación MP4 de cuatro segundos con audio asociado ralentizado. Cambio local, sin publicar ni generar un nuevo portable.
+
+## Captura de pantalla · Toolbox y cámara simultánea (código local posterior a 0.14.1)
+
+**Correcciones de uso:** con una captura preparada o grabando, **Cerrar panel** (también Escape) oculta únicamente el panel principal. La Toolbox, los dispositivos y la toma permanecen activos, sin preguntar por descarte ni guardar o detener. El botón **Editor** de la Toolbox recupera el mismo panel y la misma toma; también se recupera entrando de nuevo en Insertar → Capturar pantalla. Al finalizar desde la Toolbox se muestra el resultado guardado o el error pendiente. Para detener se utiliza **Finalizar** y para descartar se mantiene la acción explícita del grabador.
+
+La Toolbox tiene ahora cabecera propia arrastrable, sin marco estándar, iconos, tarjetas, indicadores de estado y medidores integrados, manteniendo los colores y la tipografía del editor. La posición se elige en una **cuadrícula de nueve botones**, sin desplegables ni tooltips nativos: esquinas, centro superior, centro inferior, centro izquierda, centro derecha y centro de pantalla. Los textos de ayuda se dibujan dentro de la ventana protegida. Así el selector queda excluido junto con la Toolbox. Se comprobaron las nueve posiciones en los píxeles de la composición, el cierre/reapertura sin interrumpir la toma y una captura nativa de escritorio mientras se pulsaban los nueve botones, inspeccionando el PNG y todos los fotogramas decodificados del WebM. Se admite la pequeña variación de color propia de VP8 y del cursor; la cámara de ensayo es sintética.
+
+1. En **Insertar → Capturar pantalla**, selecciona la pantalla o ventana, resolución y audios que quieres incluir. Micrófono y audio del equipo se seleccionan por separado antes de preparar la toma. El audio del equipo recoge todo el sonido del sistema, incluso si grabas una sola ventana.
+2. En **Cámara simultánea**, elige **Sin cámara**, **Integrada en la pantalla** o **Archivo y pista separados**, y la entrada de cámara. Para la cámara integrada puedes elegir cualquiera de las nueve posiciones y un tamaño del 15 al 40 % del ancho de la imagen; se conserva su proporción. Estos ajustes también están en la Toolbox.
+3. Pulsa **Preparar captura**. Se abre una Toolbox independiente, movible y siempre encima, que continúa visible al minimizar el editor. Su cámara de previsualización es silenciosa. **Grabar** pide el destino WebM; **Pausar / Continuar** afecta a ambas tomas y el contador descuenta las pausas. **Finalizar** guarda e importa el resultado. **Editor** muestra de nuevo el grabador sin descartar la toma.
+4. Los botones de micrófono y sonido del equipo silencian cada entrada de forma independiente; los medidores reflejan la señal que pasa a la mezcla. Solo están disponibles las entradas habilitadas antes de preparar. El botón de cámara apaga su salida: desaparece del vídeo integrado o produce negro en el archivo separado; se mantiene su duración para no perder sincronía. Para cambiar de dispositivo o modo, desconecta y prepara de nuevo.
+5. **Snapshot PNG…** captura el fotograma actual sin la Toolbox y pide dónde guardarlo. Con cámara integrada incluye su composición. Añade la imagen a la biblioteca, sin crear un evento en las pistas. PNG sin pérdida, hasta 3840 × 2160; fuentes mayores se reducen proporcionalmente.
+6. En modo separado se guardan `Nombre.webm` y `Nombre_camara.webm`. La cámara no duplica el audio: este queda en la toma principal. Al insertar automáticamente se crean pistas de pantalla, audio si se pidió, y cámara; quedan agrupadas y sincronizadas, con la cámara debajo de la pantalla para no taparla. Puedes desagrupar y editar después. Se conserva el pequeño desfase de arranque de los grabadores al colocar los eventos. La inserción completa se deshace de una vez y se guarda en LQTS.
+
+La Toolbox se excluye mediante protección de ventana de Windows. Se ha verificado en este equipo con una captura real de escritorio, tanto en un PNG como en los píxeles de un WebM codificado, mientras la Toolbox seguía visible y encima. La exclusión completa requiere Windows 10 versión 2004 o posterior / Windows 11; sistemas anteriores pueden mostrar un rectángulo negro. No se garantiza ocultarla a cámaras físicas ni a programas externos que eludan la protección del sistema. El editor y los diálogos de guardar no están protegidos: si están en la pantalla elegida pueden grabarse.
+
+Pantalla, cámara y micrófono se liberan al finalizar, desconectar, cancelar el destino o descartar. La pausa conserva los dispositivos preparados. No se sobrescriben archivos; si al guardar dos tomas falla la cámara después de guardar la pantalla, se conserva la pantalla y **Guardar en otra ruta…** reintenta únicamente la cámara pendiente. Descartar no elimina un archivo ya guardado. Todo funciona offline con los motores existentes; no añade descargas ni dependencias.
+
+Validación: controles reales de la Toolbox, posición/tamaño/encendido de cámara, snapshots, pausa conjunta, tonos sintéticos decodificados para comprobar los dos mutes, dos WebM con diferencia de duración inferior a 150 ms en la prueba, agrupación, un solo deshacer y apertura LQTS. Prueba de fallo parcial y reintento sin sobrescritura. La prueba de escritorio cubre previamente todo el monitor con una ventana de ensayo propia, evitando capturar contenido personal. Los ZIP y releases históricos no se han modificado.
 
 ## Portable 0.14.1 — apertura desde el Explorador corregida
 

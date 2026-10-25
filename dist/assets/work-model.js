@@ -30,6 +30,43 @@
     const fi=clip.fadeInSeconds||0,fo=clip.fadeOutSeconds||0;
     return (fi>0?curveAt(clip.fadeInCurve,local/fi,clip.vegasCurves):1)*(fo>0?1-curveAt(clip.fadeOutCurve,(local-clip.durationSeconds+fo)/fo,clip.vegasCurves):1);
   }
-  const api={enabled,cropAt,drawCrop,balance,defaults,curveAt,fadeGain,curveFormula,calibrated};
+  function stretchClips(clips,index,edge,delta){
+    const ref=clips[index];if(!ref||!['start','end'].includes(edge)||!Number.isFinite(delta)||clips.some(c=>!Number.isFinite(c.startSeconds)||!(c.durationSeconds>0)||!Number.isFinite(c.durationSeconds)))throw Error('Estiramiento no válido');
+    const anchor=ref.startSeconds+(edge==='start'?ref.durationSeconds:0);
+    let low=0,high=Infinity;
+    for(const c of clips){
+      const rate=c.playbackRate??1;
+      low=Math.max(low,1/24/c.durationSeconds,rate/4);high=Math.min(high,rate/.25);
+      const left=c.startSeconds-anchor,right=c.startSeconds+c.durationSeconds-anchor;
+      if(left<0)high=Math.min(high,anchor/-left);
+      if(right>0)high=Math.min(high,(604800-anchor)/right);
+    }
+    const scale=clamp(1+(edge==='end'?delta:-delta)/ref.durationSeconds,low,high);
+    const fx=input=>input?{...input,animation:Object.fromEntries(Object.entries(input.animation||{}).map(([key,points])=>[key,points.map(p=>({...p,time:p.time*scale}))]))}:input;
+    const marks=list=>list?.map(p=>({...p,start:p.start*scale,end:p.end*scale}));
+    return {scale,anchor,clips:clips.map(c=>{
+      let subtitleStyle=c.subtitleStyle;
+      if(subtitleStyle?.karaoke){subtitleStyle=structuredClone(subtitleStyle);const k=subtitleStyle.karaoke;k.offset=(k.offset||0)*scale;k.words=marks(k.words);if(k.syncMarks)k.syncMarks=marks(k.syncMarks);if(k.syllables)k.syllables.marks=marks(k.syllables.marks);}
+      return {...c,startSeconds:Math.max(0,anchor+(c.startSeconds-anchor)*scale),durationSeconds:c.durationSeconds*scale,
+        playbackRate:c.kind==='subtitle'?(c.playbackRate??1):(c.playbackRate??1)/scale,
+        fadeInSeconds:(c.fadeInSeconds||0)*scale,fadeOutSeconds:(c.fadeOutSeconds||0)*scale,
+        panCrop:c.panCrop?.map(f=>({...f,time:f.time*scale})),videoFx:fx(c.videoFx),audioFx:fx(c.audioFx),subtitleStyle};
+    })};
+  }
+  function repeatRanges(state,edge,delta){
+    const {startSeconds,durationSeconds,offset,source,rate}=state;
+    const start=startSeconds+(edge==='start'?delta:0),duration=durationSeconds+(edge==='start'?-delta:delta);
+    if(!['start','end'].includes(edge)||![start,duration,offset,source,rate,delta].every(Number.isFinite)||start<-.000001||duration<=0||source<=0||rate<=0)throw Error('Repetición no válida');
+    let position=offset+(edge==='start'?delta*rate:0),elapsed=0;const result=[];
+    while(elapsed<duration-.0000001){
+      if(result.length>=10000)throw Error('El proyecto admite como máximo 10000 eventos');
+      let phase=((position%source)+source)%source;if(phase<.0000001||source-phase<.0000001)phase=0;
+      const length=Math.min(duration-elapsed,(source-phase)/rate);
+      result.push({startSeconds:Math.max(0,start+elapsed),durationSeconds:length,sourceOffsetSeconds:phase,localOffset:result.length?0:position<0?phase/rate:edge==='start'?delta:0});
+      elapsed+=length;position+=length*rate;
+    }
+    return result;
+  }
+  const api={enabled,cropAt,drawCrop,balance,defaults,curveAt,fadeGain,curveFormula,calibrated,stretchClips,repeatRanges};
   if(typeof module==='object'&&module.exports)module.exports=api;else root.LQTACWork=api;
 })(typeof window==='undefined'?globalThis:window);

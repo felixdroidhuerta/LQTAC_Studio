@@ -24,8 +24,10 @@ function validateProject(data) {
       for(const k of ['fadeInCurve','fadeOutCurve','fadeInReciprocalCurve','fadeOutReciprocalCurve'])if(clip[k]!==undefined&&!['Linear','Fast','Slow','Smooth','Sharp','None'].includes(clip[k]))throw new Error('Curva no válida.');
       if(clip.vegasCurves!==undefined){if(!clip.vegasCurves||typeof clip.vegasCurves!=='object'||Array.isArray(clip.vegasCurves)||Object.keys(clip.vegasCurves).length>6)throw new Error('Calibración no válida.');for(const [type,table] of Object.entries(clip.vegasCurves))if(!Array.isArray(table)||table.length>4097||!calibrated(type,table))throw new Error('Curva no calibrada para este motor.');}
       if(clip.mute!==undefined&&typeof clip.mute!=='boolean')throw new Error('Mute de evento no válido.');
+      if(clip.reverse!==undefined&&(typeof clip.reverse!=='boolean'||clip.reverse&&clip.kind==='subtitle'))throw Error('Dirección de reproducción no válida.');
       if(clip.gain!==undefined&&(!Number.isFinite(clip.gain)||clip.gain<0||clip.gain>4))throw new Error('Ganancia de evento no válida.');
       if(clip.playbackRate!==undefined&&(!Number.isFinite(clip.playbackRate)||clip.playbackRate<.25||clip.playbackRate>4))throw new Error('Velocidad fuera del rango 0.25–4.');
+      if(clip.repeatIndex!==undefined&&(!Number.isSafeInteger(clip.repeatIndex)||clip.repeatIndex<1))throw Error('Índice de repetición no válido.');
       if(clip.panCrop!==undefined){
         if(!Array.isArray(clip.panCrop)||clip.panCrop.length>1000)throw new Error('Pan/Crop no válido.');
         let previous=-1;for(const f of clip.panCrop){if(!Number.isFinite(f.time)||f.time<0||f.time<=previous||f.time>clip.durationSeconds+.002||!Number.isFinite(f.x)||Math.abs(f.x)>10||!Number.isFinite(f.y)||Math.abs(f.y)>10||!Number.isFinite(f.width)||f.width<.01||f.width>10||!Number.isFinite(f.height)||f.height<.01||f.height>10||!Number.isFinite(f.rotation)||Math.abs(f.rotation)>3600)throw new Error('Fotograma clave Pan/Crop no válido.');previous=f.time;}

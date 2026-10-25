@@ -1,5 +1,6 @@
 const fs=require('node:fs/promises'),sync=require('node:fs'),path=require('node:path'),os=require('node:os'),crypto=require('node:crypto'),{spawn}=require('node:child_process');
 const {ffmpegPath}=require('./render-engine.cjs');
+function createCameraRecording(){
 let current=null;
 const active=()=>!!current;
 function get(id){if(!current||current.id!==id)throw Error('La toma de cámara no está activa');return current;}
@@ -10,4 +11,6 @@ function append(id,data){const job=get(id);if(job.state!=='recording'||job.cance
 function remux(job){return new Promise((resolve,reject)=>{if(job.cancelled)return reject(Error('Toma descartada'));const child=spawn(ffmpegPath(),['-v','error','-nostdin','-n','-i',job.raw,'-map','0:v:0','-map','0:a:0?','-c','copy',job.staged],{windowsHide:true,stdio:['ignore','ignore','pipe']});job.child=child;let error='';child.stderr.on('data',d=>error=(error+d).slice(-6000));child.on('error',reject);child.on('close',code=>{job.child=null;code===0&&!job.cancelled?resolve():reject(Error(job.cancelled?'Toma descartada':error||'No se pudo finalizar el vídeo'));});});}
 async function finish(id,newPath){const job=get(id);if(!['recording','pending'].includes(job.state))throw Error('La toma ya se está guardando');job.state='saving';try{await job.queue;if(job.error)throw job.error;if(!job.bytes)throw Error('No se han recibido fotogramas');job.filePath=await destination(newPath||job.filePath);job.staged=path.join(path.dirname(job.filePath),'.lqtac-camera-'+crypto.randomUUID()+'.tmp.webm');job.encoding=remux(job);await job.encoding;job.encoding=null;if(job.cancelled)throw Error('Toma descartada');await fs.copyFile(job.staged,job.filePath,sync.constants.COPYFILE_EXCL);const result={filePath:job.filePath,name:path.basename(job.filePath),size:(await fs.stat(job.filePath)).size};if(current===job)current=null;await clean(job).catch(()=>{});return result;}catch(e){job.state='pending';if(job.staged)await fs.rm(job.staged,{force:true}).catch(()=>{});job.staged=null;throw e;}}
 async function abort(id){if(!current)return;const job=id?get(id):current;job.cancelled=true;job.child?.kill();await job.queue;if(job.encoding)await job.encoding.catch(()=>{});await clean(job);if(current===job)current=null;}
-module.exports={active,start,append,finish,abort};
+return {active,start,append,finish,abort};
+}
+module.exports={...createCameraRecording(),createCameraRecording};

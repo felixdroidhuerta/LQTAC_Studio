@@ -40,9 +40,10 @@ function openWorkControls(track,clip=null){
   $('form',workDialog).onsubmit=event=>{
     event.preventDefault();const value=id=>Number($('#'+id,workDialog).value),name=$('#workName',workDialog).value.trim();
     const rate=clip?value('workRate'):1;
-    if(clip){const source=Number(clip.dataset.sourceDurationSeconds),offset=Number(clip.dataset.sourceOffsetSeconds||0);if(source&&offset+duration*rate>source+.002){$('#workError',workDialog).textContent='La velocidad pide más material del disponible. Recorta el evento o reduce la velocidad.';return;}}
+    const offset=clip?Number(clip.dataset.sourceOffsetSeconds||0)+(clip.dataset.reverse==='true'?duration*(Number(clip.dataset.playbackRate||1)-rate):0):0;
+    if(clip){const source=Number(clip.dataset.sourceDurationSeconds);if(offset<-.000001||source&&offset+duration*rate>source+.002){$('#workError',workDialog).textContent='La velocidad pide más material del disponible. Recorta el evento o reduce la velocidad.';return;}}
     historyCheckpoint();const target=clip||track;target.dataset.gain=String(value('workGain'));target.dataset.mute=String($('#workMute',workDialog).checked);
-    if(clip){clip.firstChild.textContent=name||'Evento';clip.dataset.playbackRate=String(rate);
+    if(clip){clip.firstChild.textContent=name||'Evento';clip.dataset.playbackRate=String(rate);clip.dataset.sourceOffsetSeconds=String(Math.max(0,offset));
       if(!audio&&!$('fieldset',workDialog)?.hidden){let next=[...frames];const time=value('cropTime');if($('#cropReset',workDialog).checked)next=[];else{next=next.filter(f=>Math.abs(f.time-time)>.000001);if(!$('#cropDelete',workDialog).checked)next.push({time,x:value('cropX'),y:value('cropY'),width:value('cropWidth'),height:value('cropHeight'),rotation:value('cropRotation')});next.sort((a,b)=>a.time-b.time);}clip.dataset.panCrop=JSON.stringify(next);}
     }else{track.dataset.solo=String($('#workSolo',workDialog).checked);if(audio)track.dataset.pan=String(value('workPan'));$$('#trackLabels .track-label strong')[$$('.track').indexOf(track)].textContent=name||track.dataset.track;}
     syncTrackHeaders();workDialog.close();void renderTimelineAt(timelineTime);

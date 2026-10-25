@@ -22,10 +22,21 @@ function ensureWindowsIntegration(){
   associationTask=windowsIntegration.ensureAssociation(windowsIntegration.integrationConfig({packaged:app.isPackaged})).catch(error=>{console.warn('No se pudo registrar LQTS en Windows:',error.message);}).finally(()=>{associationTask=null;});return associationTask;
 }
 const audioEffects=require('./effects-audio.cjs');
-ipcMain.handle('prepare-audio-effects',(_event,filePath,fx,segment)=>audioEffects.prepare(filePath,fx,path.join(app.getPath('userData'),'effects-cache'),segment));
-ipcMain.handle('cancel-audio-effects',()=>audioEffects.cancel());
+const reverseMedia=require('./reverse-media.cjs');
+const mediaVisuals=require('./media-visuals.cjs');
+const visualsDirectory=()=>path.join(app.getPath('userData'),'timeline-visuals');
+ipcMain.handle('timeline-frame',(event,options)=>{recordingSender(event);return mediaVisuals.frame(options,visualsDirectory());});
+ipcMain.handle('timeline-waveform',(event,options)=>{recordingSender(event);return mediaVisuals.waveform(options,visualsDirectory());});
+ipcMain.handle('cancel-timeline-visual',(event,id)=>{recordingSender(event);mediaVisuals.cancelRequest(id);});
+app.on('before-quit',()=>mediaVisuals.cancel());
+const reverseDirectory=()=>path.join(app.getPath('userData'),'reverse-cache');
+ipcMain.handle('prepare-reverse',(event,options)=>{recordingSender(event);return reverseMedia.prepare(options,reverseDirectory(),progress=>{if(!event.sender.isDestroyed())event.sender.send('reverse-progress',progress);});});
+ipcMain.handle('cancel-reverse',event=>{recordingSender(event);reverseMedia.cancel();});
+ipcMain.handle('prepare-audio-effects',async(_event,filePath,fx,segment)=>{if(segment?.reverse){filePath=await reverseMedia.prepare({filePath,kind:'audio',offset:segment.offset,duration:segment.duration*segment.rate},reverseDirectory());segment={...segment,offset:0,reverse:false};}return audioEffects.prepare(filePath,fx,path.join(app.getPath('userData'),'effects-cache'),segment);});
+ipcMain.handle('cancel-audio-effects',()=>{audioEffects.cancel();reverseMedia.cancel();});
 ipcMain.handle('audio-effects-waveform',(_event,filePath,segment)=>{const root=path.resolve(app.getPath('userData'),'effects-cache')+path.sep;if(typeof filePath!=='string'||!path.resolve(filePath).startsWith(root))return [];return audioEffects.waveform(filePath,segment);});
 app.on('before-quit',()=>audioEffects.cancel());
+app.on('before-quit',()=>reverseMedia.cancel());
 let currentProjectPath = null;
 ipcMain.handle('confirm-new-project',async()=>{
   const result=await dialog.showMessageBox(mainWindow,{type:'question',title:'Nuevo proyecto',message:'¿Guardar el proyecto actual antes de crear uno nuevo?',detail:'Si continúas sin guardar, se perderán los cambios actuales.',buttons:['Guardar','No guardar','Cancelar'],defaultId:0,cancelId:2,noLink:true});
@@ -69,7 +80,7 @@ ipcMain.handle('render-start',async(event,options)=>{
 });
 ipcMain.handle('render-frame',async(_event,base64)=>{if(!exportJob)throw new Error('No hay exportación activa.');await exportJob.frame(base64);});
 ipcMain.handle('render-finish',async()=>{if(!exportJob)throw new Error('No hay exportación activa.');const job=exportJob;try{return await job.finish();}finally{if(exportJob===job)exportJob=null;}});
-ipcMain.handle('render-cancel',()=>{audioEffects.cancel();const job=exportJob;if(job){job.cancel();job.done.finally(()=>{if(exportJob===job)exportJob=null;}).catch(()=>{});}});
+ipcMain.handle('render-cancel',()=>{audioEffects.cancel();reverseMedia.cancel();const job=exportJob;if(job){job.cancel();job.done.finally(()=>{if(exportJob===job)exportJob=null;}).catch(()=>{});}});
 app.on('before-quit',()=>exportJob?.cancel());
 
 let mainWindow;
@@ -90,24 +101,30 @@ async function openShellProject(filePath,confirmReplacement=true){
 function queueShellProject(filePath,confirmReplacement=true){shellOpenQueue=shellOpenQueue.then(()=>app.whenReady()).then(()=>openShellProject(filePath,confirmReplacement)).catch(error=>{dialog.showErrorBox('No se pudo abrir el proyecto LQTS',error.message);});return shellOpenQueue;}
 app.on('second-instance',(_event,argv)=>{if(mainWindow&&!mainWindow.isDestroyed()){if(mainWindow.isMinimized())mainWindow.restore();mainWindow.show();mainWindow.focus();}const file=windowsIntegration.projectArgument(argv);if(file)void queueShellProject(file,true);});
 const audioRecording=require('./audio-recording.cjs');
-const cameraRecording=require('./camera-recording.cjs');
+const cameraRecording=require('./capture-recording.cjs');
+const captureToolbox=require('./capture-toolbox.cjs').createCaptureToolbox(()=>mainWindow);
+function toolboxState(value){if(!value||typeof value!=='object'||JSON.stringify(value).length>150000)throw Error('Estado de captura no válido');return value;}
+ipcMain.handle('capture-toolbox-show',(event,value)=>{recordingSender(event);return captureToolbox.show(toolboxState(value));});
+ipcMain.handle('capture-toolbox-update',(event,value)=>{recordingSender(event);captureToolbox.update(toolboxState(value));});
+ipcMain.handle('capture-toolbox-close',event=>{recordingSender(event);captureToolbox.close();});
 const screenCapture=require('./screen-capture.cjs').createScreenCapture({desktopCapturer,getWindow:()=>mainWindow,expectedUrl:pathToFileURL(path.join(__dirname,'..','dist','index.html')).href});
 ipcMain.handle('screen-capture-sources',event=>{recordingSender(event);return screenCapture.list();});
 ipcMain.handle('screen-capture-select',(event,id,systemAudio)=>{recordingSender(event);screenCapture.select(id,systemAudio);});
 ipcMain.handle('screen-capture-cancel',event=>{recordingSender(event);screenCapture.cancel();});
 let recordingDestinationOpen=false;
+function syncVisualPriority(){mediaVisuals.setSuspended(recordingDestinationOpen||audioRecording.active()||cameraRecording.active());}
 function recordingSender(event){const expected=pathToFileURL(path.join(__dirname,'..','dist','index.html')).href;if(!mainWindow||mainWindow.isDestroyed()||event.sender.id!==mainWindow.webContents.id||event.senderFrame?.url?.split('#')[0]!==expected)throw Error('Origen de grabación no permitido');}
 async function recordingDestination(){return dialog.showSaveDialog(mainWindow,{title:'Guardar nueva toma de micrófono (WAV)',defaultPath:path.join(currentProjectPath?path.dirname(currentProjectPath):app.getPath('documents'),'Grabacion_'+new Date().toISOString().replace(/[:.]/g,'-')+'.wav'),filters:[{name:'Audio WAV · PCM 24 bits · mono · 48 kHz',extensions:['wav']}]});}
-ipcMain.handle('microphone-recording-start',async(event,sampleRate)=>{recordingSender(event);if(exportJob||audioRecording.active()||cameraRecording.active()||recordingDestinationOpen)throw Error('Hay una exportación o toma en curso');recordingDestinationOpen=true;try{const r=await recordingDestination();if(r.canceled||!r.filePath)return {canceled:true};const file=/\.wav$/i.test(r.filePath)?r.filePath:r.filePath+'.wav';return {canceled:false,...await audioRecording.start(file,sampleRate)};}finally{recordingDestinationOpen=false;}});
+ipcMain.handle('microphone-recording-start',async(event,sampleRate)=>{recordingSender(event);if(exportJob||audioRecording.active()||cameraRecording.active()||recordingDestinationOpen)throw Error('Hay una exportación o toma en curso');recordingDestinationOpen=true;syncVisualPriority();try{const r=await recordingDestination();if(r.canceled||!r.filePath)return {canceled:true};await mediaVisuals.quiesce();const file=/\.wav$/i.test(r.filePath)?r.filePath:r.filePath+'.wav';return {canceled:false,...await audioRecording.start(file,sampleRate)};}finally{recordingDestinationOpen=false;syncVisualPriority();}});
 ipcMain.handle('microphone-recording-append',(event,id,data)=>{recordingSender(event);return audioRecording.append(id,data);});
-ipcMain.handle('microphone-recording-finish',async(event,id,saveAs)=>{recordingSender(event);let file;if(saveAs){const r=await recordingDestination();if(r.canceled||!r.filePath)return {canceled:true};file=/\.wav$/i.test(r.filePath)?r.filePath:r.filePath+'.wav';}return {canceled:false,...await audioRecording.finish(id,file)};});
-ipcMain.handle('microphone-recording-abort',(event,id)=>{recordingSender(event);return audioRecording.abort(id);});
+ipcMain.handle('microphone-recording-finish',async(event,id,saveAs)=>{recordingSender(event);let file;if(saveAs){const r=await recordingDestination();if(r.canceled||!r.filePath)return {canceled:true};file=/\.wav$/i.test(r.filePath)?r.filePath:r.filePath+'.wav';}try{return {canceled:false,...await audioRecording.finish(id,file)};}finally{syncVisualPriority();}});
+ipcMain.handle('microphone-recording-abort',async(event,id)=>{recordingSender(event);try{return await audioRecording.abort(id);}finally{syncVisualPriority();}});
 let videoRecordingMode='camera';
 async function cameraDestination(){const label=videoRecordingMode==='screen'?'Pantalla':'Camara';return dialog.showSaveDialog(mainWindow,{title:'Guardar nueva toma de '+(videoRecordingMode==='screen'?'pantalla':'cámara'),defaultPath:path.join(currentProjectPath?path.dirname(currentProjectPath):app.getPath('documents'),label+'_'+new Date().toISOString().replace(/[:.]/g,'-')+'.webm'),filters:[{name:'Vídeo WebM · VP8 / Opus',extensions:['webm']}]});}
-ipcMain.handle('camera-recording-start',async(event,mode='camera')=>{recordingSender(event);if(!['camera','screen'].includes(mode))throw Error('Tipo de captura no válido');if(exportJob||audioRecording.active()||cameraRecording.active()||recordingDestinationOpen)throw Error('Hay una exportación o toma en curso');videoRecordingMode=mode;recordingDestinationOpen=true;try{const r=await cameraDestination();if(r.canceled||!r.filePath)return {canceled:true};return {canceled:false,...await cameraRecording.start(/\.webm$/i.test(r.filePath)?r.filePath:r.filePath+'.webm')};}finally{recordingDestinationOpen=false;}});
+ipcMain.handle('camera-recording-start',async(event,mode='camera',options={})=>{recordingSender(event);if(!['camera','screen'].includes(mode)||options&&typeof options!=='object')throw Error('Tipo de captura no válido');if(exportJob||audioRecording.active()||cameraRecording.active()||recordingDestinationOpen)throw Error('Hay una exportación o toma en curso');videoRecordingMode=mode;recordingDestinationOpen=true;syncVisualPriority();try{const r=await cameraDestination();if(r.canceled||!r.filePath)return {canceled:true};await mediaVisuals.quiesce();return {canceled:false,...await cameraRecording.start(/\.webm$/i.test(r.filePath)?r.filePath:r.filePath+'.webm',mode==='screen'&&options?.cameraSeparate===true)};}finally{recordingDestinationOpen=false;syncVisualPriority();}});
 ipcMain.handle('camera-recording-append',(event,id,data)=>{recordingSender(event);return cameraRecording.append(id,data);});
-ipcMain.handle('camera-recording-finish',async(event,id,saveAs)=>{recordingSender(event);let file;if(saveAs){const r=await cameraDestination();if(r.canceled||!r.filePath)return {canceled:true};file=/\.webm$/i.test(r.filePath)?r.filePath:r.filePath+'.webm';}return {canceled:false,...await cameraRecording.finish(id,file)};});
-ipcMain.handle('camera-recording-abort',(event,id)=>{recordingSender(event);return cameraRecording.abort(id);});
+ipcMain.handle('camera-recording-finish',async(event,id,saveAs)=>{recordingSender(event);let file;if(saveAs){const r=await cameraDestination();if(r.canceled||!r.filePath)return {canceled:true};file=/\.webm$/i.test(r.filePath)?r.filePath:r.filePath+'.webm';}try{return {canceled:false,...await cameraRecording.finish(id,file)};}finally{syncVisualPriority();}});
+ipcMain.handle('camera-recording-abort',async(event,id)=>{recordingSender(event);try{return await cameraRecording.abort(id);}finally{syncVisualPriority();}});
 
 const mediaExtensions = [
   'mp4', 'mov', 'mxf', 'avi', 'wmv', 'm4v', 'webm', 'mp3', 'wav', 'aiff',
@@ -164,7 +181,7 @@ function createWindow() {
   mainWindow.webContents.session.setPermissionCheckHandler((contents,permission,_origin,details)=>details.isMainFrame!==false&&trusted(contents,details.requestingUrl)&&(permission==='display-capture'?screenCapture.permitted(contents?.mainFrame):permission==='media'&&(details.mediaType==='audio'?microphoneApproved:details.mediaType==='video'?cameraApproved:false)));
   mainWindow.webContents.session.setPermissionRequestHandler(async(contents,permission,callback,details)=>{const types=details.mediaTypes;/* Electron 38 reports display requests as media with an empty mediaTypes array. */if(permission==='display-capture'||(permission==='media'&&Array.isArray(types)&&types.length===0)){callback(details.isMainFrame!==false&&trusted(contents,details.requestingUrl)&&screenCapture.permitted(contents?.mainFrame));return;}if(permission!=='media'||!trusted(contents,details.requestingUrl)||details.isMainFrame===false||!types?.length||types.some(t=>!['audio','video'].includes(t))){callback(false);return;}try{const mic=types.includes('audio'),camera=types.includes('video');if((mic&&!microphoneApproved)||(camera&&!cameraApproved)){const r=await dialog.showMessageBox(mainWindow,{type:'question',title:camera?'Permitir cámara':'Permitir micrófono',message:'¿Permitir a LQTAC Studio usar '+(camera?(mic?'la cámara y el micrófono':'la cámara'):'el micrófono')+'?',detail:'Solo se activan al preparar o grabar una toma local. No se envían imágenes ni audio a Internet. Cierra o desconecta el grabador para liberarlos.',buttons:['Permitir','No permitir'],defaultId:1,cancelId:1,noLink:true});if(r.response!==0){callback(false);return;}if(mic)microphoneApproved=true;if(camera)cameraApproved=true;}callback(true);}catch{callback(false);}});
   mainWindow.on('close',async event=>{if(!audioRecording.active()&&!cameraRecording.active())return;event.preventDefault();if(closingRecording)return;closingRecording=true;try{const r=await dialog.showMessageBox(mainWindow,{type:'warning',title:'Toma sin guardar',message:'Hay una grabación de cámara o micrófono en curso o pendiente.',detail:'Vuelve al grabador para detener y guardar. Salir descarta la toma pendiente.',buttons:['Volver al grabador','Descartar y salir'],defaultId:0,cancelId:0,noLink:true});if(r.response===1){await Promise.all([audioRecording.abort(),cameraRecording.abort()]);mainWindow.close();}}finally{closingRecording=false;}});
-  const abortCaptures=()=>{screenCapture.cancel();void Promise.all([audioRecording.abort(),cameraRecording.abort()]).catch(()=>{});};
+  const abortCaptures=()=>{mediaVisuals.cancel();captureToolbox.close();screenCapture.cancel();void Promise.all([audioRecording.abort(),cameraRecording.abort()]).catch(()=>{});};
   mainWindow.webContents.on('render-process-gone',abortCaptures);
   mainWindow.on('closed',abortCaptures);
   mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));

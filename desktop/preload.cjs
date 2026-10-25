@@ -1,7 +1,17 @@
 const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 contextBridge.exposeInMainWorld('lqtacDesktop', {
-  cameraRecordingStart:mode=>ipcRenderer.invoke('camera-recording-start',mode),
+  timelineFrame:options=>ipcRenderer.invoke('timeline-frame',options),
+  timelineWaveform:options=>ipcRenderer.invoke('timeline-waveform',options),
+  cancelTimelineVisual:id=>ipcRenderer.invoke('cancel-timeline-visual',id),
+  prepareReverse:options=>ipcRenderer.invoke('prepare-reverse',options),
+  cancelReverse:()=>ipcRenderer.invoke('cancel-reverse'),
+  onReverseProgress:listener=>{const fn=(_e,p)=>listener(p);ipcRenderer.on('reverse-progress',fn);return ()=>ipcRenderer.removeListener('reverse-progress',fn);},
+  cameraRecordingStart:(mode,options)=>ipcRenderer.invoke('camera-recording-start',mode,options),
+  captureToolboxShow:state=>ipcRenderer.invoke('capture-toolbox-show',state),
+  captureToolboxUpdate:state=>ipcRenderer.invoke('capture-toolbox-update',state),
+  captureToolboxClose:()=>ipcRenderer.invoke('capture-toolbox-close'),
+  onCaptureToolboxCommand:listener=>{const fn=(_e,p)=>listener(p);ipcRenderer.on('capture-toolbox-command',fn);return ()=>ipcRenderer.removeListener('capture-toolbox-command',fn);},
   screenCaptureSources:()=>ipcRenderer.invoke('screen-capture-sources'),
   screenCaptureSelect:(id,systemAudio)=>ipcRenderer.invoke('screen-capture-select',id,systemAudio),
   screenCaptureCancel:()=>ipcRenderer.invoke('screen-capture-cancel'),

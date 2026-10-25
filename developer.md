@@ -1,5 +1,39 @@
 # LQTAC Studio — guía de desarrollo y continuidad
 
+## Publicación portable 0.17.0
+
+Windows x64: espacios de trabajo, ordenación por arrastre de pista, propiedades contextuales y manual ilustrado actualizado (26 páginas). Paquete autosuficiente con FFmpeg y ambos motores/modelos ASR. Verificación de ejecución sobre el código empaquetado: lqtac-portable-check-15300, con hash idéntico del ejecutable Electron, recursos incluidos, fuentes, composición, modelos ASR y nuevas APIs de espacios. Verificación del ZIP: CRC completo de 1197 entradas, comparación de los tres módulos nuevos y del manual contra las fuentes. Archivo de 1.181.521.758 bytes; SHA-256 en desktop/RELEASE-0.17.0-SHA256SUMS.txt. Las pruebas de espacios pasan con WAV sintético generado por el propio test (lqtac-workspaces-14652), sin depender de medios personales.
+
+## Espacios de trabajo · prototipo funcional local
+
+`dist/assets/workspaces.js` se carga después de event-properties-menu. Cuatro modos con geometría propia y distribución inicial de altura útil superior/inferior: Montaje 50/50, Audio 38/62, Color y Texto 66/34, sujeta a mínimos. Audio ensancha filas/cabeceras juntas y reduce monitor (mínimo 260 px para preservar transporte); Color/Text priorizan preview. El monitor usa flex para evitar que la altura mínima previa desborde el separador. Se conservan IDs/nodos de timeline y sus eventos.
+
+La geometría y el scroll vertical por modo viven solo en memoria de sesión, fuera de projectSnapshot e historial. El arrastre del separador registra la proporción, cambiar de espacio la restaura, resize la adapta, Restablecer vuelve al preset y cada inicio vuelve a Montaje. LQTACWorkspaces expone activate/current/reset para navegación y verificación. El rail reemplaza Editor por Montaje y retira Transiciones (permanece en Ventanas); las entradas Ayuda/Ajustes previas no forman parte de estos cuatro modos.
+
+Audio incorpora mezclador real sobre dataset.gain/pan/mute/solo de cada pista de audio. Cada gesto de deslizador crea un checkpoint; el refresco detecta pistas restauradas y sincroniza el estado tras deshacer. Los picos usan AnalyserNode en rama paralela desde graph.merge, guardados en WeakMap externo para no romper la limpieza Object.values(graph). No hay nueva conexión a destination ni duplicación de audio; son picos aproximados por pista, no true peak/LUFS.
+
+Color muestrea canvases/vídeos visibles del monitor a 128x72, con z-index y opacidad, cada ~450 ms. Histograma RGB con escala logarítmica: aproximación visual, no validación colorimétrica ni representación certificada de todas las capas HTML. Reutiliza openEffectEditor y los borradores/curvas existentes. Texto reutiliza generadores, editor de subtítulos y sus módulos; no crea un segundo modelo de títulos. Los cambios de modo se bloquean en exportación, historial ocupado, efectos, modales y gestos de separación/reordenación.
+
+`desktop/verify-workspaces.cjs` comprueba geometrías distintas, proyecto/historial inalterados al navegar, volumen y undo, medidor con señal real y salida de prueba silenciada, apertura de editores, navegación independiente de paneles, proporciones/reset y ventanas de 1600/1200 px. Cambios locales sin publicación ni nuevo portable.
+
+Resultado final satisfactorio: lqtac-workspaces-5932, con revisión visual de las cuatro distribuciones y ajuste del transporte/mezclador a 1200 px. Regresiones correctas: lqtac-context-properties-19568 y lqtac-track-order-19216. Guía de uso ampliada en docs/manual/Espacios_de_trabajo.md; el PDF de la primera edición conserva sus capturas originales hasta la próxima revisión de maquetación.
+
+## Propiedades del evento en menú contextual · 25/10/2026
+
+`event-properties-menu.js` retira el inspector permanente del layout y añade «Propiedades del evento…» al menú contextual del clip. Vídeo/audio abren workDialog sin el antiguo fieldset PAN; subtítulos abren su editor. El menú se ajusta al borde inferior después de actualizar sus entradas. El ancho superior queda repartido entre biblioteca y monitor, sin cambiar la proporción vertical del timeline.
+
+El DOM antiguo del inspector permanece hidden/inert y sin espacio en la cuadrícula porque selección, importación y módulos existentes aún referencian sus IDs. FX/PAN e informe VEGAS siguen accesibles en FX y Proyecto respectivamente; sus nodos fueron trasladados fuera del inspector por los módulos anteriores. No se eliminan estos accesos ni se cambia el esquema de proyecto. El rail de iconos se conserva sin cambios: solo Transiciones tiene una acción conectada; Editor, Audio, Color y Texto son entradas de la maqueta sin implementación.
+
+Validación: `verify-event-properties-menu.cjs`, resultado correcto lqtac-context-properties-16328. Propiedades de vídeo/audio/subtítulos, aplicación y deshacer, ocultación en menú de pista, límites del menú y distribución a 1600 y 1200 px, preservando accesos PAN e informe VEGAS. No publicado ni empaquetado.
+
+## Reordenación de pistas · 25/10/2026
+
+`dist/assets/track-order.js`, cargado después de timeline-tools, delega pointerdown desde los nombres de cabecera. El gesto usa umbral vertical de 5 px, captura del puntero, indicador de inserción, etiqueta flotante y autoscroll con requestAnimationFrame. La previsualización no cambia el DOM del proyecto: al soltar registra un solo historyCheckpoint y mueve los nodos de cabecera y pista como pareja. No reconstruye clips ni pierde identidades en WeakMap, selección, grupos o envolventes; renderTimelineAt actualiza la prioridad visual según el orden existente. projectSnapshot/restoreProject ya serializan el orden de tracks, sin cambio de esquema LQTS.
+
+Se bloquea el inicio durante exportación, recuperación de historial, procesamiento de efectos y modales. Escape, blur y pointercancel limpian captura/listeners/RAF sin edición; un clic o una inserción sin cambio tampoco toca el historial. Los eventos delegados permiten usar también pistas nuevas o restauradas. Prueba específica: `desktop/verify-track-order.cjs` (arrastre, cabeceras, conservación de estado, historial, persistencia y autoscroll). No se ha publicado ni generado portable para este cambio.
+
+Validación satisfactoria: lqtac-track-order-20604. Gestos de puntero arriba/abajo, identidad y selección de clips, igualdad del estado por pista, Mute sobre la cabecera reordenada, Ctrl+Z/Ctrl+Y, apertura LQTS, Escape, pointercancel, clic sin cambio y autoscroll hasta el final (933 px) con 20 pistas. El manual incorpora el gesto en la página 6; la revisión PDF se guarda con sufijo revision_1 para preservar la primera edición abierta en el visor.
+
 ## Publicación portable 0.16.0
 
 Paquete Windows x64 de los cambios actuales de títulos/fuentes/audio directo y render por tramos. Runtime empaquetado validado en lqtac-portable-check-11896, incluyendo fuentes locales, editor compacto, clic en curvas y composición generada. ZIP verificado por CRC completo y SHA-256. Motores ASR incluidos y comprobados por hash. Ver desktop/RELEASE-0.16.0.md y RELEASE-SHA256SUMS.txt.

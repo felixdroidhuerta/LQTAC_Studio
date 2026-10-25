@@ -1,14 +1,16 @@
 # LQTAC Studio
 
-Editor local de vídeo y audio para Windows. Versión 0.16.0: generadores editables con Fabric y Motion Canvas Core, editor compacto, fuentes de Windows, escucha directa de FX de audio y renderizado por tramos. Incluye dos motores de subtítulos offline, captura de medios e integración con Windows.
+Editor local de vídeo y audio para Windows. Versión 0.17.0: espacios de trabajo Montaje, Audio, Color y Texto, mezclador por pistas, histograma RGB orientativo, reordenación de pistas por arrastre y propiedades de clip en el menú contextual. Conserva generadores editables, fuentes de Windows, FX, renderizado por tramos, captura y dos motores de subtítulos offline.
 
 ## Descargar el programa
 
-Para un equipo nuevo, abre [Releases](https://github.com/felixdroidhuerta/LQTAC_Studio/releases/tag/v0.16.0-portable) y descarga **LQTAC_Studio_0.16.0_Windows_x64_Portable.zip** dentro de Assets.
+Para un equipo nuevo, abre [Releases](https://github.com/felixdroidhuerta/LQTAC_Studio/releases/tag/v0.17.0-portable) y descarga **LQTAC_Studio_0.17.0_Windows_x64_Portable.zip** dentro de Assets.
 
 Extrae todo el ZIP y abre **LQTAC Studio.exe**. El motor y sus bibliotecas están incluidos; no requiere Node, pnpm ni Internet en el equipo destino. La carpeta Shapes junto al ejecutable contiene la máscara LQTAC de ejemplo.
 
 Los archivos automáticos **Source code** contienen únicamente fuentes y no el motor de escritorio.
+
+El portable incluye **Manual de usuario.pdf**. Las fuentes de la guía y sus capturas están en `docs/manual`; el PDF de esta versión se conserva también en `output/pdf`.
 
 La versión local añade pista de subtítulos editable, Whisper small multilingüe offline, importación/exportación SRT e incrustación en vídeo. Acceso desde la pestaña «Subtítulos». El modelo y runtime están instalados en este equipo; para preparar otro entorno de desarrollo ejecutar tools/setup-whisper.ps1. El empaquetado incluye ambos y sus licencias; no requiere descargas durante el uso.
 

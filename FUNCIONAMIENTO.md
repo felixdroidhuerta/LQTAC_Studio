@@ -2,6 +2,25 @@
 
 Última actualización: 25 de octubre de 2026.
 
+## Espacios de trabajo para probar
+
+Los cuatro iconos superiores de la barra izquierda cambian la distribución del mismo proyecto. «Ventanas» abre paneles individuales sin abandonar el espacio ni modificar su geometría.
+
+- **Montaje:** biblioteca amplia, monitor y aproximadamente mitad inferior para pistas. Es el espacio inicial.
+- **Audio:** más altura para el timeline y las filas, monitor reducido y mezclador por pistas de audio. Cada canal dispone de volumen, balance, Mute, Solo y propiedades. Los ajustes son reales, se guardan en LQTS y admiten deshacer. Incluye acceso a grabación y al ecualizador del clip seleccionado. Los medidores muestran picos aproximados de la señal que se reproduce, no gráficos decorativos.
+- **Color:** monitor más grande y timeline reducido. Muestra un histograma RGB aproximado del monitor y abre los editores existentes de brillo/contraste, temperatura, saturación, LUT, croma y viñeta sobre el clip seleccionado.
+- **Texto:** vista previa mayor, timeline de referencia y catálogo de generadores, con acceso al editor del título/subtítulo seleccionado y al panel de subtítulos/karaoke.
+
+La división vertical se puede ajustar con la barra habitual y se recuerda por espacio durante la sesión. «Restablecer», junto al nombre del espacio sobre el timeline, recupera su distribución inicial. Al cerrar y volver a abrir se empieza en Montaje. Cambiar de espacio no mueve medios, no modifica el proyecto y no añade entradas al historial. No se permite cambiar mientras hay un editor modal, renderizado o gesto de reordenación en curso.
+
+Transiciones se mantiene en «Ventanas» y deja de duplicarse en la barra de espacios. El histograma es una referencia visual de baja resolución: no sustituye a mediciones de color profesionales ni incluye necesariamente todas las superposiciones HTML del monitor. Los medidores suman picos por clip de forma aproximada; no constituyen un medidor de loudness ni de pico real del bus.
+
+## Propiedades sin inspector lateral
+
+El inspector permanente de la derecha deja de mostrarse. Para editar nombre, silencio, volumen/opacidad o velocidad, pulsa con el botón derecho sobre el clip y elige «Propiedades del evento…». En un subtítulo abre su editor específico. PAN y filtros permanecen en FX; la información y el informe VEGAS están en Proyecto. El espacio liberado se reparte entre biblioteca y monitor, manteniendo el timeline en su zona inferior redimensionable.
+
+Verificado en vídeo, audio y subtítulos, incluyendo aplicar/deshacer, menús junto al borde de ventana y distribución a 1600 y 1200 px (lqtac-context-properties-16328).
+
 ## Editar puntos directamente en las curvas del generador
 
 En la curva inferior de los títulos, elige **Opacidad**, **Escala**, **Posición X** o **Posición Y**. **Clic sobre la curva** añade un punto en ese tiempo y valor; también puedes usar **botón derecho → Añadir punto** en una zona sin puntos. Al pulsar un punto existente se selecciona; arrastrarlo horizontalmente cambia su tiempo y verticalmente cambia su valor. El resultado animado y los valores del panel se actualizan durante el arrastre.
@@ -809,3 +828,11 @@ Validado con audio local, controles de escucha/pausa, entradas marcadas, ajuste 
 Disponible desde Archivo o Ctrl+N. Antes de vaciar el montaje se pregunta Guardar, No guardar o Cancelar. Si se cancela el diálogo de guardado o falla la escritura, se conserva el montaje actual. El nuevo proyecto se llama «Proyecto sin título», contiene una pista vacía de vídeo y otra de audio, biblioteca vacía y cabezal en cero. Se reinician zoom, historial y portapapeles interno de clips. El primer Guardar solicita un archivo nuevo y no reutiliza la ruta del proyecto anterior. No se eliminan archivos de medios ni proyectos del disco.
 
 Los archivos de audio arrastrados a una pista de vídeo se insertan en una pista de audio existente o en una nueva si no existe. El selector de subtítulos reconoce los eventos de audio por su contenido, incluso en pistas de vídeo de proyectos anteriores. Al analizar una pista mixta solo se procesan sus eventos de audio; no se interpreta la envolvente de opacidad como volumen.
+
+## Reordenar pistas desde el nombre · 25/10/2026
+
+Mantén pulsado el botón izquierdo sobre el nombre de una pista y arrástralo hacia arriba o abajo. Una línea cian indica la posición de inserción. Al soltar se mueven juntos la cabecera y la pista completa; se conservan clips, tiempos, agrupaciones, envolventes, efectos, silencio/solo y karaoke. Las pistas pueden cambiar de orden independientemente de su tipo. La prioridad de las capas de vídeo sigue el nuevo orden de pistas.
+
+Al aproximarse a los bordes verticales del timeline se desplaza la lista automáticamente. Escape, la pérdida de foco o la cancelación del puntero interrumpen el gesto sin modificar el proyecto. Un clic sin arrastre o soltar en la misma posición no crea una edición. El cambio admite Ctrl+Z/Ctrl+Y y queda guardado en el LQTS. Los botones M, S, K y propiedades conservan su función: el arrastre empieza solo desde el nombre.
+
+Verificado con reordenación en ambos sentidos, conservación de clips y estado de pista, botones de silencio después del movimiento, deshacer/rehacer, guardado/apertura LQTS, cancelación y desplazamiento automático en un montaje de 20 pistas (lqtac-track-order-20604).

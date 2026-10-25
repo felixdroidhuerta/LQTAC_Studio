@@ -35,6 +35,9 @@ foreach ($name in @('ExportLqtac.cs','ExportLqtac.cs.config')) {
 Copy-Item -LiteralPath (Join-Path $projectRoot 'Shapes') -Destination $OutputDirectory -Recurse
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'portable-package.json') -Destination (Join-Path $appRoot 'package.json')
 Copy-Item -LiteralPath (Join-Path $projectRoot 'FUNCIONAMIENTO.md') -Destination $OutputDirectory
+$manual = Join-Path $projectRoot ('output\pdf\LQTAC_Studio_Manual_de_usuario_' + (Get-Content -LiteralPath (Join-Path $PSScriptRoot 'portable-package.json') -Raw | ConvertFrom-Json).version + '.pdf')
+if (!(Test-Path -LiteralPath $manual)) { throw 'Falta el manual PDF actualizado para esta versión.' }
+Copy-Item -LiteralPath $manual -Destination (Join-Path $OutputDirectory 'Manual de usuario.pdf')
 $speechRoot=Join-Path $PSScriptRoot 'speech'
 if(!(Test-Path -LiteralPath (Join-Path $speechRoot 'models\ggml-small.bin'))){throw 'Falta el modelo offline de subtítulos. Ejecuta tools/setup-whisper.ps1.'}
 $speechTarget=Join-Path $desktopTarget 'speech'

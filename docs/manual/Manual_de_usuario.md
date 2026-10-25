@@ -1,0 +1,546 @@
+# LQTAC Studio 0.17.0 - Manual de usuario
+
+Actualizado: 25 de octubre de 2026.
+Capturas reales con medios de demostración.
+
+## Instalar y empezar
+
+Todo el entorno de edición se ejecuta en tu equipo. El portable incluye los motores necesarios para editar, renderizar y generar subtítulos sin conexión.
+
+### Descomprimir antes de abrir
+
+Descarga el ZIP portable y extrae su contenido completo en una carpeta con permisos de escritura. No ejecutes el programa dentro del ZIP. Conserva juntas las carpetas y los motores incluidos: copiar únicamente el EXE o el BAT no es suficiente.
+
+### Iniciar LQTAC Studio
+
+Abre el ejecutable LQTAC Studio de la carpeta extraída. Si tu distribución incluye el BAT de inicio, también puedes usarlo con doble clic. No necesitas lanzar comandos ni instalar Node.js, Python o FFmpeg por separado.
+
+### Un equipo adecuado
+
+Como orientación práctica: Windows 10 u 11 de 64 bits, procesador de cuatro núcleos, 8 GB de RAM y SSD. Recomendados: 16 GB de RAM, pantalla de 1920 × 1080 y al menos 10 GB libres, además del espacio de tus medios y exportaciones. Son estimaciones de uso, no requisitos certificados por una batería de pruebas.
+
+### En equipos modestos
+
+Un Intel N150 puede servir para montajes sencillos en 720p o 1080p con pocas pistas. Reduce los efectos simultáneos y deja tiempo para el renderizado y la transcripción. La fluidez depende también del códec, la memoria y el almacenamiento.
+
+### Antes de montar
+
+Crea una carpeta para el trabajo, con subcarpetas para vídeo, audio, imágenes y exportaciones. Guarda allí el proyecto LQTS. Mantén una copia de seguridad de los medios: el proyecto no los contiene.
+
+## Conocer el espacio de trabajo
+
+La línea de tiempo ocupa aproximadamente la mitad de la ventana al iniciar. Puedes aumentar su espacio arrastrando la separación horizontal.
+
+![Captura de Conocer el espacio de trabajo](assets/01-interfaz.png)
+
+Un montaje de ejemplo: biblioteca arriba, monitor a la derecha y edición de pistas en la mitad inferior.
+
+### 1. Menús, ventanas y espacios
+
+Archivo reúne proyectos y exportaciones; Insertar añade medios, pistas y grabaciones. Herramientas contiene división, FX y subtítulos. Los cuatro iconos izquierdos cambian entre Montaje, Audio, Color y Texto, con distribuciones distintas. Ventanas abre paneles sin cambiar de espacio. Restablecer recupera la distribución inicial del espacio activo.
+
+### 2. Biblioteca y monitor
+
+Project Media muestra los medios del proyecto; Explorer permite localizar archivos. El monitor reproduce la composición y la mezcla de las pistas activas en la posición del cursor.
+
+### 3. Línea de tiempo
+
+Las cabeceras contienen los controles de pista. La regla superior permanece visible al desplazarte por las pistas. La línea vertical y su flecha indican la posición de reproducción.
+
+## Elegir un espacio de trabajo
+
+Los cuatro iconos izquierdos reorganizan las herramientas del mismo proyecto. Ventanas abre paneles individuales sin cambiar de espacio. Restablecer recupera el reparto inicial; cada modo recuerda su división vertical durante la sesión.
+
+![Captura de Elegir un espacio de trabajo](assets/16-espacio-audio.png)
+
+Audio: mezclador por pistas, monitor reducido y filas más altas. Los controles actúan sobre el proyecto.
+
+### Montaje
+
+Es el espacio inicial: biblioteca amplia, monitor y aproximadamente mitad inferior para montar pistas. Volver aquí facilita continuar con recortes y organización.
+
+### Audio
+
+Da prioridad al timeline y a las ondas. El mezclador controla volumen, balance, Mute y Solo por pista. Sus cambios admiten deshacer. Los medidores responden a la reproducción con picos aproximados, no una medición profesional de loudness.
+
+### Color
+
+Amplía el monitor y ofrece un histograma RGB aproximado de la vista previa. Selecciona un vídeo y abre brillo, temperatura, saturación, LUT, croma o viñeta en sus editores existentes.
+
+### Texto
+
+Amplía la vista previa y reúne plantillas de generadores, edición del título o subtítulo seleccionado y acceso a subtítulos/karaoke. Cambiar de espacio no mueve clips ni añade pasos al historial. Al reiniciar se vuelve a Montaje.
+
+## Crear un proyecto e importar medios
+
+Añadir un archivo a la biblioteca y colocarlo en la línea de tiempo son dos acciones distintas.
+
+![Captura de Crear un proyecto e importar medios](assets/01-interfaz.png)
+
+La biblioteca presenta los medios en mosaico. Importar no modifica el archivo original.
+
+### 1. Empezar y guardar
+
+Elige Archivo > Nuevo (Ctrl + N). Si hay cambios pendientes, decide si guardarlos antes de continuar. Usa Guardar como… para dar nombre y ubicación al proyecto LQTS.
+
+### 2. Alimentar la biblioteca
+
+En Insertar, elige Insertar vídeo al proyecto, Insertar audio al proyecto o Insertar imagen al proyecto. Estas entradas incorporan medios a la biblioteca; todavía no crean un montaje.
+
+### 3. Colocar un medio
+
+Arrastra el elemento desde Project Media o Explorer hasta una pista compatible. El punto donde lo sueltas fija su inicio. La duración procede del archivo, no de un límite fijo de 15 segundos.
+
+### 4. Comprobar el resultado
+
+Al insertar vídeo con audio, se crean eventos de vídeo y sonido separados y agrupados. Revisa ambos en el timeline y pulsa reproducir en el monitor. Si falta un medio al abrir el proyecto, restaura el archivo en la ruta indicada.
+
+## Pistas, posición y selección
+
+Organiza cada tipo de contenido en sus pistas y utiliza el cursor para comprobar cualquier momento del montaje.
+
+![Captura de Pistas, posición y selección](assets/02-timeline.png)
+
+Vídeo, sonido asociado, ambiente y subtítulos comparten la misma escala de tiempo.
+
+### Crear, ordenar o eliminar pistas
+
+Usa Insertar > Insertar pista de vídeo, audio o subtítulos. Arrastra el nombre de una pista hacia arriba o abajo: la marca indica dónde quedará al soltar. En los bordes la lista se desplaza automáticamente. Escape cancela; Ctrl + Z deshace. Sobre la pista, botón derecho > Eliminar pista retira esa fila y sus eventos.
+
+### Mover y seleccionar
+
+Arrastra un clip para cambiarlo de posición o de pista compatible. Arrastra sobre una zona vacía para seleccionar varios eventos con un rectángulo; Ctrl permite ampliar la selección. Las agrupaciones mantienen unidos los eventos vinculados.
+
+### Situar la reproducción
+
+Arrastra la flecha de la regla o pulsa en ella para cambiar de posición. Las flechas izquierda y derecha avanzan o retroceden un fotograma; con Mayús el salto es de un segundo. Los campos de texto conservan su funcionamiento habitual cuando estás escribiendo.
+
+### Zoom y escucha
+
+Ajusta el zoom y desplázate con la barra del timeline para trabajar con precisión. M silencia una pista y S la pone en solo. La S de la cabecera es Solo; la tecla S, cuando editas clips, sirve para dividir.
+
+## Recortar, dividir y agrupar
+
+La edición cambia el montaje, sin sobrescribir el medio original. Guarda con frecuencia y usa Deshacer para revisar los cambios.
+
+![Captura de Recortar, dividir y agrupar](assets/02-timeline.png)
+
+Los eventos de vídeo y audio importados juntos conservan su sincronía mediante la agrupación.
+
+### Recortar los extremos
+
+Arrastra el borde izquierdo o derecho hacia dentro para quitar contenido del principio o del final. La zona superior de la esquina tiene otra función: crear un fade. Acerca el zoom si resulta difícil distinguir el control.
+
+### Dividir en la posición actual
+
+Selecciona el evento, coloca el cursor donde quieras cortar y pulsa S. Revisa los elementos agrupados antes y después de la división para mantener el montaje deseado.
+
+### Copiar, pegar y borrar
+
+Ctrl + C copia la selección y Ctrl + V la pega tomando como referencia la posición de reproducción. Supr elimina los eventos seleccionados; también puedes usar botón derecho > Eliminar. Ctrl + Z deshace y Ctrl + Y rehace.
+
+### Agrupar y desagrupar
+
+Selecciona varios eventos y usa botón derecho > Agrupar. Para editar por separado el vídeo y su sonido, usa Desagrupar sobre el conjunto. Después pueden perder la sincronía si mueves solo uno. Para nombre, silencio, nivel o velocidad usa botón derecho > Propiedades del evento… El inspector lateral permanente se ha retirado.
+
+## Velocidad, repetición e inversión
+
+La misma zona del borde permite acciones diferentes según las teclas que mantengas pulsadas.
+
+### Cambiar la velocidad
+
+Mantén Ctrl mientras arrastras un extremo. Si alargas el evento, se reproduce más despacio; si lo acortas, más deprisa. El cambio afecta al conjunto agrupado, incluido el audio del vídeo mientras siga vinculado.
+
+### Actuar sobre un solo evento
+
+Mantén Ctrl + Alt mientras arrastras el extremo para modificar únicamente ese clip, aunque esté agrupado. Es útil para ajustes deliberados, pero puede romper su sincronización con el resto.
+
+### Repetir el contenido
+
+Sin Ctrl, prolonga el evento más allá de la duración disponible de la fuente para repetirlo. Las marcas de unión señalan el final de cada repetición y el comienzo de la siguiente. No se crea un nuevo archivo de medios.
+
+### Reproducir de final a inicio
+
+En el menú contextual del clip elige invertir el clip o invertir el grupo. La preparación de medios invertidos puede tardar; espera a que finalice antes de valorar la reproducción.
+
+### Ejemplo práctico
+
+Para conservar una entrevista sincronizada, deja agrupados vídeo y audio. Para una cámara lenta sin su sonido, desagrupa o silencia el audio primero. Comprueba la voz y los transitorios después de cualquier cambio de velocidad; no presupongas una conservación automática del tono.
+
+## Fundidos y transiciones
+
+La duración de una transición la determina el solapamiento entre dos eventos de la misma pista.
+
+![Captura de Fundidos y transiciones](assets/13-transiciones.png)
+
+El panel Transiciones permite elegir el tratamiento del solapamiento seleccionado.
+
+### Un fade en un solo clip
+
+Arrastra la esquina superior izquierda hacia dentro para un fade-in, o la superior derecha para un fade-out. En vídeo cambia la visibilidad; en audio, el nivel. Cada extremo se ajusta de forma independiente.
+
+### Una transición entre dos clips
+
+Solapa dos eventos de una misma pista. Por defecto se crea un fundido entre ambos, tanto en vídeo como en audio. Un solapamiento de dos segundos produce una transición de dos segundos.
+
+### Elegir un efecto diferente
+
+Selecciona el solapamiento y abre Transiciones. Aplica la tarjeta que quieras a esa unión. Las distintas uniones del proyecto pueden tener efectos y ajustes diferentes; revisa cuál está seleccionada antes de cambiarla.
+
+### No confundir las acciones
+
+Mover un clip modifica el solapamiento; recortar su borde modifica el contenido visible; arrastrar su esquina ajusta un fade. Usa zoom y reproduce antes y después de la unión para verificar el resultado.
+
+## Una máscara de luminancia propia
+
+Una imagen en blanco y negro puede definir por dónde aparece el siguiente vídeo. La imagen actúa como máscara, no como una capa visible.
+
+![Captura de Una máscara de luminancia propia](assets/15-mascara.png)
+
+Detalle del mismo panel en dos partes: carga y suavidad a la izquierda; movimiento, blur y muestra a la derecha.
+
+### 1. Seleccionar la unión
+
+Crea un solapamiento de vídeo y selecciónalo. En Transiciones, elige Máscara personalizada. Sus ajustes se abren en una ventana de configuración, sin ocupar permanentemente la biblioteca.
+
+### 2. Cargar la forma
+
+Pulsa Cargar imagen… El selector parte de la carpeta Shapes del proyecto. Puedes utilizar el LQTAC negro sobre blanco incluido como ejemplo, o elegir otra imagen. Los colores se interpretan por su luminosidad.
+
+### 3. Elegir el movimiento
+
+Selecciona el tratamiento de la máscara: por ejemplo, zoom de entrada o salida, desplazamiento o temblor. Ajusta la suavidad y el desenfoque para crear bordes más o menos graduales; invierte blanco y negro para cambiar el sentido.
+
+### 4. Evaluar sobre los dos vídeos
+
+El blanco aparece primero y el negro al final, salvo inversión. Recorre todo el solapamiento con el cursor. Si ves un resultado inesperado, comprueba el efecto asignado, la inversión y los ajustes de la máscara en esa unión.
+
+## Envolventes de volumen y opacidad
+
+Las envolventes modifican un valor a lo largo de la pista. Permanecen ocultas hasta que las activas desde su menú contextual.
+
+![Captura de Envolventes de volumen y opacidad](assets/14-envolventes.png)
+
+La línea y sus puntos permiten cambios graduales. La envolvente pertenece a la pista.
+
+### Mostrar la envolvente
+
+Pulsa con el botón derecho sobre la pista y activa su envolvente de volumen o de transparencia/opacidad, según el tipo de pista. No es necesario mostrar todas las líneas mientras montas.
+
+### Crear y mover puntos
+
+Pulsa con el botón derecho en la línea para añadir un punto. Arrástralo para cambiar su posición temporal y su valor. Utiliza la opción de eliminar del editor o su menú contextual para retirar los puntos que sobren.
+
+### Subir o bajar un tramo
+
+Arrastra la línea entre dos puntos para desplazar ese segmento. En audio cambia el nivel; en vídeo cambia cuánto se ve de la pista. Dos puntos separados producen una rampa, no un salto instantáneo.
+
+### Ejemplo: música bajo una voz
+
+Crea puntos antes y después de la frase. Baja el tramo que coincide con la voz y conserva rampas al entrar y salir. Reproduce con todas las pistas activas para decidir el nivel por el resultado de la mezcla.
+
+## FX de vídeo y animación
+
+Selecciona el clip y abre FX o Herramientas > Efectos de vídeo. El editor individual muestra el efecto sobre ese clip y su evolución temporal.
+
+![Captura de FX de vídeo y animación](assets/03-fx-video.png)
+
+Ejemplo: mantener el color al principio y reducir la saturación hasta blanco y negro.
+
+### Ajustar y comparar
+
+Elige el efecto y cambia sus parámetros. Reproduce el clip dentro del editor o desplaza su control de tiempo. Ver original sin efectos permite comparar con la fuente. Aplicar al clip conserva los cambios; Cancelar descarta la edición de esa sesión.
+
+### Crear una curva
+
+Selecciona el parámetro y activa Animar este parámetro. Añade un punto al principio con saturación 1 y otro más tarde con 0. La interpolación entre ambos hace que el color desaparezca gradualmente.
+
+### Corregir puntos
+
+Pulsa o arrastra en la curva para crear o mover puntos. Selecciona el punto que quieras retirar y usa Eliminar punto. Los tiempos son relativos al inicio del clip, no al inicio de todo el proyecto. Las LUT se cargan como ajustes fijos en esta versión.
+
+## FX de audio con escucha
+
+El editor permite ajustar el sonido y escuchar el resultado. Para el ecualizador muestra graves, medios y agudos a la vez, en colores distintos.
+
+![Captura de FX de audio con escucha](assets/07-fx-audio.png)
+
+Las tres curvas del ecualizador comparten el tiempo; selecciona el parámetro que quieras editar.
+
+### Trabajar con el sonido
+
+Selecciona un evento de audio y abre el efecto en FX o en Herramientas > Efectos de audio. Ajusta el ecualizador, compresor, limitador, reducción de ruido, normalización, eco o reverberación y escucha el fragmento.
+
+### Animar un parámetro
+
+Activa la animación y añade puntos. Por ejemplo, aumenta los agudos solo durante una parte del clip. Selecciona una curva antes de mover o borrar sus puntos; el resto permanece visible como referencia.
+
+### Escucha directa y exacta
+
+La escucha en tiempo real facilita el ajuste, pero ciertos procesamientos son aproximaciones. Usa Preparar escucha exacta para comprobar el resultado procesado por el motor de audio. Tras cambiar parámetros, prepara de nuevo esa escucha. Compara también con el original sin filtros.
+
+## PAN: encuadrar y mover la cámara
+
+El editor visual de PAN permite recortar y desplazar el encuadre, ajustar proporciones y animar el movimiento durante el clip.
+
+![Captura de PAN: encuadrar y mover la cámara](assets/04-pan.png)
+
+El escritorio de encuadre y la vista resultante permiten comprobar el movimiento de cámara.
+
+### Encuadrar
+
+Selecciona el clip y abre PAN desde el área de efectos. Arrastra el marco o sus esquinas para desplazar y redimensionar el encuadre. Activa mantener proporción cuando quieras conservar su forma.
+
+### Elegir formato
+
+Utiliza una relación como 4:3, 16:9 o 15:9 como punto de partida. Cambiar el encuadre del clip no sustituye la elección de resolución y formato del archivo final al renderizar.
+
+### Animar el recorrido
+
+Coloca el tiempo al inicio y añade una posición. Avanza, cambia el encuadre y añade otra. Puedes mover el momento de los puntos o eliminarlos. Mantén Mayús al arrastrar la cámara para restringir el movimiento a un eje horizontal o vertical. Reproduce el recorrido y aplica cuando esté listo.
+
+## Generadores: títulos y gráficos
+
+Generadores crea contenido para tu montaje: texto, títulos, rótulos, créditos y carteles. No es otra vista de la biblioteca.
+
+![Captura de Generadores: títulos y gráficos](assets/05-generador.png)
+
+El editor compacto mantiene el diseño y los botones de salida visibles, con propiedades organizadas en pestañas.
+
+### Elegir y diseñar
+
+Abre Generadores y parte de una plantilla. Añade texto o formas. Arrastra para posicionar, usa los controles de tamaño y haz doble clic para editar el texto. Selecciona el objeto antes de cambiar su aspecto.
+
+### Usar las pestañas
+
+Texto reúne el contenido y la tipografía. Estilo agrupa el aspecto; Animación controla la evolución; Lienzo permite ajustar el fondo y la duración. Alterna Diseño y Resultado animado sin perder el área de trabajo.
+
+### Decidir el destino
+
+Guardar en Project Media añade un medio generado a la biblioteca. Añadir a timeline lo incorpora al montaje. Con fondo transparente puedes colocarlo en una pista de vídeo sobre las imágenes. No necesitas renderizar un vídeo externo para reutilizar el diseño.
+
+## Animar títulos y elegir fuentes
+
+Una animación puede entrar suavemente, desplazarse, ampliarse o cambiar su opacidad. Los puntos permiten definir el recorrido a medida.
+
+![Captura de Animar títulos y elegir fuentes](assets/06-animacion-titulo.png)
+
+La línea de animación del generador utiliza tiempo relativo a la duración del título.
+
+### Del preset a los puntos
+
+En Animación, elige una animación predefinida o crea puntos personalizados de posición, escala u opacidad. Los puntos personalizados toman el control del movimiento mientras estén presentes. Comprueba el resultado en Resultado animado.
+
+### Editar la curva
+
+Pulsa en la curva o usa Añadir punto. Arrastra un punto horizontalmente para cambiar su instante y verticalmente para cambiar el valor de la propiedad seleccionada. Selecciónalo para eliminarlo con Supr o su opción contextual; también puedes ajustar el tiempo numéricamente.
+
+### Fuentes del ordenador
+
+Generadores y subtítulos permiten usar las fuentes instaladas en Windows. Busca la familia, comprueba la muestra y actualiza el catálogo si acabas de instalar una. Al compartir el proyecto, instala también las fuentes necesarias en el otro equipo: el LQTS no las incorpora.
+
+## Subtítulos automáticos y edición
+
+Los subtítulos son eventos de una pista propia. Puedes corregir sus textos y tiempos sin recortar los eventos de vídeo o audio.
+
+![Captura de Subtítulos automáticos y edición](assets/08-subtitulos.png)
+
+Edición de una frase de ejemplo introducida manualmente, no obtenida por reconocimiento del audio de demostración.
+
+### Generar desde vídeo o audio
+
+Selecciona la fuente con voz y abre la herramienta de subtítulos. Puedes trabajar con el sonido de un vídeo o una pista de audio. Elige idioma y motor, genera y revisa la pista resultante.
+
+### Elegir motor
+
+Faster Whisper INT8 es la opción principal; whisper.cpp se conserva como alternativa para comparar. Los modelos incluidos trabajan sin conexión. Más velocidad no garantiza más acierto: durante música sin voz pueden aparecer textos inventados. Revisa y elimina esas frases.
+
+### Corregir y presentar
+
+Edita cada evento, ajusta su duración y elige fuente, tamaño, color, contorno y posición. Comprueba la legibilidad sobre imágenes claras y oscuras. Si utilizas SRT, recuerda que ese formato conserva texto y tiempos, pero no todos los estilos ni el karaoke.
+
+## Karaoke y sincronización de la letra
+
+El modo karaoke resalta el texto mientras avanza la canción. El botón K de la pista evita activar el efecto frase por frase.
+
+![Captura de Karaoke y sincronización de la letra](assets/09-karaoke.png)
+
+La sincronización de letra completa permite trabajar por palabras o sílabas a lo largo de la pista.
+
+### Activar y abrir el ajuste
+
+Una vez creada y corregida la pista de subtítulos, pulsa K junto a M para activar o desactivar el karaoke de toda la pista. Con botón derecho sobre K abre Sincronizar letra completa…
+
+### Marcar la interpretación
+
+Elige palabras o sílabas. Reproduce y utiliza la barra espaciadora para marcar cada unidad: mantén la pulsación durante su duración y suelta al terminar. Sigue la unidad destacada en la ventana. Corrige el texto antes de sincronizar para evitar rehacer el trabajo.
+
+### Aplicar sin acabar toda la canción
+
+Puedes aplicar una sincronización parcial y continuar después; no es obligatorio marcar toda la letra para conservar lo trabajado. Guarda el LQTS. Reproduce la canción con la pista visible y verifica los enlaces entre frases y las sílabas largas.
+
+## Grabar voz o una toma de audio
+
+Insertar > Grabar audio abre el panel de micrófono. La entrada no se activa hasta que lo solicitas.
+
+![Captura de Grabar voz o una toma de audio](assets/10-microfono.png)
+
+Panel en reposo: esta captura no ha activado ni grabado ningún dispositivo.
+
+### 1. Preparar la entrada
+
+Elige el micrófono y pulsa Activar micrófono. Comprueba el medidor y ajusta la ganancia sin saturar. Usa auriculares si el equipo reproduce sonido que pueda entrar de nuevo por el micrófono.
+
+### 2. Grabar y guardar
+
+Selecciona la pista de destino y la posición, o una pista nueva. Pulsa Grabar WAV… y elige el archivo. Detener y guardar conserva la toma. El formato es WAV PCM de 24 bits, mono, a 48 kHz.
+
+### 3. Incorporar la toma
+
+Si está marcada Insertar en timeline al terminar, aparecerá en el montaje. También puedes insertar una toma ya guardada. Si falla el guardado, utiliza la opción de guardar en otra ruta antes de descartar o cerrar. Desconecta la entrada cuando acabes.
+
+## Grabar cámara y capturar pantalla
+
+Las capturas generan medios para editar después. Haz una prueba corta antes de una grabación larga y comprueba imagen, sonido y espacio libre.
+
+![Captura de Grabar cámara y capturar pantalla](assets/11-camara.png)
+
+Preparación de cámara, sin activar el dispositivo. La captura de pantalla dispone además de una Toolbox flotante.
+
+### Cámara
+
+Abre Insertar > Grabar vídeo. Elige cámara, resolución y si necesitas audio; activa la entrada para comprobar el encuadre y después graba. Al terminar, guarda la toma y añádela al timeline. La disponibilidad de formatos depende del dispositivo.
+
+### Pantalla y Toolbox
+
+En Insertar > Capturar pantalla selecciona la fuente y las entradas de sonido. La Toolbox flotante permite controlar la grabación, hacer snapshots y mutear micrófono o audio del equipo. Puedes añadir cámara y elegir su posición.
+
+### Cerrar no siempre significa detener
+
+Durante una captura de pantalla, cerrar el panel principal deja la Toolbox y la grabación activas. Finaliza desde sus controles y espera al guardado. La Toolbox está diseñada para quedar fuera de la captura; verifica su exclusión en tu Windows con una toma breve. La cámara superpuesta sí forma parte del resultado si la activas.
+
+## Guardar y renderizar el montaje
+
+Guardar conserva la edición; renderizar crea un archivo audiovisual reproducible. Son operaciones diferentes y conviene hacer ambas.
+
+![Captura de Guardar y renderizar el montaje](assets/12-render.png)
+
+El diálogo de renderizado permite elegir el perfil y los ajustes de salida.
+
+### Guardar la sesión
+
+Ctrl + S guarda el proyecto LQTS; Ctrl + Mayús + S abre Guardar como… Conserva los archivos de medios en sus rutas. Un LQTS no es un paquete que incluya todos los vídeos, sonidos o fuentes del ordenador.
+
+### Seleccionar una parte
+
+Usa Mayús y arrastra en la regla para marcar un intervalo, o fija sus extremos con I y O. Botón derecho > Quitar selección o Ctrl + Supr elimina ese intervalo. Sin selección se usa desde el primer clip activo hasta el final del último; los huecos interiores siguen existiendo.
+
+### Renderizar y revisar
+
+Elige Archivo > Renderizar o Exportar, revisa el perfil y el destino. Se respetan los estados de silencio y solo. Al finalizar se cierra el panel de render y se muestra el aviso de finalización. Abre el archivo generado y comprueba inicio, final, imagen, texto y mezcla.
+
+## Elegir el archivo de salida
+
+El destino determina el formato. Conserva el LQTS aunque ya hayas exportado: el vídeo final no sustituye a una sesión editable.
+
+### Vídeo para compartir
+
+MP4 ofrece una salida habitual de vídeo con audio. WebM es otra opción disponible. El panel permite elegir resoluciones como 640 × 360, 1280 × 720 o 1920 × 1080 y velocidades de 24, 25 o 30 fps. Revisa las opciones del perfil antes de empezar.
+
+### Audio sin imagen
+
+WAV es apropiado para conservar audio PCM; FLAC permite compresión sin pérdida. MP3 y M4A son alternativas comprimidas para distribución. Elige una ruta distinta del archivo fuente para conservar el original.
+
+### Una imagen fija
+
+Sitúa el cursor en el fotograma deseado y usa la exportación de fotograma de Archivo. PNG permite guardar la composición como imagen de alta calidad, con opciones de tamaño, incluida salida 4K cuando se ofrece en ese diálogo.
+
+### GIF animado
+
+Exporta un intervalo breve a GIF si necesitas una animación sin sonido. El formato utiliza una paleta limitada y puede perder calidad en degradados. Una resolución y duración contenidas evitan archivos innecesariamente grandes.
+
+### Control final
+
+Antes de entregar, revisa que no haya pistas silenciadas por error, intervalos de render olvidados o fuentes ausentes. Guarda una copia del proyecto y conserva sus medios junto a la entrega final.
+
+## Trabajar con proyectos de VEGAS
+
+La compatibilidad con VEGAS es un proceso de intercambio con límites. No se garantiza la apertura fiel de cualquier VEG binario ni la equivalencia de todos sus efectos.
+
+### Abrir con el puente de intercambio
+
+Guarda primero el proyecto en VEGAS. En LQTAC elige Abrir proyecto VEGAS y selecciona el VEG. Si falta un puente vigente y VEGAS está instalado en el equipo, LQTAC intenta iniciarlo y ejecutar la conversión. Resuelve en VEGAS cualquier aviso de medios o licencia. Después revisa el informe y guarda como LQTS.
+
+### Alternativa desde el equipo con VEGAS
+
+Abre el proyecto en VEGAS y ejecuta ExportLqtac.cs, con su .config al lado, desde tools/vegas. Genera un .lqtac-vegas.json junto al VEG. Copia ambos y los medios al otro equipo; allí podrás abrirlo desde LQTAC sin necesitar VEGAS para reutilizar ese puente.
+
+### Si cambia el proyecto original
+
+Vuelve a generar el puente después de modificar el VEG. Debe corresponder al proyecto actual. Lleva también los medios al equipo de destino y conserva sus rutas o restaura las ubicaciones que se indiquen como ausentes.
+
+### Qué necesita revisión
+
+El intercambio contempla pistas, eventos, tiempos, agrupaciones y determinados ajustes y envolventes. Plugins, composiciones y comportamientos específicos de VEGAS pueden quedar sin soporte. Revisa las advertencias; compara un render corto de referencia antes de continuar un trabajo importante.
+
+### Qué es un SFK
+
+Los archivos SFK son cachés de formas de onda de audio de VEGAS. No contienen la configuración completa de ese medio en el montaje ni sustituyen al VEG o al puente de intercambio.
+
+### Un método seguro de migración
+
+Conserva el original. Prueba primero un proyecto pequeño, con medios conocidos, fundidos y una agrupación de vídeo y audio. Comprueba duración, sincronía, niveles y encuadres antes de trasladar una sesión compleja.
+
+## Atajos de uso frecuente
+
+Estos atajos corresponden a la edición principal. Dentro de un campo de texto o un editor específico, las teclas pueden actuar sobre ese control.
+
+| Atajo | Acción |
+| --- | --- |
+| Ctrl + N | Nuevo proyecto |
+| Ctrl + O | Abrir proyecto |
+| Ctrl + S | Guardar proyecto |
+| Ctrl + Mayús + S | Guardar como… |
+| Ctrl + C / Ctrl + V | Copiar / pegar eventos seleccionados |
+| Ctrl + Z / Ctrl + Y | Deshacer / rehacer |
+| S | Dividir los eventos seleccionados en el cursor |
+| Supr | Eliminar la selección |
+| ← / → | Mover el cursor un fotograma |
+| Mayús + ← / → | Mover el cursor un segundo |
+| I / O | Fijar inicio / final del intervalo de render |
+| Ctrl + Supr | Quitar el intervalo de render |
+| Ctrl + arrastrar borde | Cambiar velocidad del conjunto |
+| Ctrl + Alt + arrastrar borde | Cambiar velocidad de un solo clip |
+| Mayús al mover PAN | Restringir la cámara a un eje |
+
+### Dos controles que se parecen
+
+La tecla S divide; el botón S de la pista activa Solo. Supr borra eventos; Ctrl + Supr quita el intervalo de render. Antes de usar un atajo comprueba qué área tiene el foco.
+
+## Resolver dudas habituales
+
+Empieza por una comprobación breve y reversible. Guarda el proyecto antes de reorganizar carpetas o probar cambios importantes.
+
+### El programa no encuentra el motor
+
+Asegúrate de haber extraído el portable completo. No abras el ejecutable desde el interior del ZIP ni copies solo el lanzador. Comprueba que las carpetas incluidas siguen a su lado y que Windows o el antivirus no han retirado un componente.
+
+### No se ve o no se oye lo esperado
+
+Sitúa el cursor sobre un evento, revisa su pista y comprueba Mute y Solo. Mira también el volumen del sistema y el dispositivo de salida. La previsualización principal sigue las pistas del proyecto, no el último elemento que hayas elegido en la biblioteca.
+
+### El proyecto abre con medios ausentes
+
+El LQTS guarda referencias. Devuelve los archivos a las rutas indicadas. Evita renombrar o mover medios durante el montaje. Al llevar el trabajo a otro ordenador, copia los medios y las fuentes además del proyecto.
+
+### La reproducción va a saltos
+
+Reduce los efectos simultáneos, cierra otros procesos y comprueba que los medios estén en almacenamiento local disponible. La previsualización puede ser más exigente con varios vídeos, PAN y efectos animados. Evalúa también un render corto antes de atribuir el problema al archivo final.
+
+### Un texto automático no corresponde al audio
+
+El reconocimiento puede inventar frases en música o silencio. Corrige la pista manualmente o compara el otro motor. La transcripción siempre necesita revisión, especialmente para letras cantadas.
+
+### Antes de darlo por terminado
+
+Guarda, revisa el intervalo y los estados M/S, renderiza una muestra, escucha con auriculares y vuelve a abrir el proyecto. Conserva una copia de seguridad independiente del portable y de los medios.

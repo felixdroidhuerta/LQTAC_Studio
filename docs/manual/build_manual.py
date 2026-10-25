@@ -1,0 +1,134 @@
+"""Build the branded PDF from maintained content and real desktop captures."""
+from pathlib import Path
+import sys
+from xml.sax.saxutils import escape
+from PIL import Image, ImageDraw, ImageFont
+from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.lib.colors import HexColor, Color, white
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.platypus import Paragraph, Table, TableStyle
+from reportlab.lib.utils import ImageReader
+from content import PAGES
+
+ROOT=Path(__file__).resolve().parents[2]
+ASSETS=Path(__file__).parent/'assets'
+OUT=Path(sys.argv[1]).resolve() if len(sys.argv)>1 else ROOT/'output/pdf/LQTAC_Studio_Manual_de_usuario_0.17.0.pdf'
+VERSION=sys.argv[2] if len(sys.argv)>2 else '0.17.0'
+OUT.parent.mkdir(parents=True,exist_ok=True)
+for name,file in [('Segoe','segoeui.ttf'),('SegoeB','segoeuib.ttf')]:
+    pdfmetrics.registerFont(TTFont(name,str(Path('C:/Windows/Fonts')/file)))
+pdfmetrics.registerFontFamily('Segoe',normal='Segoe',bold='SegoeB',italic='Segoe',boldItalic='SegoeB')
+NAVY=HexColor('#0b203d'); BLUE=HexColor('#2675c8'); CYAN=HexColor('#23adc7')
+INK=HexColor('#152b43'); GRAY=HexColor('#52657a'); LIGHT=HexColor('#e5edf5')
+W,H=612,792; LEFT=48; RIGHT=564; WIDTH=RIGHT-LEFT; BOTTOM=55
+BODY=ParagraphStyle('body',fontName='Segoe',fontSize=10.2,leading=15,textColor=INK)
+HEAD=ParagraphStyle('head',fontName='SegoeB',fontSize=11.3,leading=15,textColor=NAVY)
+LEAD=ParagraphStyle('lead',fontName='Segoe',fontSize=11.2,leading=16,textColor=GRAY)
+TITLE=ParagraphStyle('title',fontName='SegoeB',fontSize=25,leading=29,textColor=NAVY)
+CAP=ParagraphStyle('caption',fontName='Segoe',fontSize=8.2,leading=11,textColor=GRAY)
+c=canvas.Canvas(str(OUT),pagesize=(W,H),pageCompression=1)
+c.setTitle('LQTAC Studio '+VERSION+' · Manual de usuario')
+c.setAuthor('LQTAC Studio')
+c.setSubject('Guía funcional ilustrada: montaje, efectos, títulos, subtítulos, captura y exportación')
+c.setCreator('LQTAC Studio · Manual mantenible con ReportLab')
+TOTAL=len(PAGES)+2
+
+def para(text,x,y,width,style):
+    p=Paragraph(escape(text).replace('\n','<br/>'),style);_,h=p.wrap(width,1000)
+    p.drawOn(c,x,y-h);return y-h
+
+def footer(page):
+    c.setStrokeColor(LIGHT);c.setLineWidth(.6);c.line(LEFT,43,RIGHT,43)
+    c.setFillColor(GRAY);c.setFont('Segoe',8)
+    c.drawString(LEFT,28,'LQTAC Studio '+VERSION+'  /  Manual de usuario')
+    c.drawRightString(RIGHT,28,f'{page:02d} / {TOTAL:02d}')
+    if page>2:
+        c.linkRect('Volver al índice','contents',(LEFT,22,RIGHT-60,40),relative=0,thickness=0)
+
+def image(name,y,max_h=310,crop=None):
+    im=Image.open(ASSETS/name).convert('RGB')
+    if crop=='library':im=im.crop((270,100,940,530))
+    if crop=='split-mask':
+        first,second=im.crop((0,0,im.width,326)),im.crop((0,326,im.width,im.height))
+        pair=Image.new('RGB',(im.width*2+16,max(first.height,second.height)),'white')
+        pair.paste(first,(0,0));pair.paste(second,(im.width+16,0));im=pair
+    scale=min(WIDTH/im.width,max_h/im.height); iw,ih=im.width*scale,im.height*scale
+    x=LEFT+(WIDTH-iw)/2
+    c.setFillColor(NAVY);c.roundRect(x-1,y-ih-1,iw+2,ih+2,3,fill=1,stroke=0)
+    c.drawImage(ImageReader(im),x,y-ih,width=iw,height=ih)
+    return y-ih-8
+
+def badge(n,x,y):
+    c.setFillColor(CYAN);c.circle(x,y,9,fill=1,stroke=0)
+    c.setFillColor(NAVY);c.setFont('SegoeB',10);c.drawCentredString(x,y-3,str(n))
+
+# Cover: genuine logo, one real application view, restrained branded typography.
+c.bookmarkPage('cover');c.addOutlineEntry('Portada','cover',0)
+c.setFillColor(HexColor('#061329'));c.rect(0,642,W,150,fill=1,stroke=0)
+logo=Image.open(ASSETS/'logo.png').convert('RGB')
+c.drawImage(ImageReader(logo),LEFT,704,width=270,height=270*logo.height/logo.width)
+c.setFillColor(HexColor('#79e5f5'));c.setFont('SegoeB',9);c.drawString(LEFT,667,'GUÍA FUNCIONAL  /  VERSIÓN '+VERSION)
+para('Manual de usuario',LEFT,609,WIDTH,ParagraphStyle('cover',parent=TITLE,fontSize=35,leading=41,textColor=HexColor('#111111')))
+para('Editar, crear y dar forma a tu proyecto.',LEFT,548,WIDTH,LEAD)
+y=image('01-interfaz.png',505,max_h=335)
+para('Montaje · Audio · FX · Títulos · Subtítulos · Captura',LEFT,y-13,WIDTH,HEAD)
+para('Primera edición · 25 de octubre de 2026\nCapturas reales de la aplicación con medios de demostración.',LEFT,108,WIDTH,CAP)
+footer(1);c.showPage()
+
+# Two-column, linked contents.
+c.bookmarkPage('contents');c.addOutlineEntry('Índice','contents',0)
+c.setFillColor(CYAN);c.setFont('SegoeB',9);c.drawString(LEFT,747,'ORIENTACIÓN')
+para('Encuentra tu tarea',LEFT,722,WIDTH,TITLE)
+para('Sigue la guía desde el primer montaje o salta al editor que necesites. Pulsa una entrada para ir a su página; el pie de página vuelve a este índice.',LEFT,674,WIDTH,LEAD)
+colw=246; ys=[605,605]
+for i,p in enumerate(PAGES):
+    col=0 if i<12 else 1;x=LEFT+col*270;y=ys[col]
+    label=p['title'];page=i+3
+    c.setFillColor(BLUE);c.setFont('SegoeB',10);c.drawString(x,y-1,f'{page:02d}')
+    st=ParagraphStyle('toc',parent=BODY,fontSize=10,leading=13)
+    bottom=para(label,x+28,y+2,colw-30,st)
+    c.linkRect(label,f'page{page}',(x,bottom-5,x+colw,y+8),relative=0,thickness=0)
+    ys[col]=y-39
+para('Cómo leer las imágenes',LEFT,103,WIDTH,HEAD)
+para('Los nombres, las frases y los medios del ejemplo están preparados para esta guía. Los paneles de grabación se muestran en reposo. La disponibilidad y la fluidez dependen de tu equipo.',LEFT,83,WIDTH,CAP)
+footer(2);c.showPage()
+
+checks=[]
+for i,p in enumerate(PAGES):
+    number=i+3;c.bookmarkPage(f'page{number}');c.addOutlineEntry(p['title'],f'page{number}',0)
+    c.setFillColor(CYAN);c.setFont('SegoeB',9);c.drawString(LEFT,747,p['section'])
+    y=para(p['title'],LEFT,723,WIDTH,TITLE)-13
+    y=para(p['lead'],LEFT,y,WIDTH,LEAD)-17
+    if p.get('image'):
+        # Screens remain unmodified; crops retain the genuine panel UI.
+        top=y
+        y=image(p['image'],y,max_h=300 if len(p.get('blocks',[]))<4 else 253,crop=p.get('crop'))
+        if p['title']=='Conocer el espacio de trabajo':
+            im=Image.open(ASSETS/p['image']);s=min(WIDTH/im.width,300/im.height);x=LEFT+(WIDTH-im.width*s)/2
+            for n,xx,yy in [(1,75,120),(2,300,145),(3,320,550)]:badge(n,x+xx*s,top-yy*s)
+        y=para(p['caption'],LEFT,y,WIDTH,CAP)-15
+    if p.get('table'):
+        data=[[Paragraph('<b>Atajo</b>',BODY),Paragraph('<b>Acción</b>',BODY)]]
+        for a,b in p['table']:
+            data.append([Paragraph(escape(a),BODY),Paragraph(escape(b),BODY)])
+        table=Table(data,colWidths=[220,WIDTH-220],hAlign='LEFT')
+        table.setStyle(TableStyle([('VALIGN',(0,0),(-1,-1),'TOP'),('BACKGROUND',(0,0),(-1,0),LIGHT),('LINEBELOW',(0,0),(-1,0),.7,CYAN),('LINEBELOW',(0,1),(-1,-1),.3,LIGHT),('TOPPADDING',(0,0),(-1,-1),5),('BOTTOMPADDING',(0,0),(-1,-1),5),('LEFTPADDING',(0,0),(-1,-1),9)]))
+        _,th=table.wrap(WIDTH,1000);table.drawOn(c,LEFT,y-th);y-=th+17
+    for title,text in p.get('blocks',[]):
+        y=para(title,LEFT,y,WIDTH,HEAD)-4
+        y=para(text,LEFT,y,WIDTH,BODY)-12
+    checks.append((number,round(y,1),p['title']))
+    if y<BOTTOM:raise RuntimeError(f'Page {number} overflow: bottom {y:.1f} / {p["title"]}')
+    footer(number);c.showPage()
+c.save()
+md=['# LQTAC Studio '+VERSION+' - Manual de usuario','','Actualizado: 25 de octubre de 2026.','Capturas reales con medios de demostración.']
+for p in PAGES:
+    md.extend(['','## '+p['title'],'',p['lead']])
+    if p.get('image'):md.extend(['','![Captura de '+p['title']+'](assets/'+p['image']+')','',p['caption']])
+    if p.get('table'):md.extend(['','| Atajo | Acción |','| --- | --- |']+['| '+a+' | '+b+' |' for a,b in p['table']])
+    for title,text in p.get('blocks',[]):md.extend(['','### '+title,'',text])
+(Path(__file__).parent/'Manual_de_usuario.md').write_text('\n'.join(md)+'\n',encoding='utf-8')
+print(f'PDF: {OUT}\nPages: {TOTAL}')
+for row in checks:print(row)

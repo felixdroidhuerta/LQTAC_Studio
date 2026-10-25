@@ -672,3 +672,7 @@ Archivo/Nuevo y Ctrl+N ejecutan newLqts: confirmación nativa de tres opciones m
 Validación de publicación 0.11.0: verify-project, verify-work, verify-vegas y verify-layout completados. verify-subtitles incluye transcripción española real offline en pistas de audio y pistas mixtas heredadas. verify-portable-runtime comprueba hashes del código empaquetado, FFmpeg local, modelo Whisper small con SHA-256 esperado y transcripción real usando exclusivamente el motor del portable.
 
 La inserción de audio independiente ya no conserva un destino de tipo vídeo. La enumeración de fuentes y subtitles-service filtran por clip.kind audio y filePath, conservando los índices originales para la selección individual. Esto permite recuperar pistas mixtas heredadas sin modificar el proyecto: la copia temporal de reconocimiento se normaliza a audio y descarta eventos no sonoros y envolventes de opacidad. verify-subtitles.cjs cubre reconocimiento real de voz en pista de audio y pista heredada de vídeo, selección e inserción de audio independiente.
+
+## Publicación portable 0.15.0
+
+Paquete completo Windows x64 con los dos motores ASR offline, Toolbox, controles de velocidad/repetición/inversión y vistas reales del timeline. Validación del runtime empaquetado: lqtac-portable-check-4136; hashes de módulos nuevos comparados con fuente y CRC del ZIP íntegro.

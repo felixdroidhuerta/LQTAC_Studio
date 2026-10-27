@@ -1,7 +1,7 @@
 // Real screenshots, isolated profile and synthetic media. Never starts recording.
 const path=require('node:path'),fs=require('node:fs');
 const {execFile}=require('node:child_process');const run=require('node:util').promisify(execFile);
-const {app,BrowserWindow}=require('electron');
+const {app,BrowserWindow,ipcMain}=require('electron');
 const root=path.resolve(__dirname,'../..'),assets=path.join(__dirname,'assets'),media=path.join(root,'.openai/manual/media');
 fs.mkdirSync(assets,{recursive:true});fs.mkdirSync(media,{recursive:true});
 app.setPath('userData',path.join(root,'.openai/manual/profile'));
@@ -30,6 +30,8 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
  async function snap(name,selector){await wait(600);await js('return new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');let rect;if(selector)rect=await js(`return (()=>{const r=document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect();const x=Math.max(0,Math.floor(r.x)),y=Math.max(0,Math.floor(r.y));return {x,y,width:Math.min(innerWidth-x,Math.ceil(r.width)),height:Math.min(innerHeight-y,Math.ceil(r.height))};})()`);if(rect){const z=win.webContents.getZoomFactor();rect=Object.fromEntries(Object.entries(rect).map(([k,v])=>[k,Math.round(v*z)]));}const img=await win.webContents.capturePage(rect);fs.writeFileSync(path.join(assets,name+'.png'),img.toPNG());console.log('CAPTURE',name);}
  async function close(){await js("document.querySelectorAll('dialog[open]').forEach(d=>d.close())");await wait(200);}
  await snap('01-interfaz');await snap('logo','.brand-logo');await snap('02-timeline','.timeline');
+ await js('LQTACTimelineTools.setRange({start:4,end:14})');await snap('20-intervalo-pistas','.timeline');await js('LQTACTimelineTools.setRange(null)');
+ await js('applyTimelineSelection([]);await LQTACStems.open()');await snap('21-selector-instrumentos','dialog[open]');await close();
  for(const [mode,name] of [['audio','16-espacio-audio'],['color','17-espacio-color'],['text','18-espacio-texto']]){await js(`LQTACWorkspaces.activate('${mode}')`);await snap(name);}await js("LQTACWorkspaces.activate('edit')");
  win.webContents.setZoomFactor(0.85);
  await js('openEffectEditor(manualVideo,"saturation");effectEditorSession.draft.animation.saturation=[{time:0,value:1},{time:4,value:1},{time:10,value:0}];effectEditorSession.setTime(7);');await snap('03-fx-video','#effectEditor');await close();
@@ -46,7 +48,14 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
  const maskData='data:image/png;base64,'+fs.readFileSync(path.join(root,'Shapes/LQTAC-negro-fondo-blanco.png')).toString('base64');
  win.webContents.setZoomFactor(0.75);
  await js(`customMask=await decodeProjectMask({dataUrl:${JSON.stringify(maskData)},name:'LQTAC-negro-fondo-blanco.png',motion:'zoomIn',amount:0.5,softness:0.15,invert:false,blur:8});openMaskDialog()`);await snap('15-mascara','dialog[open]');await close();
+ win.webContents.setZoomFactor(0.85);
+ const stemOut=path.join(root,'.openai/manual/stems-results');fs.mkdirSync(stemOut,{recursive:true});ipcMain.removeHandler('stems-output-folder');ipcMain.handle('stems-output-folder',()=>stemOut);
+ await js(`await restoreProject({format:'LQTAC Studio',version:1,name:'Demostración de audio',time:0,library:[],tracks:[{id:'A1',name:'A1 · Audio de demostración',kind:'audio',envelope:[],clips:[{name:'Audio de demostración',kind:'audio',filePath:${JSON.stringify(wav)},startSeconds:0,durationSeconds:4,sourceDurationSeconds:24}]}]});await LQTACStems.open();$('#stemsFolder').click();`);await wait(150);await js("$('#stemsRun').click()");
+ for(let i=0;i<900;i++){await wait(100);if(await js('return !LQTACStems.busy'))break;}
+ if(await js('return timelineClips().length')!==5)throw Error('Separation capture failed: '+await js("return $('#stemsStatus').textContent"));
+ await snap('22-instrumentos-resultado','dialog[open]');await js("$('#stemsClose').click()");await wait(100);
+ await js("await restoreProject({format:'LQTAC Studio',version:1,name:'Proyecto vacío',library:[],tracks:[]});await LQTACStems.open()");await snap('23-instrumentos-sin-pistas','dialog[open]');await js("$('#stemsClose').click()");
  win.webContents.setZoomFactor(3);await snap('logo','.brand-logo');win.webContents.setZoomFactor(1);
- fs.writeFileSync(path.join(assets,'capture-info.json'),JSON.stringify({version:'0.17.0',date:new Date().toISOString(),synthetic:true},null,2));
+ fs.writeFileSync(path.join(assets,'capture-info.json'),JSON.stringify({version:'0.18.0',date:new Date().toISOString(),synthetic:true},null,2));
  app.exit(0);
  }catch(e){console.error(e.stack);app.exit(1);}})();

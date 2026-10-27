@@ -1,6 +1,12 @@
 const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 contextBridge.exposeInMainWorld('lqtacDesktop', {
+  stemsStatus:()=>ipcRenderer.invoke('stems-status'),
+  stemsSources:project=>ipcRenderer.invoke('stems-sources',project),
+  stemsOutputFolder:()=>ipcRenderer.invoke('stems-output-folder'),
+  stemsSeparate:options=>ipcRenderer.invoke('stems-separate',options),
+  stemsCancel:()=>ipcRenderer.invoke('stems-cancel'),
+  onStemsProgress:listener=>{const fn=(_e,p)=>listener(p);ipcRenderer.on('stems-progress',fn);return ()=>ipcRenderer.removeListener('stems-progress',fn);},
   timelineFrame:options=>ipcRenderer.invoke('timeline-frame',options),
   timelineWaveform:options=>ipcRenderer.invoke('timeline-waveform',options),
   cancelTimelineVisual:id=>ipcRenderer.invoke('cancel-timeline-visual',id),

@@ -340,6 +340,13 @@ app.whenReady().then(async () => {
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 
 const subtitlesService=require('./subtitles-service.cjs');
+const stemsService=require('./stems-service.cjs');
+app.on('before-quit',()=>stemsService.cancel());
+ipcMain.handle('stems-status',event=>{recordingSender(event);return stemsService.status();});
+ipcMain.handle('stems-sources',(event,project)=>{recordingSender(event);return stemsService.sources(project);});
+ipcMain.handle('stems-output-folder',async event=>{recordingSender(event);const r=await dialog.showOpenDialog(mainWindow,{title:'Carpeta para guardar las pistas separadas',defaultPath:currentProjectPath?path.dirname(currentProjectPath):app.getPath('documents'),properties:['openDirectory','createDirectory']});return r.canceled?null:r.filePaths[0];});
+ipcMain.handle('stems-separate',(event,options)=>{recordingSender(event);if(exportJob||audioRecording.active()||cameraRecording.active())throw Error('Finaliza la exportación o grabación antes de separar instrumentos');return stemsService.separate(options,p=>{if(!event.sender.isDestroyed())event.sender.send('stems-progress',p);});});
+ipcMain.handle('stems-cancel',event=>{recordingSender(event);stemsService.cancel();});
 app.on('before-quit',()=>subtitlesService.cancel());
 ipcMain.handle('subtitle-status',()=>subtitlesService.status());
 ipcMain.handle('subtitle-transcribe',(event,options)=>subtitlesService.transcribe(options,p=>{if(!event.sender.isDestroyed())event.sender.send('subtitle-progress',p);}));

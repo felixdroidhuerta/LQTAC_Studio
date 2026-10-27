@@ -1,5 +1,49 @@
 # LQTAC Studio — guía de desarrollo y continuidad
 
+## Publicación portable 0.18.0 · 27/10/2026
+
+Paquete Windows x64 con motor/modelo Demucs y ambos motores ASR incluidos. Manual actualizado de 29 páginas, 27 enlaces de índice y 29 marcadores, con capturas reales de origen/resultados de separación y tramo iluminado. PDF renderizado completo y revisado visualmente, incluidos los capítulos nuevos. Ningún audio personal se incluye en código ni portable.
+
+Validación empaquetada satisfactoria en lqtac-portable-check-28104: UI, APIs, fuentes, generadores, modelos, codecs y hashes del runtime. Separación real usando stems/FFmpeg del paquete en lqtac-stems-check-22000: duración/offset/rate, cuatro pistas agrupadas, original intacto, mute, undo/redo, LQTS y cancelación. Selector de medios válido comprobado en lqtac-stems-sources-8508. ZIP de 1.405.749.171 bytes; SHA-256 en RELEASE-0.18.0-SHA256SUMS.txt. build-portable valida el hash completo del modelo y el hash del worker frente al manifiesto antes de copiar el motor.
+
+## Selector de orígenes de separación · 27/10/2026
+
+La apertura deja de depender de target(): Herramientas habilita el comando con studioReady y todos los accesos abren el diálogo incluso sin selección. Nuevo IPC stems-sources, validado con recordingSender, llama a stems-service.sources(project): valida LQTS, filtra eventos audio con filePath/duración positiva <=1800 y confirma fs.stat().isFile(), cacheando comprobaciones por ruta. Devuelve pistas/índices/nombres y eventos elegibles sin tocar el proyecto.
+
+Dos selectores enlazados mantienen en la sesión el clip DOM, trackIndex y clipIndex elegidos y su snapshot de apertura. Se preselecciona el audio actual o agrupado si figura en la lista; en otro caso, primer origen válido. La elección alimenta tanto la petición al motor como el mute del evento original correcto. Selectores se bloquean durante trabajo y después de insertar. Falta de orígenes muestra literalmente «Aún no hay pistas a procesar en este proyecto», sin habilitar procesamiento ni descarga. Falta de runtime conserva su aviso específico cuando sí hay medios elegibles. Se conserva separación por evento, no mezcla de toda la pista.
+
+Verificado con verify-stems-sources.cjs (lqtac-stems-sources-32196): apertura vacía y aviso exacto, comando disponible sin selección, filtrado de pistas vacías/medios ausentes/eventos largos, cambio pista/evento, índices enviados al motor y preselección. Separación real con nuevo flujo satisfactoria en lqtac-stems-check-26572: cuatro salidas, mute, agrupación, undo/redo, LQTS y cancelación. Revisión visual de estados vacío y completado. Cambios locales sin publicación ni actualización del portable.
+
+## Acceso directo a separación desde Ventanas · 27/10/2026
+
+stems-controls añade #stemsDock inmediatamente después de subtitleDock y abre inicialmente su sección colapsable para visibilidad. Invoca el mismo diálogo open() que Herramientas y Audio. stopPropagation evita que el manejador delegado de navegación oculte el mezclador/panel actual cuando se abre el modal; no marca un panel diferente como activo. Sin origen seleccionado conserva el aviso existente. No modifica proyectos ni requiere nuevo motor.
+
+## Resaltado residual en Herramientas · 27/10/2026
+
+El comando de stems se añade después de construir los menús. Su antiguo pointerenter ocultaba submenús pero dejaba aria-expanded=true en el padre (Subtítulos/FX), conservando el fondo activo. menu-controls delega ahora pointerover y focusin de los comandos directos para cerrar submenús y restablecer sus atributos, incluidos comandos dinámicos; se retira el listener parcial de stems. Verificación aislada satisfactoria: transiciones desde Subtítulos/FX audio/FX vídeo, foco por teclado y apertura del diálogo de separación (.openai/check-menu-hover.cjs, proceso 32292). Cambio local sin publicación.
+
+## Resaltado de tramo sobre pistas · 27/10/2026
+
+timeline-tools.refreshRange sincroniza la clase range-highlight-active y dos variables CSS de porcentaje en #tracks con el mismo renderRange que la regla. Cada .track::after dibuja una banda translúcida y bordes a z-index 5, por encima de los clips y debajo de envolventes/cabezal (6/7). pointer-events:none conserva selección, arrastre, recorte y menús de los eventos. No crea nodos por pista ni necesita observers adicionales: pistas añadidas o reordenadas heredan el intervalo, y su ancho se adapta al zoom/scroll. Restauración LQTS usa refreshTimelineScale/refreshRange existentes. Clear elimina clase y variables. No hay cambio de esquema ni de render-engine.
+
+Prueba dedicada verify-range-highlight.cjs: contraste de píxel real sobre onda, geometría frente a la regla, zoom/scroll, pistas nuevas, espacio Audio, restauración, Ctrl+Supr, arrastre del extremo y hit testing de clips.
+
+Resultado satisfactorio lqtac-range-highlight-24548 y revisión visual del intervalo 10–25 s sobre ondas reales. Cambio local sin publicación ni nuevo portable.
+
+## Separación de instrumentos · 27/10/2026 · prueba local
+
+`stems-service.cjs` aísla el evento de audio y retima su envolvente de pista, respetando offset/rate/reverse/fades/FX/gain/pan mediante render-engine. Descarta renderRange del proyecto y fuerza el origen a t=0 para preparación. FFmpeg convierte a WAV float estéreo 44,1 kHz; `stems-worker.py`, empaquetado con PyInstaller en stems/bin/lqtac-stems.exe, ejecuta Demucs 4.0.1 htdemucs en CPU. Torch/torchaudio 2.5.1+cpu, numpy 1.26.4, soundfile 0.13.1. Repo/modelo local explícito, SHA-256 completo fijado y sockets bloqueados en el worker. Se usan segmentos 7,5 s con overlap .25, shifts=0 y hasta 4 hilos desde el servicio. No CUDA ni descarga en runtime.
+
+La primera evaluación usa Demucs directamente para reducir alcance y dependencias; Audio Separator queda como posible backend posterior, no se presenta como integrado. Peso oficial 955717e8-8726e21a.th: SHA-256 8726e21a993978c7ba086d3872e7608d7d5bfca646ca4aca459ffda844faa8b4. Avisos MIT y dependencias en stems/licenses y bin/licenses; bin/runtime-manifest.json conserva versiones y hash del worker. tools/setup-stems.ps1 reproduce el entorno y tools/collect-stems-licenses.py recoge avisos. Binarios y pesos están excluidos de Git, igual que ASR.
+
+El residual entre mezcla y suma estimada se añade a other; un único factor común reduce picos de stems si superan .98. PCM24 mantiene niveles relativos. Cancelación mata solo procesos de esa operación y no inserta nada. Una carpeta única por trabajo evita sobrescrituras; se valida manifiesto de cuatro nombres fijos, duración y recursos de salida. IPC con recordingSender y bloqueo por grabación/exportación. Límite inicial 30 min.
+
+Frontend stems-controls registra Herramientas/espacio Audio, selección de clip de audio (o grupo AV), progreso, cancelación y previews individuales. Inserta cuatro pistas/medios con groupId nuevo mediante un historyCheckpoint; mute solo del evento original. Conserva esquema LQTS actual. La compilación portable futura exige copiar stems y stems-service junto a los recursos offline; no sustituir la release histórica 0.17.0. El ZIP de motor es únicamente una medición local, no una nueva release.
+
+Modelo probado sobre un fragmento local de 12 s, 27,73 s CPU y error máximo de suma PCM24 4,62e-7 (reportes privados .openai). Tamaño motor/modelo/avisos 504.557.700 bytes; ZIP independiente 220.979.379 bytes. verify-stems.cjs prueba separación real sobre fixture sintético sin dependencias personales, duración con trim/rate, agrupación, original intacto/silenciado, undo/redo, LQTS y cancelación/limpieza; prueba inicial satisfactoria lqtac-stems-check-31492. La calidad perceptiva del aislamiento aún requiere evaluación del usuario.
+
+Validación final con worker empaquetado y diálogo compacto de escuchas: lqtac-stems-check-21832 (4 s de evento editado, 13,64 s de motor CPU); regresión de espacios satisfactoria lqtac-workspaces-28688. Se conserva un montaje de escucha de 12 s con la muestra original y cuatro resultados en Pruebas/Separacion_Demucs_12s, excluido de Git por contener audio personal. Solo documentación/código local; no se publica ni altera ningún portable histórico.
+
 ## Publicación portable 0.17.0
 
 Windows x64: espacios de trabajo, ordenación por arrastre de pista, propiedades contextuales y manual ilustrado actualizado (26 páginas). Paquete autosuficiente con FFmpeg y ambos motores/modelos ASR. Verificación de ejecución sobre el código empaquetado: lqtac-portable-check-15300, con hash idéntico del ejecutable Electron, recursos incluidos, fuentes, composición, modelos ASR y nuevas APIs de espacios. Verificación del ZIP: CRC completo de 1197 entradas, comparación de los tres módulos nuevos y del manual contra las fuentes. Archivo de 1.181.521.758 bytes; SHA-256 en desktop/RELEASE-0.17.0-SHA256SUMS.txt. Las pruebas de espacios pasan con WAV sintético generado por el propio test (lqtac-workspaces-14652), sin depender de medios personales.

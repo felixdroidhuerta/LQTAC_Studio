@@ -1,6 +1,6 @@
-# LQTAC Studio 0.17.0 - Manual de usuario
+# LQTAC Studio 0.18.0 - Manual de usuario
 
-Actualizado: 25 de octubre de 2026.
+Actualizado: 27 de octubre de 2026.
 Capturas reales con medios de demostración.
 
 ## Instalar y empezar
@@ -279,6 +279,46 @@ Activa la animación y añade puntos. Por ejemplo, aumenta los agudos solo duran
 
 La escucha en tiempo real facilita el ajuste, pero ciertos procesamientos son aproximaciones. Usa Preparar escucha exacta para comprobar el resultado procesado por el motor de audio. Tras cambiar parámetros, prepara de nuevo esa escucha. Compara también con el original sin filtros.
 
+## Separar una canción en instrumentos
+
+Demucs estima cuatro fuentes: Voz, Batería, Bajo y Otros instrumentos. El motor y el modelo están incluidos para trabajar sin Internet ni instalar Python.
+
+![Captura de Separar una canción en instrumentos](assets/21-selector-instrumentos.png)
+
+El diálogo se abre sin selección previa. Puedes elegir la pista y uno de sus eventos de audio.
+
+### 1. Elegir el audio
+
+Abre Ventanas > Separar instrumentos, debajo de Subtítulos. También está en Herramientas y en el espacio Audio. Elige Pista a procesar y Evento de audio; el clip válido que tuvieras seleccionado se propone automáticamente.
+
+### 2. Comprobar qué se separa
+
+Se procesa ese evento con su recorte, velocidad, inversión, fundidos, FX y ajustes de pista. Si quieres trabajar con la grabación sin tratar, separa antes de añadir efectos. No se procesa toda la pista si contiene varios eventos.
+
+### 3. Preparar el destino
+
+Solo se muestran eventos con archivo disponible y duración de hasta 30 minutos. Sin ninguno válido aparece «Aún no hay pistas a procesar en este proyecto». Elige una carpeta y pulsa Separar e insertar cuatro pistas. El proceso usa CPU y puede tardar varios minutos.
+
+## Escuchar y conservar los resultados
+
+Las cuatro salidas se guardan en una carpeta nueva y se incorporan al proyecto. El archivo original permanece intacto.
+
+![Captura de Escuchar y conservar los resultados](assets/22-instrumentos-resultado.png)
+
+Detalle de resultados sobre audio sintético de demostración. Las escuchas no arrancan automáticamente.
+
+### Pistas sincronizadas
+
+Se crean cuatro pistas de audio con eventos agrupados, en el inicio y con la duración del origen. Deja marcada Silenciar el evento original para evitar duplicar la canción. Después puedes usar Mute y Solo para escuchar o mezclar cada instrumento.
+
+### Comparar y guardar
+
+Escucha cada WAV en el diálogo o cierra la ventana para reproducir el proyecto. Se pausa la escucha anterior al iniciar otra. Guarda el LQTS y conserva la carpeta de resultados: son WAV PCM24 estéreo a 44,1 kHz. Deshacer retira la inserción y restaura el silencio anterior, pero conserva los WAV guardados.
+
+### Límites de la separación
+
+No se recuperan las grabaciones originales. Puede haber restos entre instrumentos o sonidos artificiales; Otros agrupa guitarras, piano y lo que no sea voz, batería o bajo. Cancelar detiene la operación sin insertar pistas. Para un audio largo, divide en eventos de hasta 30 minutos y procesa cada uno; esta versión crea cuatro pistas nuevas por operación.
+
 ## PAN: encuadrar y mover la cámara
 
 El editor visual de PAN permite recortar y desplazar el encuadre, ajustar proporciones y animar el movimiento durante el clip.
@@ -419,6 +459,26 @@ En Insertar > Capturar pantalla selecciona la fuente y las entradas de sonido. L
 
 Durante una captura de pantalla, cerrar el panel principal deja la Toolbox y la grabación activas. Finaliza desde sus controles y espera al guardado. La Toolbox está diseñada para quedar fuera de la captura; verifica su exclusión en tu Windows con una toma breve. La cámara superpuesta sí forma parte del resultado si la activas.
 
+## Ver el tramo seleccionado
+
+El intervalo de la regla se ilumina también sobre todas las pistas para mostrar qué parte del montaje estás marcando.
+
+![Captura de Ver el tramo seleccionado](assets/20-intervalo-pistas.png)
+
+La banda cian comparte los mismos límites de tiempo que la selección superior y deja visibles los medios.
+
+### Marcar y ajustar
+
+Mantén Mayús y arrastra en la regla para marcar el intervalo, o utiliza I y O en la posición del cursor. Arrastra los extremos para ajustarlo. La banda sigue el zoom y el desplazamiento, también en pistas nuevas.
+
+### Continuar editando
+
+El resaltado no selecciona los clips ni bloquea el ratón: puedes moverlos, recortarlos y editar envolventes. Las ondas, los fotogramas y el cabezal siguen visibles. Es una ayuda visual del mismo intervalo usado para renderizar.
+
+### Quitar la selección
+
+Usa Ctrl + Supr, botón derecho sobre el intervalo de la regla > Quitar selección, o el botón Todo. Desaparecen el intervalo y su iluminación; la exportación vuelve a tomar desde el primer clip activo hasta el último. Revisa ese estado antes de renderizar.
+
 ## Guardar y renderizar el montaje
 
 Guardar conserva la edición; renderizar crea un archivo audiovisual reproducible. Son operaciones diferentes y conviene hacer ambas.
@@ -433,7 +493,7 @@ Ctrl + S guarda el proyecto LQTS; Ctrl + Mayús + S abre Guardar como… Conserv
 
 ### Seleccionar una parte
 
-Usa Mayús y arrastra en la regla para marcar un intervalo, o fija sus extremos con I y O. Botón derecho > Quitar selección o Ctrl + Supr elimina ese intervalo. Sin selección se usa desde el primer clip activo hasta el final del último; los huecos interiores siguen existiendo.
+Usa Mayús y arrastra en la regla, o fija los extremos con I y O. Una banda cian ilumina el intervalo sobre todas las pistas. Botón derecho > Quitar selección o Ctrl + Supr retira el intervalo y su resaltado. Sin selección se usa desde el primer clip activo hasta el final del último; los huecos interiores se conservan.
 
 ### Renderizar y revisar
 

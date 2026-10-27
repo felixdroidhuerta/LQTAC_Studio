@@ -1,8 +1,7 @@
 {
-  "version": "0.17.0",
-  "pages": 26,
-  "toc_links": 24,
-  "bookmarks": 26,
-  "text_extraction": "passed",
-  "size_bytes": 1797640
+  "version": "0.18.0",
+  "pages": 29,
+  "toc_links": 27,
+  "bookmarks": 29,
+  "text_extraction": "passed"
 }

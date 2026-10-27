@@ -13,7 +13,7 @@ Get-ChildItem -LiteralPath $runtime -Force | Where-Object { $_.Name -notin @('LQ
 $appRoot = Join-Path $OutputDirectory 'resources\app'
 $desktopTarget = Join-Path $appRoot 'desktop'
 New-Item -ItemType Directory -Path $desktopTarget -Force | Out-Null
-foreach ($name in @('main.cjs','preload.cjs','veg-parser.cjs','vegas-bridge.cjs','vegas-automation.cjs','project-io.cjs','render-engine.cjs','reverse-media.cjs','media-visuals.cjs','effects-audio.cjs','audio-automation.cjs','subtitles-service.cjs','audio-recording.cjs','camera-recording.cjs','capture-recording.cjs','screen-capture.cjs','capture-toolbox.cjs','capture-toolbox-preload.cjs','capture-toolbox.html','capture-toolbox-ui.js','windows-integration.cjs','windows-association.ps1')) {
+foreach ($name in @('main.cjs','preload.cjs','veg-parser.cjs','vegas-bridge.cjs','vegas-automation.cjs','project-io.cjs','render-engine.cjs','reverse-media.cjs','media-visuals.cjs','effects-audio.cjs','audio-automation.cjs','subtitles-service.cjs','stems-service.cjs','audio-recording.cjs','camera-recording.cjs','capture-recording.cjs','screen-capture.cjs','capture-toolbox.cjs','capture-toolbox-preload.cjs','capture-toolbox.html','capture-toolbox-ui.js','windows-integration.cjs','windows-association.ps1')) {
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot $name) -Destination $desktopTarget
 }
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'assets') -Destination $desktopTarget -Recurse
@@ -35,6 +35,13 @@ foreach ($name in @('ExportLqtac.cs','ExportLqtac.cs.config')) {
 Copy-Item -LiteralPath (Join-Path $projectRoot 'Shapes') -Destination $OutputDirectory -Recurse
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'portable-package.json') -Destination (Join-Path $appRoot 'package.json')
 Copy-Item -LiteralPath (Join-Path $projectRoot 'FUNCIONAMIENTO.md') -Destination $OutputDirectory
+$stemsRoot=Join-Path $PSScriptRoot 'stems'
+if(!(Test-Path -LiteralPath (Join-Path $stemsRoot 'bin\lqtac-stems.exe')) -or !(Test-Path -LiteralPath (Join-Path $stemsRoot 'models\955717e8-8726e21a.th'))){throw 'Falta el motor de separación offline. Ejecuta tools/setup-stems.ps1 antes de crear un nuevo portable.'}
+$stemsManifest=Get-Content -LiteralPath (Join-Path $stemsRoot 'bin\runtime-manifest.json') -Raw | ConvertFrom-Json
+if($stemsManifest.worker_sha256 -ne (Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'stems-worker.py') -Algorithm SHA256).Hash.ToLowerInvariant()){throw 'El worker de separación no coincide con su compilación; reconstruye el motor.'}
+if((Get-FileHash -LiteralPath (Join-Path $stemsRoot 'models\955717e8-8726e21a.th') -Algorithm SHA256).Hash.ToLowerInvariant() -ne '8726e21a993978c7ba086d3872e7608d7d5bfca646ca4aca459ffda844faa8b4'){throw 'El peso Demucs está alterado.'}
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'stems-worker.py') -Destination $desktopTarget
+Copy-Item -LiteralPath $stemsRoot -Destination (Join-Path $desktopTarget 'stems') -Recurse
 $manual = Join-Path $projectRoot ('output\pdf\LQTAC_Studio_Manual_de_usuario_' + (Get-Content -LiteralPath (Join-Path $PSScriptRoot 'portable-package.json') -Raw | ConvertFrom-Json).version + '.pdf')
 if (!(Test-Path -LiteralPath $manual)) { throw 'Falta el manual PDF actualizado para esta versión.' }
 Copy-Item -LiteralPath $manual -Destination (Join-Path $OutputDirectory 'Manual de usuario.pdf')

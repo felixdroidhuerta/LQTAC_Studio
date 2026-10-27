@@ -1,6 +1,6 @@
 """Build the branded PDF from maintained content and real desktop captures."""
 from pathlib import Path
-import sys
+import sys,json
 from xml.sax.saxutils import escape
 from PIL import Image, ImageDraw, ImageFont
 from reportlab.pdfgen import canvas
@@ -14,8 +14,8 @@ from content import PAGES
 
 ROOT=Path(__file__).resolve().parents[2]
 ASSETS=Path(__file__).parent/'assets'
-OUT=Path(sys.argv[1]).resolve() if len(sys.argv)>1 else ROOT/'output/pdf/LQTAC_Studio_Manual_de_usuario_0.17.0.pdf'
-VERSION=sys.argv[2] if len(sys.argv)>2 else '0.17.0'
+VERSION=sys.argv[2] if len(sys.argv)>2 else json.loads((ROOT/'desktop/portable-package.json').read_text(encoding='utf-8'))['version']
+OUT=Path(sys.argv[1]).resolve() if len(sys.argv)>1 else ROOT/f'output/pdf/LQTAC_Studio_Manual_de_usuario_{VERSION}.pdf'
 OUT.parent.mkdir(parents=True,exist_ok=True)
 for name,file in [('Segoe','segoeui.ttf'),('SegoeB','segoeuib.ttf')]:
     pdfmetrics.registerFont(TTFont(name,str(Path('C:/Windows/Fonts')/file)))
@@ -50,6 +50,7 @@ def footer(page):
 def image(name,y,max_h=310,crop=None):
     im=Image.open(ASSETS/name).convert('RGB')
     if crop=='library':im=im.crop((270,100,940,530))
+    if crop=='stems-results':im=im.crop((0,round(im.height*.53),im.width,im.height))
     if crop=='split-mask':
         first,second=im.crop((0,0,im.width,326)),im.crop((0,326,im.width,im.height))
         pair=Image.new('RGB',(im.width*2+16,max(first.height,second.height)),'white')
@@ -74,7 +75,7 @@ para('Manual de usuario',LEFT,609,WIDTH,ParagraphStyle('cover',parent=TITLE,font
 para('Editar, crear y dar forma a tu proyecto.',LEFT,548,WIDTH,LEAD)
 y=image('01-interfaz.png',505,max_h=335)
 para('Montaje · Audio · FX · Títulos · Subtítulos · Captura',LEFT,y-13,WIDTH,HEAD)
-para('Primera edición · 25 de octubre de 2026\nCapturas reales de la aplicación con medios de demostración.',LEFT,108,WIDTH,CAP)
+para('Actualizado · 27 de octubre de 2026\nCapturas reales de la aplicación con medios de demostración.',LEFT,108,WIDTH,CAP)
 footer(1);c.showPage()
 
 # Two-column, linked contents.
@@ -82,15 +83,15 @@ c.bookmarkPage('contents');c.addOutlineEntry('Índice','contents',0)
 c.setFillColor(CYAN);c.setFont('SegoeB',9);c.drawString(LEFT,747,'ORIENTACIÓN')
 para('Encuentra tu tarea',LEFT,722,WIDTH,TITLE)
 para('Sigue la guía desde el primer montaje o salta al editor que necesites. Pulsa una entrada para ir a su página; el pie de página vuelve a este índice.',LEFT,674,WIDTH,LEAD)
-colw=246; ys=[605,605]
+colw=246; ys=[605,605]; split=(len(PAGES)+1)//2
 for i,p in enumerate(PAGES):
-    col=0 if i<12 else 1;x=LEFT+col*270;y=ys[col]
+    col=0 if i<split else 1;x=LEFT+col*270;y=ys[col]
     label=p['title'];page=i+3
     c.setFillColor(BLUE);c.setFont('SegoeB',10);c.drawString(x,y-1,f'{page:02d}')
     st=ParagraphStyle('toc',parent=BODY,fontSize=10,leading=13)
     bottom=para(label,x+28,y+2,colw-30,st)
     c.linkRect(label,f'page{page}',(x,bottom-5,x+colw,y+8),relative=0,thickness=0)
-    ys[col]=y-39
+    ys[col]=y-34
 para('Cómo leer las imágenes',LEFT,103,WIDTH,HEAD)
 para('Los nombres, las frases y los medios del ejemplo están preparados para esta guía. Los paneles de grabación se muestran en reposo. La disponibilidad y la fluidez dependen de tu equipo.',LEFT,83,WIDTH,CAP)
 footer(2);c.showPage()
@@ -123,7 +124,7 @@ for i,p in enumerate(PAGES):
     if y<BOTTOM:raise RuntimeError(f'Page {number} overflow: bottom {y:.1f} / {p["title"]}')
     footer(number);c.showPage()
 c.save()
-md=['# LQTAC Studio '+VERSION+' - Manual de usuario','','Actualizado: 25 de octubre de 2026.','Capturas reales con medios de demostración.']
+md=['# LQTAC Studio '+VERSION+' - Manual de usuario','','Actualizado: 27 de octubre de 2026.','Capturas reales con medios de demostración.']
 for p in PAGES:
     md.extend(['','## '+p['title'],'',p['lead']])
     if p.get('image'):md.extend(['','![Captura de '+p['title']+'](assets/'+p['image']+')','',p['caption']])

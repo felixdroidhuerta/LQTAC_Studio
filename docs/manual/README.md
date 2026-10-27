@@ -1,10 +1,10 @@
 # Manual de usuario de LQTAC Studio
 
-Edición funcional actualizada al código **0.17.0**, 25/10/2026. Incluye los espacios de trabajo, reordenación de pistas y propiedades contextuales.
+Edición funcional actualizada al código **0.18.0**, 27/10/2026. Incluye espacios, separación offline con selector de pista/evento y escucha de resultados, reordenación de pistas, propiedades contextuales y selección visible en las pistas.
 
 ## Entrega
 
-El PDF final se genera en `output/pdf/LQTAC_Studio_Manual_de_usuario_0.17.0.pdf` desde la raíz del proyecto. El índice tiene enlaces internos; el pie de las páginas de contenido vuelve al índice. El portable lo incluye como «Manual de usuario.pdf».
+El PDF final se genera en `output/pdf/LQTAC_Studio_Manual_de_usuario_0.18.0.pdf` desde la raíz del proyecto. El índice tiene enlaces internos; el pie de las páginas de contenido vuelve al índice. El portable lo incluye como «Manual de usuario.pdf».
 
 ## Fuentes de la guía
 

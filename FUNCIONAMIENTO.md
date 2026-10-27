@@ -1,6 +1,28 @@
 # LQTAC Studio — Funcionamiento y validación
 
-Última actualización: 25 de octubre de 2026.
+Última actualización: 27 de octubre de 2026.
+
+El menú Herramientas limpia el resaltado y el submenú anterior al pasar a «Separar instrumentos…», también al navegar con teclado. No quedan dos opciones marcadas simultáneamente por un estado anterior de submenú.
+
+## Resaltado del intervalo seleccionado en las pistas
+
+El intervalo marcado en la regla se ilumina también sobre todas las pistas mediante una banda cian translúcida y límites verticales. Las ondas, los fotogramas y los nombres siguen visibles; el cabezal y las envolventes permanecen por encima. El resaltado sigue el ajuste de inicio/fin, zoom y desplazamiento y se aplica también a pistas nuevas.
+
+Al quitar el intervalo con Ctrl+Supr, el menú contextual de la regla o «Todo», desaparece también el resaltado de las pistas. Es una ayuda visual del intervalo existente: no selecciona ni modifica los clips y no cambia el contenido exportado.
+
+## Separar instrumentos · prueba local del 27/10/2026
+
+Abre **Ventanas → Separar instrumentos**, justo debajo de Subtítulos, sin necesidad de seleccionar antes un clip. Su sección se muestra desplegada inicialmente. También está en **Herramientas → Separar instrumentos…** y en el espacio Audio. La ventana permite elegir **Pista a procesar** y **Evento de audio**; si tenías un evento válido seleccionado (o su vídeo agrupado), queda preseleccionado. Solo aparecen pistas con algún evento de audio disponible en disco, de duración positiva y hasta 30 minutos. No se procesan automáticamente todos los eventos de una pista: elige uno en el segundo selector.
+
+Sin orígenes válidos se abre igualmente y muestra **«Aún no hay pistas a procesar en este proyecto»**, con selectores y procesamiento desactivados. Con un origen válido, elige una carpeta y pulsa «Separar e insertar cuatro pistas». Demucs genera Voz, Batería, Bajo y Otros instrumentos como WAV PCM24 estéreo a 44,1 kHz. Crea una subcarpeta nueva y no sobrescribe la canción.
+
+Se procesa únicamente ese evento, con sus ediciones de recorte, velocidad, inversión, fades, FX y ajustes de audio de pista. Las cuatro salidas se insertan en pistas nuevas, con la duración e inicio del evento, y quedan agrupadas entre sí. La opción «Silenciar el evento original» evita reproducirlo duplicado; no silencia otros eventos de esa pista ni elimina el vídeo agrupado. Cada resultado puede escucharse en el diálogo y después en la mezcla del proyecto. Al iniciar una escucha previa se pausa la anterior.
+
+La inserción es una única edición deshacible. Deshacer retira los eventos/pistas añadidos y restaura el silencio anterior, pero conserva los WAV guardados. LQTS referencia esos medios: hay que conservar la carpeta de resultados. Cancelar detiene el trabajo y no añade medios; solo limpia los temporales y la carpeta nueva de la operación incompleta.
+
+Primera prueba con **Demucs htdemucs de cuatro fuentes**, directamente, sin el wrapper Audio Separator. CPU, máximo 30 minutos por evento. El motor y el modelo están instalados localmente; no se necesita Python ni acceso a GitHub/Internet durante el uso. Falta de recursos se informa sin descargarlos automáticamente. La separación es estimada y puede dejar restos o artefactos; no recupera grabaciones originales. Se conserva la suma de la mezcla en «Otros» y se usa una atenuación común si hace falta evitar clipping, nunca normalización independiente por instrumento.
+
+Prueba sobre 12 s de una canción local: 27,73 s de motor CPU en este equipo, cuatro WAV de igual longitud, error máximo de reconstrucción 4,62e-7 antes de cualquier mezcla posterior. Es una comprobación de sincronía y suma, no una certificación de aislamiento musical. Motor/modelo/licencias: 504.557.700 bytes en disco y 220.979.379 bytes en un ZIP de prueba independiente; no se ha rehecho ni publicado el portable histórico 0.17.0.
 
 ## Espacios de trabajo para probar
 

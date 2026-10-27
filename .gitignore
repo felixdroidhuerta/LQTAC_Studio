@@ -4,11 +4,14 @@ desktop/speech/models/
 desktop/speech/faster/bin/
 desktop/speech/faster/models/
 desktop/speech/*.zip
+desktop/stems/bin/
+desktop/stems/models/*.th
 *.download
 tools/vegas/diagnostics/
 desktop/node_modules/
 *.log
 tmp/
+Pruebas/
 .openai/
 LQTAC_Studio_Portable_*/
 LQTAC_Studio_Portable_*.zip

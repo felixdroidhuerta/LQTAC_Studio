@@ -8,6 +8,7 @@ const style=document.createElement('style');style.textContent=`
 .render-region{position:absolute;top:0;bottom:0;background:rgba(121,229,245,.18);border-inline:2px solid var(--cyan);pointer-events:none;z-index:2}
 .render-region-handle{position:absolute;top:0;bottom:0;width:9px;cursor:ew-resize;pointer-events:auto;touch-action:none;background:rgba(121,229,245,.3)}
 .render-region-handle.start{left:-3px}.render-region-handle.end{right:-3px}
+#tracks.range-highlight-active > .track::after{content:"";position:absolute;top:0;bottom:0;left:var(--render-range-left);width:var(--render-range-width);background:rgba(121,229,245,.20);border-inline:2px solid rgba(121,229,245,.85);pointer-events:none;z-index:5}
 .dock-panel-list details{border-bottom:1px solid var(--line);padding-bottom:5px}.dock-panel-list summary{cursor:pointer;padding:9px 4px;color:var(--muted);font-size:10px;letter-spacing:.08em;text-transform:uppercase}.dock-panel-list details .dock-panel-item{width:100%}
 .render-range-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.render-range-fields input{width:100%;background:#081a32;color:var(--text);border:1px solid var(--line);padding:8px;border-radius:6px}
 `;document.head.append(style);
@@ -15,8 +16,10 @@ const ready=()=>!exporting&&!historyBusy&&!document.querySelector('dialog[open]'
 const actions=$('.timeline-actions');
 const controls=document.createElement('span');controls.innerHTML='<button class="timeline-tool" data-range="in" title="Marcar inicio en el cabezal · I">Inicio I</button> <button class="timeline-tool" data-range="out" title="Marcar fin en el cabezal · O">Fin O</button> <button class="timeline-tool" data-range="clear" title="Renderizar todos los clips activos">Todo</button>';actions.prepend(controls);
 function refreshRange(){
- const ruler=$('.ruler');if(!ruler)return;let region=$('.render-region',ruler);const range=window.lqtacRenderRange;
- if(!range){region?.remove();return;}
+ const tracks=$('#tracks'),ruler=$('.ruler');if(!ruler)return;let region=$('.render-region',ruler);const range=window.lqtacRenderRange;
+ tracks.classList.toggle('range-highlight-active',!!range);
+ if(!range){region?.remove();tracks.style.removeProperty('--render-range-left');tracks.style.removeProperty('--render-range-width');return;}
+ tracks.style.setProperty('--render-range-left',range.start/timelineDurationSeconds*100+'%');tracks.style.setProperty('--render-range-width',(range.end-range.start)/timelineDurationSeconds*100+'%');
  if(!region){region=document.createElement('div');region.className='render-region';region.innerHTML='<span class="render-region-handle start" data-bound="start" title="Inicio del tramo"></span><span class="render-region-handle end" data-bound="end" title="Fin del tramo"></span>';ruler.append(region);}
  region.style.left=range.start/timelineDurationSeconds*100+'%';region.style.width=(range.end-range.start)/timelineDurationSeconds*100+'%';region.title=`Renderizar ${range.start.toFixed(3)} – ${range.end.toFixed(3)} s`;
 }

@@ -858,3 +858,8 @@ Mantén pulsado el botón izquierdo sobre el nombre de una pista y arrástralo h
 Al aproximarse a los bordes verticales del timeline se desplaza la lista automáticamente. Escape, la pérdida de foco o la cancelación del puntero interrumpen el gesto sin modificar el proyecto. Un clic sin arrastre o soltar en la misma posición no crea una edición. El cambio admite Ctrl+Z/Ctrl+Y y queda guardado en el LQTS. Los botones M, S, K y propiedades conservan su función: el arrastre empieza solo desde el nombre.
 
 Verificado con reordenación en ambos sentidos, conservación de clips y estado de pista, botones de silencio después del movimiento, deshacer/rehacer, guardado/apertura LQTS, cancelación y desplazamiento automático en un montaje de 20 pistas (lqtac-track-order-20604).
+
+
+### Renderizado horizontal, vertical y cuadrado
+El selector de resolución muestra dimensiones y proporción, agrupadas por orientación. MP4, WebM y GIF admiten 16:9 (640×360, 1280×720, 1920×1080), 9:16 (360×640, 720×1280, 1080×1920), 4:5 (1080×1350), 1:1 (1080×1080), 4:3 (1440×1080) y 3:4 (1080×1440). El motor valida parejas de dimensiones completas. Se conserva el encuadre Pan/Crop del proyecto; cambiar resolución no reencuadra automáticamente cada clip.
+Validación: renderizados MP4 reales y decodificados a 360×640, 1080×1350, 1080×1080 y 1440×1080; etiquetas de los diez formatos y rechazo de parejas no admitidas comprobados con verify-render-formats.cjs.

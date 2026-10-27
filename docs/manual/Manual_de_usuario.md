@@ -1,4 +1,4 @@
-# LQTAC Studio 0.18.0 - Manual de usuario
+# LQTAC Studio 0.18.1 - Manual de usuario
 
 Actualizado: 27 de octubre de 2026.
 Capturas reales con medios de demostración.
@@ -505,7 +505,7 @@ El destino determina el formato. Conserva el LQTS aunque ya hayas exportado: el 
 
 ### Vídeo para compartir
 
-MP4 ofrece una salida habitual de vídeo con audio. WebM es otra opción disponible. El panel permite elegir resoluciones como 640 × 360, 1280 × 720 o 1920 × 1080 y velocidades de 24, 25 o 30 fps. Revisa las opciones del perfil antes de empezar.
+MP4 ofrece una salida habitual de vídeo con audio. WebM es otra opción disponible. El selector muestra dimensiones y proporción: 16:9 horizontal, 9:16 vertical, 4:5, 1:1 cuadrado, 4:3 y 3:4. Por ejemplo, 1080 × 1920 es Full HD vertical. Puedes elegir 24, 25 o 30 fps. Usa Pan/Crop para ajustar el encuadre; el formato no reencuadra automáticamente los clips. Revisa las opciones del perfil antes de empezar.
 
 ### Audio sin imagen
 

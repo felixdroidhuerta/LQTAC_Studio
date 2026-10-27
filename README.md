@@ -1,10 +1,10 @@
 # LQTAC Studio
 
-Editor local de vídeo y audio para Windows. Versión 0.18.0: separación offline de canciones en Voz, Batería, Bajo y Otros, selector de pista/evento y resaltado del intervalo sobre las pistas. Incluye espacios de trabajo, mezclador, generadores, fuentes de Windows, FX, renderizado por tramos, captura y dos motores de subtítulos offline.
+Editor local de vídeo y audio para Windows. Versión 0.18.1: separación offline de canciones en Voz, Batería, Bajo y Otros, selector de pista/evento y resaltado del intervalo sobre las pistas. Incluye espacios de trabajo, mezclador, generadores, fuentes de Windows, FX, renderizado por tramos, captura y dos motores de subtítulos offline.
 
 ## Descargar el programa
 
-Para un equipo nuevo, abre [Releases](https://github.com/felixdroidhuerta/LQTAC_Studio/releases/tag/v0.18.0-portable) y descarga **LQTAC_Studio_0.18.0_Windows_x64_Portable.zip** dentro de Assets.
+Para un equipo nuevo, abre [Releases](https://github.com/felixdroidhuerta/LQTAC_Studio/releases/tag/v0.18.1-portable) y descarga **LQTAC_Studio_0.18.1_Windows_x64_Portable.zip** dentro de Assets.
 
 Extrae todo el ZIP y abre **LQTAC Studio.exe**. El motor y sus bibliotecas están incluidos; no requiere Node, pnpm ni Internet en el equipo destino. La carpeta Shapes junto al ejecutable contiene la máscara LQTAC de ejemplo.
 

@@ -816,3 +816,8 @@ La inserción de audio independiente ya no conserva un destino de tipo vídeo. L
 ## Publicación portable 0.15.0
 
 Paquete completo Windows x64 con los dos motores ASR offline, Toolbox, controles de velocidad/repetición/inversión y vistas reales del timeline. Validación del runtime empaquetado: lqtac-portable-check-4136; hashes de módulos nuevos comparados con fuente y CRC del ZIP íntegro.
+
+
+### Renderizado horizontal, vertical y cuadrado
+El selector de resolución muestra dimensiones y proporción, agrupadas por orientación. MP4, WebM y GIF admiten 16:9 (640×360, 1280×720, 1920×1080), 9:16 (360×640, 720×1280, 1080×1920), 4:5 (1080×1350), 1:1 (1080×1080), 4:3 (1440×1080) y 3:4 (1080×1440). El motor valida parejas de dimensiones completas. Se conserva el encuadre Pan/Crop del proyecto; cambiar resolución no reencuadra automáticamente cada clip.
+Validación: desktop/verify-render-formats.cjs prueba la composición y codificación/decodificación real en cuatro proporciones, las diez etiquetas y el rechazo de dimensiones no admitidas.

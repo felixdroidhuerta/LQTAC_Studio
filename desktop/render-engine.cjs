@@ -43,7 +43,7 @@ async function hasAudio(filePath) {
 async function startRender({project,profile,width=1280,height=720,fps=24,output,effectsDirectory,range=project.renderRange},progress=()=>{}) {
   validateProject(project);
   const preset=presets[profile];
-  if(!preset || ![10,15,24,25,30].includes(fps) || ![640,1280,1920].includes(width) || ![360,720,1080].includes(height)) throw new Error('Formato de exportación no válido.');
+  if(!preset || ![10,15,24,25,30].includes(fps) || ![[640,360],[1280,720],[1920,1080],[360,640],[720,1280],[1080,1920],[1080,1350],[1080,1080],[1440,1080],[1080,1440]].some(([w,h])=>w===width&&h===height)) throw new Error('Formato de exportación no válido.');
   const clips=project.tracks.flatMap(t=>t.clips);
   if(!clips.length) throw new Error('El proyecto no tiene eventos que exportar.');
   if(clips.some(c=>c.kind!=='subtitle'&&path.resolve(c.filePath).toLowerCase()===path.resolve(output).toLowerCase())) throw new Error('El destino no puede sobrescribir un medio del proyecto.');

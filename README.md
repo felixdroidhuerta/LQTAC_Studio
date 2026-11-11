@@ -1,13 +1,13 @@
 # Cinema Studio by LQTAC
 
-Cinema Studio by LQTAC es el nuevo nombre del editor local LQTAC Studio. La versión 0.19.2 incorpora la nueva identidad, Ayuda con manual local y Acerca de…, imágenes en pistas de vídeo, mejoras de envolventes y selección del timeline y un lanzador permanente para la barra de tareas.
+Cinema Studio by LQTAC es el nuevo nombre del editor local LQTAC Studio. La versión 0.20.0 añade el croma por zonas con IA (ver más abajo). La 0.19.2 incorporó la nueva identidad, Ayuda con manual local y Acerca de…, imágenes en pistas de vídeo, mejoras de envolventes y selección del timeline y un lanzador permanente para la barra de tareas.
 
 
 Editor local de vídeo y audio para Windows. Incluye separación offline de canciones en Voz, Batería, Bajo y Otros, selector de pista/evento y resaltado del intervalo sobre las pistas, espacios de trabajo, mezclador, generadores, fuentes de Windows, FX, renderizado por tramos, captura y dos motores de subtítulos offline.
 
 ## Descargar el programa
 
-Para un equipo nuevo, abre [Releases](https://github.com/felixdroidhuerta/LQTAC_Studio/releases/tag/v0.19.2-portable) y descarga **Cinema_Studio_0.19.2_Windows_x64_Portable.zip** dentro de Assets.
+Para un equipo nuevo, abre [Releases](https://github.com/felixdroidhuerta/LQTAC_Studio/releases/tag/v0.20.0-portable) y descarga **Cinema_Studio_0.20.0_Windows_x64_Portable.zip** dentro de Assets.
 
 Extrae todo el ZIP y abre **Cinema Studio.exe**. El motor y sus bibliotecas están incluidos; no requiere Node, pnpm ni Internet en el equipo destino. La carpeta Shapes junto al ejecutable contiene la máscara LQTAC de ejemplo.
 

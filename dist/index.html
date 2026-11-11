@@ -383,9 +383,11 @@
   </style>
   <script src="assets/work-model.js"></script>
   <script src="assets/effects-model.js"></script>
+  <script src="assets/autotune-core.js"></script>
   <script src="assets/effects-video.js"></script>
   <script src="assets/ai-matte.js"></script>
   <script src="assets/chroma-zone-controls.js"></script>
+  <script src="assets/effect-presets.js"></script>
   <script src="assets/still-images.js"></script>
   <script>
     const $ = (sel, root = document) => root.querySelector(sel);
@@ -613,10 +615,12 @@
     const clipLocalTime = (clip, seconds) => Math.max(0, clipPlaybackOffset(clip) + (seconds - clipTiming(clip).startSeconds)*Number(clip.dataset.playbackRate||1));
     const effectSettingsCache=new WeakMap(),effectAudioCache=new Map();
     function clipEffectsState(clip,kind){let entry=effectSettingsCache.get(clip);if(!entry){entry={};effectSettingsCache.set(clip,entry);}const text=clip.dataset[kind+'Fx']||'{}';if(entry[kind]?.text!==text){const value=JSON.parse(text);LQTACEffects.validate(value,kind);entry[kind]={text,value};}return entry[kind].value;}
-    function audioFxSegment(clip){return {offset:Number(clip.dataset.sourceOffsetSeconds)||0,duration:clipTiming(clip).durationSeconds,rate:Number(clip.dataset.playbackRate)||1,...(clip.dataset.reverse==='true'?{reverse:true}:{})};}
-    function audioFxCacheKey(clip,fx){return clip.dataset.filePath+'\n'+JSON.stringify(fx)+'\n'+JSON.stringify(LQTACEffects.animatedAudio(fx)||clip.dataset.reverse==='true'?audioFxSegment(clip):null);}
+    // Autotune guide: the audio events of the chosen track under this clip, in clip-local seconds (muted events still guide).
+    function audioGuidePieces(clip,trackId){const track=$$('.track').find(t=>t.dataset.track===trackId);if(!track)return [];return LQTACAutotune.guidePieces(clipTiming(clip),timelineClips().filter(c=>c.parentElement===track&&c!==clip&&(c.dataset.kind||track.dataset.kind)==='audio'&&c.dataset.filePath).map(c=>({filePath:c.dataset.filePath,...clipTiming(c),sourceOffsetSeconds:Number(c.dataset.sourceOffsetSeconds)||0,playbackRate:Number(c.dataset.playbackRate)||1,reverse:c.dataset.reverse==='true'})));}
+    function audioFxSegment(clip,fx=clipEffectsState(clip,'audio')){return {offset:Number(clip.dataset.sourceOffsetSeconds)||0,duration:clipTiming(clip).durationSeconds,rate:Number(clip.dataset.playbackRate)||1,...(clip.dataset.reverse==='true'?{reverse:true}:{}),...(fx?.enabled&&fx.autotune&&fx.autotuneGuideTrack?{guide:audioGuidePieces(clip,fx.autotuneGuideTrack)}:{})};}
+    function audioFxCacheKey(clip,fx){return clip.dataset.filePath+'\n'+JSON.stringify(fx)+'\n'+JSON.stringify(LQTACEffects.animatedAudio(fx)||clip.dataset.reverse==='true'?audioFxSegment(clip,fx):null);}
     function clipMediaTime(clip,seconds){return clip.dataset.kind==='audio'&&LQTACEffects.animatedAudio(clipEffectsState(clip,'audio'))?Math.max(0,seconds-clipTiming(clip).startSeconds):clipLocalTime(clip,seconds);}
-    async function effectsAudioPath(clip){const fx=clipEffectsState(clip,'audio');if(!fx.enabled)return clipPlaybackPath(clip);const key=audioFxCacheKey(clip,fx);if(!effectAudioCache.has(key)){toast('Preparando efectos de audio locales…');const operation=window.lqtacDesktop.prepareAudioEffects(clip.dataset.filePath,fx,audioFxSegment(clip));effectAudioCache.set(key,operation);operation.catch(()=>effectAudioCache.delete(key));}return effectAudioCache.get(key);}
+    async function effectsAudioPath(clip){const fx=clipEffectsState(clip,'audio');if(!fx.enabled)return clipPlaybackPath(clip);const key=audioFxCacheKey(clip,fx);if(!effectAudioCache.has(key)){toast('Preparando efectos de audio locales…');const operation=window.lqtacDesktop.prepareAudioEffects(clip.dataset.filePath,fx,audioFxSegment(clip,fx));effectAudioCache.set(key,operation);operation.catch(()=>effectAudioCache.delete(key));}return effectAudioCache.get(key);}
     const mediaUrlForTimeline = async filePath => {
       if (!filePath || !window.lqtacDesktop?.mediaFileUrl) return '';
       if (!timelineUrlCache.has(filePath)) {

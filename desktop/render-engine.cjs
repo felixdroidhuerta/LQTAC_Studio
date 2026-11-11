@@ -49,12 +49,14 @@ async function startRender({project,profile,width=1280,height=720,fps=24,output,
   if(clips.some(c=>c.kind!=='subtitle'&&path.resolve(c.filePath).toLowerCase()===path.resolve(output).toLowerCase())) throw new Error('El destino no puede sobrescribir un medio del proyecto.');
   const bounds=require('../dist/assets/render-range-model.js').bounds(project,range);
   project=structuredClone(project);
+  // Autotune guide tracks are resolved before muted/disabled tracks are dropped: a silenced guide still guides.
+  for(const track of project.tracks)for(const clip of track.clips)if(clip.kind==='audio'&&clip.audioFx?.enabled&&clip.audioFx.autotune&&clip.audioFx.autotuneGuideTrack){const guide=project.tracks.find(t=>t.id===clip.audioFx.autotuneGuideTrack);clip.autotuneGuide=require('../dist/assets/autotune-core.js').guidePieces(clip,(guide?.clips||[]).filter(c=>c!==clip&&c.kind==='audio'));}
   project.tracks=project.tracks.filter(t=>enabled(t,project.tracks)).map(t=>({...t,clips:t.clips.filter(c=>!c.mute&&c.startSeconds<bounds.end&&c.startSeconds+c.durationSeconds>bounds.start)}));
   for(const c of project.tracks.flatMap(t=>t.clips).filter(c=>c.kind!=='subtitle'&&!c.generator)) if(!c.filePath || !fs.existsSync(c.filePath)) throw new Error('Medio no encontrado: '+c.filePath);
   project=structuredClone(project);
   const cache=effectsDirectory||path.join(require('node:os').tmpdir(),'lqtac-effects-cache');
   if(!preset.silent)for(const track of project.tracks)for(const clip of track.clips)if(clip.kind==='audio'&&clip.reverse){clip.filePath=await require('./reverse-media.cjs').prepare({filePath:clip.filePath,kind:'audio',offset:clip.sourceOffsetSeconds||0,duration:clip.durationSeconds*(clip.playbackRate||1)},path.join(cache,'reverse'));clip.sourceOffsetSeconds=0;clip.sourceDurationSeconds=clip.durationSeconds*(clip.playbackRate||1);clip.reverse=false;}
-  if(!preset.silent)for(const track of project.tracks)for(const clip of track.clips)if(clip.kind==='audio'&&clip.audioFx?.enabled){const animated=require('../dist/assets/effects-model.js').animatedAudio(clip.audioFx);clip.filePath=await require('./effects-audio.cjs').prepare(clip.filePath,clip.audioFx,cache,{offset:clip.sourceOffsetSeconds||0,duration:clip.durationSeconds,rate:clip.playbackRate||1});if(animated){clip.sourceOffsetSeconds=0;clip.playbackRate=1;}}
+  if(!preset.silent)for(const track of project.tracks)for(const clip of track.clips)if(clip.kind==='audio'&&clip.audioFx?.enabled){const animated=require('../dist/assets/effects-model.js').animatedAudio(clip.audioFx);clip.filePath=await require('./effects-audio.cjs').prepare(clip.filePath,clip.audioFx,cache,{offset:clip.sourceOffsetSeconds||0,duration:clip.durationSeconds,rate:clip.playbackRate||1,...(clip.autotuneGuide?{guide:clip.autotuneGuide}:{})});if(animated){clip.sourceOffsetSeconds=0;clip.playbackRate=1;}}
   const renderClips=project.tracks.flatMap(t=>t.clips);
   const duration=bounds.duration;
   const temporary=path.join(path.dirname(output),`.lqtac-render-${process.pid}-${Date.now()}.${profile}`);

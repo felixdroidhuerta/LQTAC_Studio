@@ -2,6 +2,106 @@
 
 Última actualización: 11 de noviembre de 2026.
 
+## Autotune · 11/11/2026 (0.21.0)
+
+En FX → Audio, tarjeta **Autotune**. Corrige la afinación de la voz llevando cada nota a la más cercana de la escala elegida.
+
+| Control | Qué hace | Animable |
+|---|---|---|
+| Tonalidad | Do … Si | No |
+| Escala | Cromática (todas las notas), mayor, menor natural, menor armónica, pentatónica mayor y menor, blues | No |
+| Intensidad de la corrección | 0 = sin corregir, 1 = afinación completa | Sí |
+| Velocidad de ajuste | 0 = salto instantáneo (efecto robótico), 1 = deslizamiento lento y natural (unos 300 ms) | Sí |
+
+- **Si no conoces la tonalidad,** usa la escala cromática: corrige a la nota más cercana sin importar la escala. Con mayor o menor la corrección es más musical, pero hay que acertar con la tonalidad (Do mayor y La menor comparten notas).
+- **Presets:** corrección natural, corrección firme, efecto robótico, robótico en Do mayor / La menor, pop en Sol mayor y una entrada animada del efecto robótico.
+- **Render y escucha exacta:** el programa analiza el tono de todo el clip (algoritmo YIN, unos 1,1 s por minuto de audio, en un hilo aparte) y aplica la corrección con Rubber Band conservando el timbre. El análisis forma parte de la caché del clip.
+- **Escucha en directo:** detecta el tono al vuelo y corrige con el desplazador aproximado del directo; puede sonar algo granulado. Para juzgar el resultado final, usa «Preparar escucha exacta».
+- **Límites:** pensado para una sola voz o instrumento melódico. Con acordes, coros o música de fondo la detección se confunde. Las correcciones se limitan a ±2,5 semitonos; los silencios y las consonantes no se corrigen.
+- **Orden en la cadena:** después del compresor y antes del cambio de tono, así ambos efectos se pueden combinar.
+
+Medido con tonos de prueba: 450 Hz (La desafinado) sale a 440,6 Hz; en cromática 470 Hz va a La♯ (465,6 Hz) y en Do mayor a Si (491,8 Hz); con intensidad 0 no cambia; la intensidad animada empieza a corregir donde marca la curva. En directo, 450 Hz sale a 440 Hz.
+
+Validación: `desktop/verify-autotune.cjs` (Node) y `desktop/verify-audio-pack-ui.cjs` (tarjeta, selectores, directo, escucha exacta y formulario).
+
+### Pista guía
+
+En la misma tarjeta, apartado **Pista guía**: eliges otra pista de audio del proyecto (un piano, una flauta o un cantante de referencia que haga la melodía) y la voz se lleva a la nota que suena en la guía en cada momento, en lugar de a la nota más cercana de la escala.
+
+| Control | Qué hace |
+|---|---|
+| Seguir la melodía de | La pista guía, o «Ninguna» para corregir por la escala |
+| Modo | **Seguir notas:** la voz va a la nota entera de la guía y conserva su propio vibrato. **Copiar entonación:** la voz copia también los deslizamientos y el vibrato de la guía |
+| Donde la guía calla | Corregir por la escala elegida, o no corregir |
+| Retrasar la guía | Desfase en segundos (−1 a 1) si la guía y la voz no están alineadas |
+| Corrección máxima | Semitonos que puede mover la corrección (0,5 a 12; 2,5 por defecto). Con guía suele convenir subirla (los presets de guía usan 7) |
+
+- **Octava libre:** si la guía suena en otra octava (piano agudo, voz de hombre frente a voz de mujer), se usa la misma nota en la octava más cercana a la voz.
+- **La guía puede estar silenciada:** sus eventos guían aunque estén en silencio o la pista esté desactivada, así no se oye en la exportación. Se usan los eventos de la pista guía que quedan bajo el clip de voz, con su recorte, velocidad e inversión.
+- **Escucha en directo:** al elegir la guía se analiza su melodía una vez (unos segundos) y la escucha en directo la sigue. La escucha exacta y la exportación analizan voz y guía completas.
+- **Presets:** «Pista guía · seguir notas» y «Pista guía · copiar entonación». Ajustan modo, velocidad y corrección máxima, pero no eligen la pista: hay que seleccionarla.
+- **Límites:** la guía debe ser monofónica (una sola nota a la vez); un piano con acordes o una mezcla completa no sirven. Si la voz entra antes o después que la guía, ese trozo se corrige hacia la nota equivocada; no hay alineación automática de ritmo.
+
+Medido con tonos: voz de 450 Hz y 470 Hz con una guía Do5 / Sol4 sale a 523,3 Hz y 391,8 Hz (también al exportar el proyecto con la guía silenciada). Una guía de 261,6 Hz (Do4) lleva los 450 Hz a Do5. En modo «copiar entonación», una guía de 445 Hz da 444,5 Hz; en «seguir notas», 440,6 Hz. Con corrección máxima de 2,5 semitonos, el salto se limita a 519,5 Hz. En directo, 450 Hz con guía Do5 sale a 526 Hz.
+
+## Pack de audio · 11/11/2026 (0.21.0)
+
+En FX → Audio hay once efectos nuevos (la panorámica se añadió tras la primera prueba del portable 0.21.0). Cada uno tiene su editor con escucha, presets de fábrica y curvas, y también está en el formulario general de efectos:
+
+| Efecto | Para qué | Animable |
+|---|---|---|
+| Filtro paso alto | Quitar retumbe y golpes graves; barridos | Sí (frecuencia) |
+| Filtro paso bajo | Sonido apagado o «tras la pared»; suavizar agudos | Sí (frecuencia) |
+| Puerta de ruido | Silenciar el fondo entre frases | Sí (umbral) |
+| De-esser | Reducir sibilantes fuertes («s», «z») | Sí (intensidad) |
+| Cambio de tono / voces | De −12 a +12 semitonos, con o sin conservar el timbre (voz grave o aguda, ardilla, monstruo) | Sí (semitonos) |
+| Chorus | Engrosar voces o instrumentos | Sí (profundidad y mezcla) |
+| Trémolo | Variación periódica de volumen (helicóptero) | Sí (velocidad y profundidad) |
+| Lo-fi | Reducción de muestreo, sonido de consola o radio vieja | Sí (intensidad) |
+| Ensanche estéreo | Más ancho, o mono con 0 | Sí (anchura) |
+| Reverb de sala (convolución) | Habitación, sala de conciertos o catedral, con cola real | Sí (mezcla); el tamaño es fijo |
+| Panorámica | Colocar el sonido a la izquierda o a la derecha, o moverlo de un lado a otro | Sí (posición) |
+
+- **Orden fijo de la cadena:** paso alto → paso bajo → puerta → ruido → ecualizador → de-esser → compresor → tono → chorus → trémolo → lo-fi → ensanche → panorámica → eco → ambiente → sala → normalización → limitador.
+- **Parámetros fijos:** solo el tamaño de la sala; no muestra la opción de animar.
+- **Una línea por parámetro:** en los efectos con varios valores (chorus, trémolo, compresor, eco, sala) cada parámetro tiene su curva de color, como en el ecualizador. Cada curva usa su propia escala; pulsa cerca de una línea o en la leyenda para editarla.
+- **Escucha en directo (aproximada):** incluye filtros, de-esser, cambio de tono, chorus, trémolo, sala, puerta, lo-fi, ensanche y panorámica, y sigue las curvas al reproducir. El tono en directo no conserva el timbre y puede sonar algo granulado; «Preparar escucha exacta» suena igual que el render.
+- **Panorámica:** −1 todo a la izquierda, 0 centro, 1 todo a la derecha (balance: baja el canal contrario). Presets: izquierda, derecha, centrado, de izquierda a derecha y vaivén.
+- **Botón Vaciar caché:** usa el estilo de los botones del menú lateral (azul cuando está disponible, apagado cuando la caché está vacía).
+- **Reverb de sala:** usa una respuesta generada por el propio programa (ruido con caída exponencial a −60 dB), sin ficheros de terceros. Su ganancia está compensada para que, con la mezcla al máximo, quede cerca del nivel original. Igual que la animación, procesa el clip por tramo.
+- **Caché de audio procesado:** al final del panel FX se ve cuánto ocupa y se puede vaciar. Los efectos se vuelven a preparar al reproducir o exportar, y los archivos en uso se respetan.
+- **Corrección:** la caché de la vía por tramo tiene ahora en cuenta todos los ajustes del efecto. Antes podía reutilizar un resultado anterior si solo cambiaba un valor que no forma parte de la cadena simple.
+
+Medido con señales de prueba:
+- +12 semitonos lleva 440 Hz exactos a 880 Hz, y −5 a 330 Hz.
+- El paso alto a 1 kHz deja un tono de 440 Hz al 19 %.
+- La puerta a −30 dB baja el ruido de fondo un 99 %.
+- El de-esser deja el siseo fuerte en el 30 % (no actúa sobre ruido débil, que es lo correcto). Animado de 0 a 1, empieza en el 96 % y termina en el 36 %.
+- Panorámica a −1: el canal derecho queda en silencio; animada de −1 a 1, recorre de izquierda a derecha.
+- Trémolo con profundidad animada de 0 a 1: la oscilación final es más de 4 veces la inicial. Chorus con mezcla animada: el efecto crece casi 4 veces a lo largo del clip.
+- El tono en directo a +12 semitonos lleva 440 Hz a unos 863 Hz (objetivo 880).
+- La sala genera cola tras cortar el sonido y el ensanche triplica la diferencia entre canales.
+
+Validación técnica:
+- `desktop/verify-audio-pack.cjs` (Node): ejecuta las dos vías FFmpeg con esas medidas y un grafo animado con las siete curvas nuevas.
+- `desktop/verify-audio-pack-ui.cjs` (Electron): comprueba las 11 tarjetas y los 11 editores, que chorus, trémolo, de-esser y panorámica se pueden animar, la leyenda de varias curvas, el tono en directo con un tono de prueba, el panoramizador, el interruptor de timbre, los parámetros del worklet, la escucha exacta y la aplicación al clip de la sala con mezcla animada, el formulario general y la caché.
+- Regresiones: verify-audio-animation (Node), verify-audio-editor, verify-effects, verify-presets, verify-effect-editor y verify-creative-effects.
+
+Pendiente: ducking (necesita la pista de voz como referencia) y normalización en dos pasadas.
+
+## Presets de efectos · 11/11/2026 (0.21.0)
+
+Cada editor individual de efectos (FX → tarjeta de vídeo o de audio) tiene arriba una barra **Preset**:
+
+- **De fábrica:** 95 presets en total (31 de vídeo y 64 de audio, incluidos los del pack de audio, la panorámica y el autotune). Vídeo: contraste, blanco y negro, colores vivos, «Color → blanco y negro (animado)», cálido y frío, desenfoques (incluido «Enfocar al empezar», animado), enfoque, viñetas, croma verde o azul o con personas protegidas, TV, VHS, glitch, resplandor, bloom y película. Audio: voz clara, más graves, teléfono o radio, brillo, compresión para podcast, música o fuerte, limitador −1 y −3 dB, ruido ligero o intenso, normalización a −16, −14 o −23 LUFS, eco corto o largo y sala pequeña o grande.
+- **Elegir un preset** lo aplica al borrador al momento: se ve y se escucha en la vista previa. **Aplicar al clip** lo confirma y **Cancelar** lo descarta.
+- **Guardar como preset…** guarda los valores del efecto abierto con un nombre y, si se marca, su animación. Las curvas se guardan en proporción a la duración del clip, así que se adaptan a clips de otra longitud. Si el nombre ya existe, pide confirmación para sustituirlo.
+- **Eliminar** borra un preset propio. **Exportar mis presets…** crea un `.lqfx` con todos tus presets de vídeo o de audio. **Importar…** los añade y renombra los duplicados.
+
+Cada preset solo modifica los parámetros de su propio efecto: un preset de saturación no cambia el brillo. Nunca incluye el análisis de la IA precisa, que depende del clip. Los presets propios se guardan en `presets/effects-presets.json`, dentro de los datos del programa, y no dependen del proyecto. Antes de aplicarse se validan con los mismos rangos que los efectos.
+
+Validación técnica: `desktop/verify-presets.cjs`. Comprueba guardado, lectura, exportación e importación (y el rechazo de archivos ajenos), los presets de fábrica de vídeo y audio, el escalado de la animación, el rechazo de valores fuera de rango sin tocar el borrador, que se ignoren claves de otro efecto, el preset propio con animación aplicado al clip y recuperado al reabrir, y que el preset de croma active la zona IA rápida. Regresiones superadas: verify-effect-editor, verify-audio-editor, verify-effects, verify-creative-effects y verify-chroma-zone. Pendiente: presets de cadena completa en el formulario general de efectos y aceptación del usuario.
+
 ## Croma por zonas: IA rápida incluida e IA precisa opcional · 11/11/2026 (local, sin portable)
 
 FX → Croma / fondo transparente incluye **Zona donde actúa el croma** con tres opciones. También aparece en el formulario general de efectos.

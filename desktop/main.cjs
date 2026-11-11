@@ -37,7 +37,12 @@ const reverseDirectory=()=>path.join(app.getPath('userData'),'reverse-cache');
 ipcMain.handle('prepare-reverse',(event,options)=>{recordingSender(event);return reverseMedia.prepare(options,reverseDirectory(),progress=>{if(!event.sender.isDestroyed())event.sender.send('reverse-progress',progress);});});
 ipcMain.handle('cancel-reverse',event=>{recordingSender(event);reverseMedia.cancel();});
 ipcMain.handle('prepare-audio-effects',async(_event,filePath,fx,segment)=>{if(segment?.reverse){filePath=await reverseMedia.prepare({filePath,kind:'audio',offset:segment.offset,duration:segment.duration*segment.rate},reverseDirectory());segment={...segment,offset:0,reverse:false};}return audioEffects.prepare(filePath,fx,path.join(app.getPath('userData'),'effects-cache'),segment);});
+ipcMain.handle('autotune-guide-melody',(_event,pieces,duration)=>audioEffects.guideMelody(pieces,duration));
 ipcMain.handle('cancel-audio-effects',()=>{audioEffects.cancel();reverseMedia.cancel();});
+// Processed-audio cache: size report and manual purge (only finished .wav files; files in use are skipped).
+async function audioCacheFiles(){const dir=path.join(app.getPath('userData'),'effects-cache');let names=[];try{names=await fs.promises.readdir(dir);}catch{return [];}const files=[];for(const name of names){if(!/^[0-9a-f]{64}\.wav$/.test(name))continue;try{const s=await fs.promises.stat(path.join(dir,name));files.push({file:path.join(dir,name),size:s.size});}catch{}}return files;}
+ipcMain.handle('audio-cache-info',async event=>{recordingSender(event);const files=await audioCacheFiles();return {files:files.length,bytes:files.reduce((s,f)=>s+f.size,0)};});
+ipcMain.handle('audio-cache-clear',async event=>{recordingSender(event);if(exportJob)throw Error('Finaliza la exportación antes de vaciar la caché');let removed=0,bytes=0,busy=0;for(const f of await audioCacheFiles()){try{await fs.promises.rm(f.file);removed++;bytes+=f.size;}catch{busy++;}}return {removed,bytes,busy};});
 ipcMain.handle('audio-effects-waveform',(_event,filePath,segment)=>{const root=path.resolve(app.getPath('userData'),'effects-cache')+path.sep;if(typeof filePath!=='string'||!path.resolve(filePath).startsWith(root))return [];return audioEffects.waveform(filePath,segment);});
 app.on('before-quit',()=>audioEffects.cancel());
 app.on('before-quit',()=>reverseMedia.cancel());
@@ -362,6 +367,12 @@ ipcMain.handle('stems-sources',(event,project)=>{recordingSender(event);return s
 ipcMain.handle('stems-output-folder',async event=>{recordingSender(event);const r=await dialog.showOpenDialog(mainWindow,{title:'Carpeta para guardar las pistas separadas',defaultPath:currentProjectPath?path.dirname(currentProjectPath):app.getPath('documents'),properties:['openDirectory','createDirectory']});return r.canceled?null:r.filePaths[0];});
 ipcMain.handle('stems-separate',(event,options)=>{recordingSender(event);if(exportJob||audioRecording.active()||cameraRecording.active())throw Error('Finaliza la exportación o grabación antes de separar instrumentos');return stemsService.separate(options,p=>{if(!event.sender.isDestroyed())event.sender.send('stems-progress',p);});});
 ipcMain.handle('stems-cancel',event=>{recordingSender(event);stemsService.cancel();});
+// User effect presets (userData/presets/effects-presets.json) and .lqfx exchange.
+const presetsStore=require('./presets-store.cjs').createPresetsStore({directory:path.join(app.getPath('userData'),'presets'),dialog,getWindow:()=>mainWindow});
+ipcMain.handle('presets-load',event=>{recordingSender(event);return presetsStore.load();});
+ipcMain.handle('presets-save',(event,list)=>{recordingSender(event);return presetsStore.save(list);});
+ipcMain.handle('presets-export',(event,list,name)=>{recordingSender(event);return presetsStore.exportPresets(list,name);});
+ipcMain.handle('presets-import',event=>{recordingSender(event);return presetsStore.importPresets();});
 // Optional IA pro module: installed next to the executable (portable) or the repository root (development).
 const aiProService=require('./ai-pro-service.cjs').createAiProService({root:app.isPackaged?path.dirname(process.execPath):path.join(__dirname,'..'),appVersion:branding.version(),cacheDirectory:path.join(app.getPath('userData'),'ai-pro-cache')});
 app.on('before-quit',()=>{aiProService.cancel();aiProService.cancelAnalysis();});

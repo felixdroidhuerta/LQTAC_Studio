@@ -1,13 +1,13 @@
 # Cinema Studio by LQTAC
 
-Cinema Studio by LQTAC es el nuevo nombre del editor local LQTAC Studio. La versión 0.20.0 añade el croma por zonas con IA (ver más abajo). La 0.19.2 incorporó la nueva identidad, Ayuda con manual local y Acerca de…, imágenes en pistas de vídeo, mejoras de envolventes y selección del timeline y un lanzador permanente para la barra de tareas.
+Cinema Studio by LQTAC es el nuevo nombre del editor local LQTAC Studio. La versión 0.21.0 añade presets de efectos, un pack de once efectos de audio y autotune con pista guía (ver más abajo). La 0.20.0 añadió el croma por zonas con IA. La 0.19.2 incorporó la nueva identidad, Ayuda con manual local y Acerca de…, imágenes en pistas de vídeo, mejoras de envolventes y selección del timeline y un lanzador permanente para la barra de tareas.
 
 
 Editor local de vídeo y audio para Windows. Incluye separación offline de canciones en Voz, Batería, Bajo y Otros, selector de pista/evento y resaltado del intervalo sobre las pistas, espacios de trabajo, mezclador, generadores, fuentes de Windows, FX, renderizado por tramos, captura y dos motores de subtítulos offline.
 
 ## Descargar el programa
 
-Para un equipo nuevo, abre [Releases](https://github.com/felixdroidhuerta/LQTAC_Studio/releases/tag/v0.20.0-portable) y descarga **Cinema_Studio_0.20.0_Windows_x64_Portable.zip** dentro de Assets.
+Para un equipo nuevo, abre [Releases](https://github.com/felixdroidhuerta/LQTAC_Studio/releases/tag/v0.21.0-portable) y descarga **Cinema_Studio_0.21.0_Windows_x64_Portable.zip** dentro de Assets.
 
 Extrae todo el ZIP y abre **Cinema Studio.exe**. El motor y sus bibliotecas están incluidos; no requiere Node, pnpm ni Internet en el equipo destino. La carpeta Shapes junto al ejecutable contiene la máscara LQTAC de ejemplo.
 
@@ -20,6 +20,8 @@ El portable incluye **Manual de usuario.pdf**. Las fuentes de la guía y sus cap
 La versión local añade pista de subtítulos editable, Whisper small multilingüe offline, importación/exportación SRT e incrustación en vídeo. Acceso desde la pestaña «Subtítulos». El modelo y runtime están instalados en este equipo; para preparar otro entorno de desarrollo ejecutar tools/setup-whisper.ps1. El empaquetado incluye ambos y sus licencias; no requiere descargas durante el uso.
 
 ## Funciones actuales
+
+**Novedad 0.21.0 · audio y presets:** barra de presets en cada editor de efectos (95 de fábrica, propios con animación, exportables en .lqfx); paso alto y bajo, puerta de ruido, de-esser, cambio de tono, chorus, trémolo, lo-fi, ensanche estéreo, reverb de sala y panorámica, todos animables; autotune por escala o siguiendo la melodía de una pista guía. Ver FUNCIONAMIENTO.md.
 
 **Novedad 0.20.0 · croma por zonas:** el croma puede actuar en todo el fotograma, solo fuera de las personas (IA rápida incluida, en directo) o fuera de los objetos que marques con clics (IA precisa, módulo opcional que se descarga desde la release ai-pro-v1.0.0 y requiere análisis previo). Ver FUNCIONAMIENTO.md.
 

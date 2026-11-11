@@ -1,5 +1,66 @@
 # LQTAC Studio — guía de desarrollo y continuidad
 
+## Autotune · 11/11/2026
+
+**Núcleo compartido** `dist/assets/autotune-core.js` (UMD: `module.exports` en Node, `globalThis.LQTACAutotune` en la página y en el worklet): escalas, `notes(key,scale)`, `nearest(midi,pcs)`, `detector(rate)` (YIN, ventana 32 ms, 65–1100 Hz, umbral 0,15, interpolación parabólica, silencio < 2e-5 de energía media), `corrector()` (histéresis de 0,15 st, límite ±2,5 st, retención de 80 ms en huecos, suavizado exponencial τ = speed·0,3 s) y `analyze(samples,rate,duration,settingsAt)`, con un valor por `HOP` = 10 ms.
+
+**Modelo:** `autotune`, `autotuneKey` (0–11, entero, en `audioStatic`), `autotuneScale` (enum `autotuneScales`), `autotuneSpeed` y `autotuneAmount` (0–1, animables). `animatedAudio()` es verdadero con `autotune`.
+
+**Render:** `effects-audio.cjs` decodifica el evento con `baseChain(segment)` (mismo recorte y velocidad que el grafo) + `highpass=60` a 16 kHz mono f32 por tubería y ejecuta `analyze` en un `worker_thread` (cancelable). `audio-automation.build(fx,segment,prefix,{autotuneCurve,autotuneHop})` reduce la curva a tramos lineales (error > 0,02 st o 50 pasos) y genera un fichero de comandos `rubberband@tune pitch 'pow(2,(…)/12)'`, con `formant=preserved:pitchq=quality:window=short`, después del compresor.
+
+**Directo:** `audio-live-preview.js` carga `autotune-core.js` en el AudioWorklet antes de `audio-preview-worklet.js`. El worklet diezma a ~16 kHz, ejecuta YIN cada 10 ms y suma la corrección a los semitonos del desplazador (parámetros `autotune`, `autotuneKey`, `autotuneScale` como índice, `autotuneSpeed`, `autotuneAmount`). Sin núcleo cargado, el autotune se omite.
+
+**Interfaz:** `autotuneSelects(prefix,value)` (global en `effects-controls.js`) da los selectores de tonalidad y escala del formulario (`fx-`) y del editor (`audio-`). En presets, `ownedKeys` incluye `autotuneKey` y `autotuneScale`.
+
+### Pista guía
+
+**Modelo:** `autotuneGuideTrack` (id de pista, `''` = sin guía, validado `^[A-Za-z0-9_ .·-]{0,64}$`), `autotuneGuideMode` (`notes` | `contour`), `autotuneGuideFallback` (`scale` | `none`), `autotuneGuideOffset` (−1…1 s) y `autotuneRange` (0,5…12 st, por defecto 2,5). Los dos numéricos están en `audioStatic`. `validate` exige ahora que los campos de texto por defecto sean cadenas.
+
+**Núcleo:** `corrector().step(freq,o)` acepta `o.range`, `o.guide` (MIDI, 0 = guía en silencio, `undefined` = sin guía), `o.guideMode` y `o.fallback`. Con guía: nota entera (`notes`) o tono exacto (`contour`), plegada a la octava más cercana de la voz, limitada a ±range. `melody(samples,rate,duration)` da un MIDI por HOP con mediana de 5 tramas (se descartan tramas aisladas). `guidePieces(voice,clips)` devuelve los eventos de la guía que solapan la voz: `{filePath,at,skip,duration,offset,clipDuration,rate,reverse}` en segundos locales de la voz (máximo 200). `analyze(...,guide)` indexa la guía con `i - round(guideOffset/HOP)`.
+
+**Resolución de la guía:** en la página, `audioGuidePieces(clip,trackId)` (en `index.html`) y `audioFxSegment(clip,fx)` añaden `segment.guide`. `audioFxCacheKey` y la preparación pasan el `fx` en uso, incluido el borrador del editor. En la exportación, `render-engine.cjs` resuelve `clip.autotuneGuide` **antes** de descartar eventos y pistas silenciados, para que una guía silenciada siga guiando.
+
+**Render:** `effects-audio.cjs` valida las piezas (`checkGuide`), decodifica cada pieza (`atrim` del evento, `areverse` opcional, `atempo`, `atrim` del solape) a 16 kHz y la coloca en un búfer de la duración de la voz (`guideSamples`). El worker calcula `melody` y `analyze`. El hash de caché incluye tamaño y fecha de los ficheros guía. Sin piezas bajo la voz, la guía queda vacía y se aplica el comportamiento «donde la guía calla».
+
+**Directo:** IPC `autotune-guide-melody(pieces,duration)` / `lqtacDesktop.autotuneGuideMelody`, que usa `guideMelody` con una caché en memoria de 8 entradas. El editor llama a `live.setGuide({melody,hop})`, y `Graph.clock` da el tiempo del clip. Parámetros del worklet: `autotuneRange`, `guideActive`, `guideMidi` (k-rate, actualizado en cada `update`), `guideMode` y `guideFallback`.
+
+**Interfaz:** `autotuneGuideFields(prefix,value,clip)` y `audioGuideTracks(clip)` (globales en `effects-controls.js`) listan las pistas de audio distintas de la del clip. `ownedKeys` de autotune añade `autotuneRange`, `autotuneGuideMode` y `autotuneGuideFallback`; la pista y el desfase nunca forman parte de un preset. Hay 2 presets de guía (95 de fábrica en total).
+
+## Pack de audio · 11/11/2026
+
+**Modelo** (`effects-model.js`): claves nuevas `highpass`/`highpassHz`, `lowpass`/`lowpassHz`, `gate`/`gateDb`, `deesser`/`deesserAmount`, `pitch`/`pitchSemitones`/`pitchFormant`, `chorus`/`chorusDepth`/`chorusMix`, `tremolo`/`tremoloHz`/`tremoloDepth`, `lofi`/`lofiAmount`, `widen`/`widenAmount` y `convReverb`/`convSize`/`convMix`, y `pan`/`panPosition` (−1…1).
+- Tras la prueba del portable: `audioStatic` queda solo con `convSize`. Chorus, trémolo y de-esser se animan con grafos propios en la vía por tramo (ver abajo).
+- `audioStatic` lista los parámetros sin comandos FFmpeg; `validate` los rechaza en animación, y el límite de curvas es ahora el número de rangos.
+- `creativeAudio(f)` comparte la cadena de tono, chorus, trémolo, lo-fi y ensanche.
+- `animatedAudio()` (vía por tramo) es también verdadero con `convReverb` y con `deesser` activo (el de-esser se renderiza siempre como mezcla), porque necesita un grafo con varias entradas. `convolutionImpulse()` genera la respuesta para la escucha en directo.
+
+**Grafo FFmpeg:**
+- Tono: `rubberband@pitch` (comando `pitch=2^(s/12)`).
+- Filtros: `highpass@hp` y `lowpass@lp` (comando `frequency`). Puerta: `agate@gate` (comando `threshold` en lineal).
+- De-esser: `asplit` → seco `volume@dsDry=1-x` + `deesser=i=1` → `volume@dsWet=x` → `amix normalize=0`. El parámetro `i` de FFmpeg apenas cambia el resultado (medido) y no tiene comandos, así que la intensidad es la mezcla.
+- Chorus animado: seco `volume@chDry=0.9/(1+0.7m)` + húmedo `chorus=0:0.9:…` (in_gain 0) → `volume@chWet=m`; mismos niveles que el chorus estático. Con profundidad animada se mezclan dos chorus (profundidad 1 y 4 ms) con `volume@chA=1-x` y `volume@chB=x`.
+- Trémolo animado: `aeval` por muestra, ganancia `1-D(t)·(0.5-0.5·sin φ(t))`. φ es la integral exacta de la velocidad lineal por tramos (sin saltos de fase); los tramos se resuelven con un árbol `if(lt(t,…))` equilibrado.
+- Panorámica: `stereotools@pan` (comando `balance_out`); en la cadena simple `stereotools=balance_out=x`.
+- Lo-fi: `acrusher@crush` (comando `samples=1+19·x`; en este FFmpeg el parámetro `bits` no tiene efecto). Ensanche: `extrastereo@wide` (comando `m`).
+- Sala: respuesta con `aevalsrc` (`random(0)` determinista y `exp(-6.9t/size)`), luego `lowpass` 7 kHz, `adelay` 12 ms y `afir` (`irfmt=mono:gtype=rms`). `volume@convWet` con compensación `1/(8.8·size^0.22)`, medida con ruido rosa.
+
+**Caché:** `effects-audio.cjs` añade `settings` (todos los ajustes) al hash en la vía por tramo.
+
+**Escucha en directo:** `audio-live-preview.js` añade biquads paso alto, paso bajo y peaking a 7 kHz (de-esser), un delay modulado (chorus), ganancia modulada (trémolo) y un ConvolverNode. El worklet añade puerta, lo-fi (sample-and-hold), ensanche M/S y cambio de tono (línea de retardo de 8192 muestras, dos cabezales con fundido Hann de 2048 muestras; parámetros `pitch`/`pitchSemitones`). Tras el worklet, un `StereoPannerNode` aplica la panorámica.
+
+**Editor:** `audio-effect-editor.js` dibuja una curva por parámetro en todo efecto con más de uno (`multi`), cada una normalizada a su rango (`yOf`); la selección por clic excluye los parámetros fijos.
+
+**IPC:** `audio-cache-info` y `audio-cache-clear` (solo `^[0-9a-f]{64}\.wav$`, salta los ficheros en uso); la interfaz está al final del panel FX.
+
+## Presets de efectos · 11/11/2026
+
+`dist/assets/effect-presets.js` (`LQTACPresets`) se monta con `mount(container,{kind,key,parameters,duration,draft,onApply})` en `openEffectEditor` (vídeo) y `openAnimatedAudioEditor` (audio).
+- **Claves:** `ownedKeys` limita las claves que puede tocar cada efecto: sus `parameters`, más el interruptor del efecto en audio y `chroma`, `chromaColor`, `chromaZone` y `chromaMatteModel` en croma. La LUT es la propia tabla, y `chromaProMatte` nunca forma parte de un preset.
+- **Aplicar:** `applyTo` trabaja sobre una copia, sustituye o elimina la animación de esos parámetros, valida con `LQTACEffects.validate` y solo entonces vuelca el resultado en el mismo objeto `draft`, para que los editores conserven la referencia.
+- **Animación:** se guarda como `{t:0…1,value}` y se escala a la duración del clip.
+
+**Formato:** `{id,name,kind,key,values,animation|null,created,version:1}`. El fichero (también el `.lqfx`) es `{format:'Cinema Studio presets',version:1,presets:[…]}`. Lo gestiona `desktop/presets-store.cjs` mediante el IPC `presets-load/save/export/import`: escritura atómica, máximo 2.000 presets y 8 MB. `build-portable.ps1` incluye `presets-store.cjs`.
+
 ## Croma por zonas e instalador IA pro · 11/11/2026
 
 **Modelo:** `effects-model.js` añade `chromaZone` ('all'|'people'|'pro'), `chromaMatteModel` ('fast'|'detail'), `chromaProtect` [.05,.95] y `chromaMatteSoftness` [.01,.5], estos dos animables. Son valores por defecto, así que los LQTS antiguos se abren sin cambios.

@@ -1,12 +1,17 @@
-# LQTAC Studio
+# Cinema Studio by LQTAC
 
-Editor local de vídeo y audio para Windows. Versión 0.18.1: separación offline de canciones en Voz, Batería, Bajo y Otros, selector de pista/evento y resaltado del intervalo sobre las pistas. Incluye espacios de trabajo, mezclador, generadores, fuentes de Windows, FX, renderizado por tramos, captura y dos motores de subtítulos offline.
+Cinema Studio by LQTAC es el nuevo nombre del editor local LQTAC Studio. La versión 0.19.2 incorpora la nueva identidad, Ayuda con manual local y Acerca de…, imágenes en pistas de vídeo, mejoras de envolventes y selección del timeline y un lanzador permanente para la barra de tareas.
+
+
+Editor local de vídeo y audio para Windows. Incluye separación offline de canciones en Voz, Batería, Bajo y Otros, selector de pista/evento y resaltado del intervalo sobre las pistas, espacios de trabajo, mezclador, generadores, fuentes de Windows, FX, renderizado por tramos, captura y dos motores de subtítulos offline.
 
 ## Descargar el programa
 
-Para un equipo nuevo, abre [Releases](https://github.com/felixdroidhuerta/LQTAC_Studio/releases/tag/v0.18.1-portable) y descarga **LQTAC_Studio_0.18.1_Windows_x64_Portable.zip** dentro de Assets.
+Para un equipo nuevo, abre [Releases](https://github.com/felixdroidhuerta/LQTAC_Studio/releases/tag/v0.19.2-portable) y descarga **Cinema_Studio_0.19.2_Windows_x64_Portable.zip** dentro de Assets.
 
-Extrae todo el ZIP y abre **LQTAC Studio.exe**. El motor y sus bibliotecas están incluidos; no requiere Node, pnpm ni Internet en el equipo destino. La carpeta Shapes junto al ejecutable contiene la máscara LQTAC de ejemplo.
+Extrae todo el ZIP y abre **Cinema Studio.exe**. El motor y sus bibliotecas están incluidos; no requiere Node, pnpm ni Internet en el equipo destino. La carpeta Shapes junto al ejecutable contiene la máscara LQTAC de ejemplo.
+
+En Windows se prepara el lanzador permanente **Documentos\Cinema Studio\Cinema Studio.exe**, que abre el portable extraído más reciente. Para corregir un anclaje antiguo, desancla una vez el icono anterior, abre el lanzador permanente y ancla el icono activo.
 
 Los archivos automáticos **Source code** contienen únicamente fuentes y no el motor de escritorio.
 

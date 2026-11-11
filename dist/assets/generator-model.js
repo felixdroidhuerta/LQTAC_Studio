@@ -3,7 +3,7 @@ const types=['text','title','lower-third','credits','poster'],motions=['none','f
 const props=['left','top','width','height','fontSize','angle','scaleX','scaleY','opacity','strokeWidth','rx','ry'];
 function create(type='title'){
  const text=(value,top,size=84)=>({type:'textbox',text:value,left:180,top,width:1560,fontSize:size,fontFamily:'Segoe UI',fontWeight:'normal',fill:'#ffffff',textAlign:'center',scaleX:1,scaleY:1,opacity:1,angle:0});
- const objects=type==='credits'?[text('CRÉDITOS\n\nDirección\nNombre Apellido\n\nProducción\nLQTAC Studio\n\nGracias por acompañarnos',120,64)]:[text(type==='poster'?'PRÓXIMAMENTE':type==='lower-third'?'Nombre Apellido':type==='text'?'Tu texto aquí':'TU TÍTULO',type==='lower-third'?810:400)];
+ const objects=type==='credits'?[text('CRÉDITOS\n\nDirección\nNombre Apellido\n\nProducción\nCinema Studio by LQTAC\n\nGracias por acompañarnos',120,64)]:[text(type==='poster'?'PRÓXIMAMENTE':type==='lower-third'?'Nombre Apellido':type==='text'?'Tu texto aquí':'TU TÍTULO',type==='lower-third'?810:400)];
  if(type==='title'||type==='poster')objects.push(text('Una historia que merece ser contada',540,42));
  if(type==='lower-third'){objects.unshift({type:'rect',left:120,top:780,width:1680,height:210,fill:'#0b203d',opacity:0.9});objects.push(text('Cargo · Descripción',915,40));}
  return {version:1,type,name:{text:'Texto',title:'Título','lower-third':'Rótulo',credits:'Créditos',poster:'Cartel'}[type],duration:type==='credits'?20:8,background:type==='poster'?'#081a32':null,objects,motion:{preset:type==='credits'?'credits':'fade',in:1,out:1,easing:'smooth'},keys:[]};

@@ -26,14 +26,14 @@ internal static class LqtacLauncher {
             if (File.Exists(Path.Combine(parent.FullName, "main.cjs")) &&
                 File.Exists(Path.Combine(parent.FullName, "package.json"))) return parent.FullName;
         }
-        throw new FileNotFoundException("No se encuentra la carpeta de LQTAC Studio.");
+        throw new FileNotFoundException("No se encuentra la carpeta de Cinema Studio by LQTAC.");
     }
     [STAThread]
     static int Main(string[] args) {
         try {
             string directory = AppDomain.CurrentDomain.BaseDirectory;
             string engine = Path.Combine(directory, "electron.exe");
-            if (!File.Exists(engine)) throw new FileNotFoundException("Falta el motor de LQTAC Studio.");
+            if (!File.Exists(engine)) throw new FileNotFoundException("Falta el motor de Cinema Studio by LQTAC.");
             string application = FindApplication(directory);
             bool version = args.Length == 1 && args[0] == "--version";
             List<string> command = new List<string>();
@@ -52,7 +52,7 @@ internal static class LqtacLauncher {
             if (version) { Console.Write(child.StandardOutput.ReadToEnd()); child.WaitForExit(); return child.ExitCode; }
             return 0;
         } catch (Exception error) {
-            MessageBox.Show(error.Message, "LQTAC Studio", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show(error.Message, "Cinema Studio by LQTAC", MessageBoxButtons.OK, MessageBoxIcon.Error);
             return 1;
         }
     }

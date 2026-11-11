@@ -863,3 +863,52 @@ Verificado con reordenación en ambos sentidos, conservación de clips y estado 
 ### Renderizado horizontal, vertical y cuadrado
 El selector de resolución muestra dimensiones y proporción, agrupadas por orientación. MP4, WebM y GIF admiten 16:9 (640×360, 1280×720, 1920×1080), 9:16 (360×640, 720×1280, 1080×1920), 4:5 (1080×1350), 1:1 (1080×1080), 4:3 (1440×1080) y 3:4 (1080×1440). El motor valida parejas de dimensiones completas. Se conserva el encuadre Pan/Crop del proyecto; cambiar resolución no reencuadra automáticamente cada clip.
 Validación: renderizados MP4 reales y decodificados a 360×640, 1080×1350, 1080×1080 y 1440×1080; etiquetas de los diez formatos y rechazo de parejas no admitidas comprobados con verify-render-formats.cjs.
+
+### Icono de cámara
+Nuevo icono de cámara en azul eléctrico sobre cuadrado azul oscuro con esquinas redondeadas. ICO multirresolución (16, 24, 32, 48, 64, 128 y 256 px) y PNG para la aplicación y la asociación existente de proyectos LQTS. El diseño anterior se conserva en desktop/assets/app-icon-previous-qs.png.
+Icono ampliado hasta los bordes: esquinas exteriores transparentes y fondo interior azul oscuro opaco.
+
+El icono de cámara se incrusta tanto en el lanzador como en el motor local y los futuros portables. La ventana registra LQTAC.Studio, icono y comando de relanzamiento para anclar en la barra de tareas. Los accesos antiguos almacenados por Windows pueden necesitar desanclarse y volver a anclarse.
+
+
+### Cinema Studio by LQTAC 0.19.0
+Nueva identidad de aplicación y lanzador Cinema Studio.exe, símbolo de pistas y reproducción con alfa. Ayuda > Manual de usuario abre el PDF local de versión más reciente; Ayuda > Acerca de… muestra nombre, descripción y versión desde los metadatos. Se conservan el esquema LQTS (format LQTAC Studio), AppUserModelID LQTAC.Studio y el perfil local previo para mantener proyectos, ajustes e identidad de Windows. Los nuevos portables incluyen branding.cjs y el manual de Cinema Studio. La caché de anclajes antiguos de Windows puede requerir volver a anclar.
+
+Validación 0.19.0: verify-branding.cjs comprueba la cabecera, identidad de Windows, versión del proceso, apertura/cierre de Acerca de…, y que el manual seleccionado desde Ayuda es Cinema Studio 0.19.0. Manual de 30 páginas revisado con portada nueva y capturas de la interfaz y Acerca de…. Conservado lanzador local LQTAC Studio.exe como alias con nuevo icono para accesos previos. No se ha sustituido ningún portable histórico.
+La firma by LQTAC utiliza la marca gráfica azul de LQTAC sin Solutions en cabecera, Acerca de y portada del manual.
+Firma LQTAC reducida para dar predominio a Cinema Studio: 44 px en cabecera, 64 px en Acerca de y 60 puntos en portada del manual.
+
+Portable local Cinema Studio 0.19.0 generado con el nuevo nombre, firma LQTAC discreta, Ayuda, Acerca de y manual de 30 páginas. Probados los recursos del paquete y los dos accesos al manual sin abrir documentos ajenos. No publicado en GitHub en esta operación.
+
+### Lanzador permanente para la barra de tareas
+
+Cinema Studio crea y mantiene `Documentos\Cinema Studio\Cinema Studio.exe`. Este lanzador no pertenece a una versión concreta: revisa los portables extraídos directamente en Documentos y abre el que tenga la versión numérica más reciente. Si una copia se ha movido o renombrado, también utiliza la última ruta registrada que siga siendo válida.
+
+Windows recibe este ejecutable estable como comando de relanzamiento de `LQTAC.CinemaStudio`. Para corregir un anclaje antiguo, desancla el icono anterior, abre el lanzador permanente y ancla el icono activo una sola vez. Las futuras carpetas `Cinema_Studio_X.Y.Z_Windows_x64_Portable` podrán cambiar sin modificar el acceso anclado. El portable debe estar extraído; el lanzador no ejecuta directamente desde el ZIP.
+
+
+### 0.19.1: icono de barra de tareas
+Cinema Studio usa AppUserModelID LQTAC.CinemaStudio, independiente del identificador heredado. El icono de relanzamiento se copia a brand-icons dentro del perfil con nombre SHA-256 de su contenido para evitar reutilizar la ruta de un icono anterior. El perfil y los proyectos se conservan. Los anclajes antiguos de otras versiones deben sustituirse por el de la versión corregida.
+Portable local 0.19.1: eliminado el menú nativo de Electron. Se mantienen Archivo, Editar, Ver, Insertar, Herramientas, Opciones y Ayuda de Cinema Studio.
+
+
+### Imágenes fijas en pistas de vídeo (0.19.2)
+Arrastra PNG, JPG/JPEG, BMP, WebP, TIF/TIFF desde Windows, Explorer o la biblioteca a una pista de vídeo. Se inserta un clip fijo de 5 segundos, ajustable por sus extremos, y se añade el archivo a Project Media si aún no existe. Se mantiene la referencia al original. Admite previsualización, FX, Pan/Crop, guardado LQTS y renderizado. TIFF usa el primer fotograma decodificado con FFmpeg local. La operación se deshace junto con el alta en biblioteca. Validado con verify-still-images.cjs mediante arrastre de archivo local y biblioteca, deduplicación, PNG/TIFF, reproducción, LQTS y MP4.
+
+### Líneas de transparencia y volumen
+
+Pulsa con el botón derecho sobre un clip, sobre una zona vacía de su pista o sobre el nombre de la pista. En una pista de vídeo aparece **Añadir línea de transparencia** y en una de audio **Añadir línea de volumen**. Las pistas de subtítulos no muestran esta opción.
+
+La línea conserva su funcionamiento anterior: botón derecho para añadir puntos, arrastre de puntos para cambiar tiempo y valor, arrastre del tramo entre dos puntos para subirlo o bajarlo y botón derecho o Supr para eliminar el punto seleccionado. La edición afecta realmente a la previsualización y al render, admite Ctrl+Z/Ctrl+Y y se guarda en LQTS. El mismo menú permite ocultar la línea sin borrar sus puntos.
+
+Para añadir un punto no hace falta acertar sobre la línea: sitú el ratón en cualquier lugar temporal de una pista de vídeo o audio, pulsa el botón derecho y elige **Añadir punto de transparencia aquí** o **Añadir punto de volumen aquí**. Si la envolvente estaba oculta se muestra automáticamente. El punto se crea en el instante donde abriste el menú y conserva el valor interpolado de la línea.
+
+Los puntos visibles son más pequeños, pero mantienen una zona invisible de agarre amplia para moverlos con comodidad. Al situarte sobre la línea aparece un cursor cian de alta visibilidad y la línea se ilumina en amarillo, indicando que el ratón está exactamente en la zona editable.
+
+### Estado real del timeline
+
+La barra inferior ya no muestra los valores de demostración fijos. **Posición** sigue el cabezal durante reproducción, búsqueda, arrastre y avance por teclado. **Selección** indica la duración abarcada por los clips seleccionados; cuando hay un tramo de render muestra su duración como **Tramo**. **Zoom** refleja los botones, Ajustar y la barra de navegación. **Snap** indica su estado activado o desactivado.
+
+En la regla superior del timeline, un clic corto mueve el cabezal. Mantén pulsado y arrastra horizontalmente para crear directamente un tramo de selección; se ilumina en todas las pistas y limita el render. Los extremos del tramo siguen siendo ajustables. Arrastrar la flecha o el contador del cabezal mueve solo la posición, sin crear una selección. `Ctrl+Supr` elimina el tramo.
+
+El tramo incorpora un segundo cabezal ámbar que marca su final. Al crearlo, el cabezal principal se sitúa en el inicio. Reproducir o Reproducir desde el principio comienza dentro del tramo y se detiene en el cabezal ámbar; si el cabezal principal estaba fuera, vuelve al inicio seleccionado. El mismo inicio y final se utilizan al renderizar. Puedes arrastrar el cabezal ámbar para modificar el final sin mover la posición de reproducción.

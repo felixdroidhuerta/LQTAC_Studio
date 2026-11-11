@@ -1,6 +1,8 @@
 const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 contextBridge.exposeInMainWorld('lqtacDesktop', {
+  appInfo:()=>ipcRenderer.invoke('app-info'),
+  openUserManual:()=>ipcRenderer.invoke('open-user-manual'),
   stemsStatus:()=>ipcRenderer.invoke('stems-status'),
   stemsSources:project=>ipcRenderer.invoke('stems-sources',project),
   stemsOutputFolder:()=>ipcRenderer.invoke('stems-output-folder'),

@@ -35,18 +35,18 @@ $isOwned=$assigned -and ($ownProgids -contains $assigned)
 $claimDefault=(!$userChoice -and (!$assigned -or !$existingCommand -or $isOwned))
 $iconRevision=(Get-FileHash -LiteralPath $config.icon -Algorithm SHA256).Hash
 foreach($own in $ownProgids){
-  Put-Value ($classes+'\'+$own) '' 'Proyecto LQTAC Studio'
+  Put-Value ($classes+'\'+$own) '' 'Proyecto Cinema Studio'
   Put-Value ($classes+'\'+$own+'\DefaultIcon') '' ('"'+$config.icon+'",0')
   Put-Value ($classes+'\'+$own) 'IconRevision' $iconRevision
   Put-Value ($classes+'\'+$own+'\shell\open\command') '' $command
-  Put-Value ($classes+'\'+$own+'\shell\open') 'FriendlyAppName' 'LQTAC Studio'
+  Put-Value ($classes+'\'+$own+'\shell\open') 'FriendlyAppName' 'Cinema Studio by LQTAC'
 }
 $executableName=[System.IO.Path]::GetFileName($config.executable)
-if($executableName -ieq 'LQTAC Studio.exe'){
+if($executableName -in @('LQTAC Studio.exe','Cinema Studio.exe')){
   # Explorer can use the remembered executable from OpenWithList instead of the ProgID.
   # Register our own executable as well; never claim the generic electron.exe application.
   $application=$classes+'\Applications\'+$executableName
-  Put-Value $application 'FriendlyAppName' 'LQTAC Studio'
+  Put-Value $application 'FriendlyAppName' 'Cinema Studio by LQTAC'
   Put-Value ($application+'\DefaultIcon') '' ('"'+$config.icon+'",0')
   Put-Value ($application+'\shell\open\command') '' $command
   Put-Value ($application+'\SupportedTypes') '.lqts' ''
@@ -54,8 +54,8 @@ if($executableName -ieq 'LQTAC Studio.exe'){
 Put-Value ($classes+'\.lqts\OpenWithProgids') $progid ''
 if($claimDefault){Put-Value ($classes+'\.lqts') '' $progid}
 $capabilities=if($testMode){$config.testRoot+'\Capabilities'}else{'Software\LQTACStudio\Capabilities'}
-Put-Value $capabilities 'ApplicationName' 'LQTAC Studio'
-Put-Value $capabilities 'ApplicationDescription' 'Editor local de video y audio LQTAC Studio'
+Put-Value $capabilities 'ApplicationName' 'Cinema Studio by LQTAC'
+Put-Value $capabilities 'ApplicationDescription' 'Editor local de video y audio Cinema Studio by LQTAC'
 Put-Value $capabilities 'ApplicationIcon' ('"'+$config.icon+'",0')
 Put-Value ($capabilities+'\FileAssociations') '.lqts' $progid
 $registered=if($testMode){$config.testRoot+'\RegisteredApplications'}else{'Software\RegisteredApplications'}

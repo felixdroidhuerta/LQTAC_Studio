@@ -1,14 +1,19 @@
 // Timeline navigation, export region and grouped dock navigation.
 (function(){
 const style=document.createElement('style');style.textContent=`
-.ruler{position:sticky;top:0;z-index:12;background:#0c203c;touch-action:none;user-select:none}
+.ruler{position:sticky;top:0;z-index:12;background:#0c203c;touch-action:none;user-select:none;cursor:crosshair}
 .track-labels{z-index:13}.ruler .ruler-tick{position:absolute;top:6px;z-index:3;pointer-events:none;white-space:nowrap}.timeline-playhead::before{display:none}#rulerPlayhead{position:absolute;top:24px;width:2px;z-index:6;pointer-events:none}
 #rulerPlayhead::before{content:"";position:absolute;top:-6px;left:-4px;width:10px;height:8px;background:var(--accent-2);clip-path:polygon(0 0,100% 0,50% 100%)}
 #rulerPlayhead .timeline-playhead-time{max-width:110px}#rulerPlayhead.edge .timeline-playhead-time{left:auto;right:7px}
+#rangeEndPlayhead{position:absolute;top:24px;width:2px;z-index:8;pointer-events:none;filter:drop-shadow(0 0 4px rgba(255,180,94,.55))}
+#rangeEndPlayhead::before{content:"";position:absolute;top:-7px;left:-5px;width:12px;height:9px;background:#ffb45e;clip-path:polygon(0 0,100% 0,50% 100%)}
+.range-playhead-grip{position:absolute;top:-13px;left:-9px;width:20px;height:20px;pointer-events:auto;cursor:ew-resize;touch-action:none}
+.range-playhead-time{position:absolute;top:-23px;left:8px;padding:3px 5px;border:1px solid rgba(255,180,94,.48);border-radius:4px;background:#23190f;color:#ffd5a3;font-size:9px;font-variant-numeric:tabular-nums;white-space:nowrap;pointer-events:auto;cursor:ew-resize;touch-action:none;user-select:none}
+#rangeEndPlayhead.edge .range-playhead-time{left:auto;right:8px}
 .render-region{position:absolute;top:0;bottom:0;background:rgba(121,229,245,.18);border-inline:2px solid var(--cyan);pointer-events:none;z-index:2}
 .render-region-handle{position:absolute;top:0;bottom:0;width:9px;cursor:ew-resize;pointer-events:auto;touch-action:none;background:rgba(121,229,245,.3)}
 .render-region-handle.start{left:-3px}.render-region-handle.end{right:-3px}
-#tracks.range-highlight-active > .track::after{content:"";position:absolute;top:0;bottom:0;left:var(--render-range-left);width:var(--render-range-width);background:rgba(121,229,245,.20);border-inline:2px solid rgba(121,229,245,.85);pointer-events:none;z-index:5}
+#tracks.range-highlight-active > .track::after{content:"";position:absolute;top:0;bottom:0;left:var(--render-range-left);width:var(--render-range-width);background:rgba(121,229,245,.20);border-left:2px solid rgba(121,229,245,.85);border-right:2px solid rgba(255,180,94,.88);pointer-events:none;z-index:5}
 .dock-panel-list details{border-bottom:1px solid var(--line);padding-bottom:5px}.dock-panel-list summary{cursor:pointer;padding:9px 4px;color:var(--muted);font-size:10px;letter-spacing:.08em;text-transform:uppercase}.dock-panel-list details .dock-panel-item{width:100%}
 .render-range-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.render-range-fields input{width:100%;background:#081a32;color:var(--text);border:1px solid var(--line);padding:8px;border-radius:6px}
 `;document.head.append(style);
@@ -16,12 +21,16 @@ const ready=()=>!exporting&&!historyBusy&&!document.querySelector('dialog[open]'
 const actions=$('.timeline-actions');
 const controls=document.createElement('span');controls.innerHTML='<button class="timeline-tool" data-range="in" title="Marcar inicio en el cabezal · I">Inicio I</button> <button class="timeline-tool" data-range="out" title="Marcar fin en el cabezal · O">Fin O</button> <button class="timeline-tool" data-range="clear" title="Renderizar todos los clips activos">Todo</button>';actions.prepend(controls);
 function refreshRange(){
- const tracks=$('#tracks'),ruler=$('.ruler');if(!ruler)return;let region=$('.render-region',ruler);const range=window.lqtacRenderRange;
+ const tracks=$('#tracks'),ruler=$('.ruler');if(!ruler)return;let region=$('.render-region',ruler),rangeHead=$('#rangeEndPlayhead',ruler);const range=window.lqtacRenderRange;
  tracks.classList.toggle('range-highlight-active',!!range);
- if(!range){region?.remove();tracks.style.removeProperty('--render-range-left');tracks.style.removeProperty('--render-range-width');return;}
+ if(!range){region?.remove();rangeHead?.remove();tracks.style.removeProperty('--render-range-left');tracks.style.removeProperty('--render-range-width');window.updateTimelineSelectionStatus?.();return;}
  tracks.style.setProperty('--render-range-left',range.start/timelineDurationSeconds*100+'%');tracks.style.setProperty('--render-range-width',(range.end-range.start)/timelineDurationSeconds*100+'%');
  if(!region){region=document.createElement('div');region.className='render-region';region.innerHTML='<span class="render-region-handle start" data-bound="start" title="Inicio del tramo"></span><span class="render-region-handle end" data-bound="end" title="Fin del tramo"></span>';ruler.append(region);}
- region.style.left=range.start/timelineDurationSeconds*100+'%';region.style.width=(range.end-range.start)/timelineDurationSeconds*100+'%';region.title=`Renderizar ${range.start.toFixed(3)} – ${range.end.toFixed(3)} s`;
+ if(!rangeHead){rangeHead=document.createElement('div');rangeHead.id='rangeEndPlayhead';rangeHead.innerHTML='<span class="range-playhead-grip" data-bound="end" title="Arrastra el final del tramo"></span><span class="range-playhead-time" data-bound="end"></span>';ruler.append(rangeHead);}
+ const rangeCode=value=>{const frame=Math.max(0,Math.round(value*24)),minutes=String(Math.floor(value/60)).padStart(2,'0'),seconds=String(Math.floor(value%60)).padStart(2,'0');return `00:${minutes}:${seconds}:${String(frame%24).padStart(2,'0')}`;};
+ region.style.left=range.start/timelineDurationSeconds*100+'%';region.style.width=(range.end-range.start)/timelineDurationSeconds*100+'%';region.title=`Reproducir y renderizar ${range.start.toFixed(3)} – ${range.end.toFixed(3)} s`;
+ rangeHead.style.left=range.end/timelineDurationSeconds*100+'%';rangeHead.classList.toggle('edge',range.end/timelineDurationSeconds>.85);$('.range-playhead-time',rangeHead).textContent=rangeCode(range.end);rangeHead.setAttribute('aria-label',`Final del tramo ${rangeCode(range.end)}`);
+ window.updateTimelineSelectionStatus?.();
 }
 let cancelRangeDrag=null;
 function setRange(range){window.lqtacRenderRange=range;refreshRange();syncRangeFields();}
@@ -46,12 +55,12 @@ function mark(which){if(!ready())return;let range=window.lqtacRenderRange;
 }
 controls.onclick=e=>{const value=e.target.closest('[data-range]')?.dataset.range;if(value)mark(value);};
 $('#tracks').addEventListener('pointerdown',event=>{
- const handle=event.target.closest('[data-bound]');if(event.button!==0||!ready()||!event.target.closest('.ruler')||(!event.shiftKey&&!handle))return;
+ const handle=event.target.closest('[data-bound]'),playhead=event.target.closest('.timeline-playhead-grip,.timeline-playhead-time');if(event.button!==0||!ready()||!event.target.closest('.ruler')||playhead)return;
  event.preventDefault();event.stopImmediatePropagation();stopTimelinePlayback();const previous=window.lqtacRenderRange?{...window.lqtacRenderRange}:null;
  const at=e=>{const r=$('#tracks').getBoundingClientRect();return Math.max(0,Math.min(timelineDurationSeconds,(e.clientX-r.left)/r.width*timelineDurationSeconds));};
- const anchor=at(event),bound=handle?.dataset.bound;let end=anchor;
- const move=e=>{if(e.pointerId!==event.pointerId)return;end=at(e);const r=bound?{...previous,[bound]:end}:{start:Math.min(anchor,end),end:Math.max(anchor,end)};if(r.end-r.start>=1/240)setRange(r);};
- const finish=e=>{if(e?.pointerId!==undefined&&e.pointerId!==event.pointerId)return;if(e?.type==='pointerup')move(e);window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',finish);window.removeEventListener('pointercancel',cancel);window.removeEventListener('keydown',escape);cancelRangeDrag=null;};
+ const anchor=at(event),bound=handle?.dataset.bound,startX=event.clientX;let end=anchor,dragged=!!handle;
+ const move=e=>{if(e.pointerId!==event.pointerId)return;if(!dragged&&Math.abs(e.clientX-startX)<4)return;dragged=true;end=at(e);let r;if(bound){const step=1/24,value=bound==='start'?Math.min(end,previous.end-step):Math.max(end,previous.start+step);r={...previous,[bound]:value};}else r={start:Math.min(anchor,end),end:Math.max(anchor,end)};if(r.end-r.start>=1/240)setRange(r);};
+ const finish=e=>{if(e?.pointerId!==undefined&&e.pointerId!==event.pointerId)return;if(e?.type==='pointerup'){if(dragged){move(e);if(!bound&&window.lqtacRenderRange){void renderTimelineAt(window.lqtacRenderRange.start);toast('Tramo seleccionado · reproducción y render');}}else void renderTimelineAt(anchor);}window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',finish);window.removeEventListener('pointercancel',cancel);window.removeEventListener('keydown',escape);cancelRangeDrag=null;};
  const cancel=e=>{finish(e);setRange(previous);};const escape=e=>{if(e.key==='Escape')cancel();};cancelRangeDrag=()=>cancel();window.addEventListener('pointermove',move);window.addEventListener('pointerup',finish);window.addEventListener('pointercancel',cancel);window.addEventListener('keydown',escape);
 },true);
 const fields=document.createElement('div');fields.innerHTML='<label><input type="checkbox" id="renderUseRange"> Renderizar solo el tramo elegido</label><div class="render-range-fields"><label>Inicio (s)<input id="renderRangeStart" type="number" min="0" step="0.001"></label><label>Fin (s)<input id="renderRangeEnd" type="number" min="0" step="0.001"></label></div><p id="renderRangeInfo" role="status"></p>';

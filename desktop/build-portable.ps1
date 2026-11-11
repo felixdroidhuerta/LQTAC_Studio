@@ -1,4 +1,4 @@
-param([string]$OutputDirectory)
+param([string]$OutputDirectory,[string]$ManualPath)
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $runtime = Join-Path $PSScriptRoot 'node_modules\electron\dist'
@@ -8,12 +8,14 @@ if (!(Test-Path -LiteralPath (Join-Path $runtime 'electron.exe'))) {
 if (!$OutputDirectory) { $OutputDirectory = Join-Path (Split-Path -Parent $projectRoot) ('LQTAC_Studio_Portable_' + (Get-Date -Format 'yyyyMMdd_HHmmss')) }
 if (Test-Path -LiteralPath $OutputDirectory) { throw 'La carpeta de salida ya existe. Elige otra para no sobrescribirla.' }
 New-Item -ItemType Directory -Path $OutputDirectory | Out-Null
-Get-ChildItem -LiteralPath $runtime -Force | Where-Object { $_.Name -notin @('LQTAC Studio.exe','lqtac-icon.sha256') } | ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination $OutputDirectory -Recurse }
-& (Join-Path $projectRoot 'tools\build-launcher.ps1') -Output (Join-Path $OutputDirectory 'LQTAC Studio.exe') -Icon (Join-Path $PSScriptRoot 'assets\lqtac-studio.ico')
+Get-ChildItem -LiteralPath $runtime -Force | Where-Object { $_.Name -notin @('Cinema Studio.exe','LQTAC Studio.exe','lqtac-icon.sha256') } | ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination $OutputDirectory -Recurse }
+& (Join-Path $projectRoot 'tools\build-launcher.ps1') -Output (Join-Path $OutputDirectory 'Cinema Studio.exe') -Icon (Join-Path $PSScriptRoot 'assets\lqtac-studio.ico')
+& (Join-Path $projectRoot 'tools\set-executable-icon.ps1') -Executable (Join-Path $OutputDirectory 'electron.exe') -Icon (Join-Path $PSScriptRoot 'assets\lqtac-studio.ico')
 $appRoot = Join-Path $OutputDirectory 'resources\app'
 $desktopTarget = Join-Path $appRoot 'desktop'
 New-Item -ItemType Directory -Path $desktopTarget -Force | Out-Null
-foreach ($name in @('main.cjs','preload.cjs','veg-parser.cjs','vegas-bridge.cjs','vegas-automation.cjs','project-io.cjs','render-engine.cjs','reverse-media.cjs','media-visuals.cjs','effects-audio.cjs','audio-automation.cjs','subtitles-service.cjs','stems-service.cjs','audio-recording.cjs','camera-recording.cjs','capture-recording.cjs','screen-capture.cjs','capture-toolbox.cjs','capture-toolbox-preload.cjs','capture-toolbox.html','capture-toolbox-ui.js','windows-integration.cjs','windows-association.ps1')) {
+& (Join-Path $projectRoot 'tools\build-stable-launcher.ps1')
+foreach ($name in @('branding.cjs','main.cjs','preload.cjs','veg-parser.cjs','vegas-bridge.cjs','vegas-automation.cjs','project-io.cjs','render-engine.cjs','reverse-media.cjs','media-visuals.cjs','effects-audio.cjs','audio-automation.cjs','subtitles-service.cjs','stems-service.cjs','audio-recording.cjs','camera-recording.cjs','capture-recording.cjs','screen-capture.cjs','capture-toolbox.cjs','capture-toolbox-preload.cjs','capture-toolbox.html','capture-toolbox-ui.js','windows-integration.cjs','windows-association.ps1')) {
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot $name) -Destination $desktopTarget
 }
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'assets') -Destination $desktopTarget -Recurse
@@ -42,7 +44,7 @@ if($stemsManifest.worker_sha256 -ne (Get-FileHash -LiteralPath (Join-Path $PSScr
 if((Get-FileHash -LiteralPath (Join-Path $stemsRoot 'models\955717e8-8726e21a.th') -Algorithm SHA256).Hash.ToLowerInvariant() -ne '8726e21a993978c7ba086d3872e7608d7d5bfca646ca4aca459ffda844faa8b4'){throw 'El peso Demucs está alterado.'}
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'stems-worker.py') -Destination $desktopTarget
 Copy-Item -LiteralPath $stemsRoot -Destination (Join-Path $desktopTarget 'stems') -Recurse
-$manual = Join-Path $projectRoot ('output\pdf\LQTAC_Studio_Manual_de_usuario_' + (Get-Content -LiteralPath (Join-Path $PSScriptRoot 'portable-package.json') -Raw | ConvertFrom-Json).version + '.pdf')
+$manual = if($ManualPath){(Resolve-Path -LiteralPath $ManualPath).Path}else{Join-Path $projectRoot ('output\pdf\Cinema_Studio_Manual_de_usuario_' + (Get-Content -LiteralPath (Join-Path $PSScriptRoot 'portable-package.json') -Raw | ConvertFrom-Json).version + '.pdf')}
 if (!(Test-Path -LiteralPath $manual)) { throw 'Falta el manual PDF actualizado para esta versión.' }
 Copy-Item -LiteralPath $manual -Destination (Join-Path $OutputDirectory 'Manual de usuario.pdf')
 $speechRoot=Join-Path $PSScriptRoot 'speech'

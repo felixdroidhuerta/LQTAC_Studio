@@ -1,6 +1,6 @@
-# LQTAC Studio 0.18.1 - Manual de usuario
+# Cinema Studio by LQTAC 0.19.0 - Manual de usuario
 
-Actualizado: 27 de octubre de 2026.
+Actualizado: 31 de octubre de 2026.
 Capturas reales con medios de demostración.
 
 ## Instalar y empezar
@@ -11,9 +11,9 @@ Todo el entorno de edición se ejecuta en tu equipo. El portable incluye los mot
 
 Descarga el ZIP portable y extrae su contenido completo en una carpeta con permisos de escritura. No ejecutes el programa dentro del ZIP. Conserva juntas las carpetas y los motores incluidos: copiar únicamente el EXE o el BAT no es suficiente.
 
-### Iniciar LQTAC Studio
+### Iniciar Cinema Studio by LQTAC
 
-Abre el ejecutable LQTAC Studio de la carpeta extraída. Si tu distribución incluye el BAT de inicio, también puedes usarlo con doble clic. No necesitas lanzar comandos ni instalar Node.js, Python o FFmpeg por separado.
+Abre el ejecutable Cinema Studio by LQTAC de la carpeta extraída. Si tu distribución incluye el BAT de inicio, también puedes usarlo con doble clic. No necesitas lanzar comandos ni instalar Node.js, Python o FFmpeg por separado.
 
 ### Un equipo adecuado
 
@@ -26,6 +26,26 @@ Un Intel N150 puede servir para montajes sencillos en 720p o 1080p con pocas pis
 ### Antes de montar
 
 Crea una carpeta para el trabajo, con subcarpetas para vídeo, audio, imágenes y exportaciones. Guarda allí el proyecto LQTS. Mantén una copia de seguridad de los medios: el proyecto no los contiene.
+
+## Ayuda, manual y versión
+
+Cinema Studio by LQTAC es el nuevo nombre de LQTAC Studio. Conserva los proyectos LQTS y la edición existente.
+
+![Captura de Ayuda, manual y versión](assets/24-acerca-cinema.png)
+
+Ayuda > Acerca de… muestra la identidad y la versión real de la aplicación.
+
+### Consultar la guía
+
+Ayuda > Manual de usuario abre el PDF local más reciente. Funciona sin conexión; el portable debe conservarse completo para encontrar sus documentos.
+
+### Comprobar la versión
+
+Abre Ayuda > Acerca de… para ver el nombre, el símbolo de las pistas de edición, la descripción y la versión instalada. Desde esa ventana también puedes abrir el manual.
+
+### Anclar en Windows
+
+Abre Cinema Studio.exe y usa Anclar a la barra de tareas. La aplicación conserva su identidad interna y comunica el nuevo nombre, icono y lanzador. Si Windows sigue mostrando un icono almacenado en un acceso antiguo, desancla ese acceso y vuelve a anclar la aplicación abierta. Algunas capturas de editores de esta guía conservan la marca anterior; sus controles siguen vigentes.
 
 ## Conocer el espacio de trabajo
 
@@ -518,6 +538,10 @@ Sitúa el cursor en el fotograma deseado y usa la exportación de fotograma de A
 ### GIF animado
 
 Exporta un intervalo breve a GIF si necesitas una animación sin sonido. El formato utiliza una paleta limitada y puede perder calidad en degradados. Una resolución y duración contenidas evitan archivos innecesariamente grandes.
+
+### Ayuda y versión
+
+Ayuda > Manual de usuario abre la guía local más reciente. Ayuda > Acerca de… muestra el nombre, el nuevo símbolo y la versión de la aplicación. Algunas capturas de herramientas conservan la marca de versiones previas; sus controles siguen vigentes.
 
 ### Control final
 

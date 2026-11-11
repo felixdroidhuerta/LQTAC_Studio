@@ -45,7 +45,7 @@ window.LQTACTimelineVisuals=(()=>{
         for(let i=first;i<last;i++){
           if(!current(state,token))throw cancelled();
           const sample=(Math.max(0,i*cell)+Math.min(fullWidth,(i+1)*cell))/2,local=sample/fullWidth*m.durationSeconds;
-          const time=Number(LQTACTimelineVisualModel.sourceTime(m,local).toFixed(6)),options={filePath:m.filePath,time,before:m.reverse};
+          const time=LQTACStillImages.isClip(clip)?0:Number(LQTACTimelineVisualModel.sourceTime(m,local).toFixed(6)),options={filePath:m.filePath,time,before:m.reverse};
           const frame=await work(state,token,'frame:'+JSON.stringify(options),()=>window.lqtacDesktop.timelineFrame(options)),img=await imageFor(frame.dataUrl);if(!current(state,token))throw cancelled();
           const x=i*cell-left;ctx.drawImage(img,x,0,cell,height);ctx.fillStyle='rgba(145,185,240,.2)';ctx.fillRect(x,0,1,height);state.samples.push({time,x,width:cell});
         }

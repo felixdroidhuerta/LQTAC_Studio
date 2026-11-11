@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const { execFile } = require('node:child_process');
 const { promisify } = require('node:util');
 const { pathToFileURL } = require('node:url');
-const { app, BrowserWindow, dialog, ipcMain, desktopCapturer, nativeImage } = require('electron');
+const { app, BrowserWindow, Menu, dialog, ipcMain, desktopCapturer, nativeImage } = require('electron');
 const { parseVegasProject } = require('./veg-parser.cjs');
 const execFileAsync = promisify(execFile);
 const crypto = require('node:crypto');
@@ -11,8 +11,12 @@ const projectIO = require('./project-io.cjs');
 const renderEngine = require('./render-engine.cjs');
 const windowsIntegration=require('./windows-integration.cjs');
 const shellEntry=app.isPackaged||[__dirname,path.join(__dirname,'main.cjs'),windowsIntegration.applicationDirectory()].includes(path.resolve(process.argv[1]||'.'));
-app.setName('LQTAC Studio');
-if(process.platform==='win32')app.setAppUserModelId('LQTAC.Studio');
+const branding=require('./branding.cjs');
+if(shellEntry)app.setPath('userData',path.join(app.getPath('appData'),'LQTAC Studio'));
+app.setName(branding.name);
+ipcMain.handle('app-info',event=>{recordingSender(event);return {name:branding.name,description:branding.description,version:branding.version()};});
+ipcMain.handle('open-user-manual',async event=>{recordingSender(event);const file=branding.manualPath();if(!file)throw Error('No se encuentra el manual local. Utiliza el paquete completo.');const error=await require('electron').shell.openPath(file);if(error)throw Error(error);return {opened:true};});
+if(process.platform==='win32')app.setAppUserModelId(windowsIntegration.APP_ID);
 const ownsInstance=!shellEntry||app.requestSingleInstanceLock();
 if(!ownsInstance)app.quit();
 let associationTask=null;
@@ -128,7 +132,7 @@ ipcMain.handle('camera-recording-abort',async(event,id)=>{recordingSender(event)
 
 const mediaExtensions = [
   'mp4', 'mov', 'mxf', 'avi', 'wmv', 'm4v', 'webm', 'mp3', 'wav', 'aiff',
-  'aif', 'flac', 'm4a', 'aac', 'ogg', 'png', 'jpg', 'jpeg', 'tiff', 'bmp', 'webp'
+  'aif', 'flac', 'm4a', 'aac', 'ogg', 'png', 'jpg', 'jpeg', 'tif', 'tiff', 'bmp', 'webp'
 ];
 
 // Material de demostración real para que el monitor pueda probar reproducción
@@ -163,7 +167,7 @@ function createWindow() {
     minWidth: 1120,
     minHeight: 720,
     backgroundColor: '#061329',
-    title: 'LQTAC Studio',
+    title: branding.name,
     icon:path.join(__dirname,'assets','lqtac-studio.ico'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
@@ -174,12 +178,18 @@ function createWindow() {
     }
   });
 
+  mainWindow.removeMenu();
+  if(process.platform==='win32'){
+    const integration=windowsIntegration.integrationConfig({packaged:app.isPackaged});let stableLauncher=null;
+    try{if(app.isPackaged)stableLauncher=windowsIntegration.ensureStableLauncher({...integration,documentsPath:app.getPath('documents')});}catch(error){console.warn('No se pudo preparar el lanzador estable:',error.message);}
+    mainWindow.setAppDetails(windowsIntegration.taskbarDetails({...integration,stableLauncher,iconCacheDirectory:path.join(app.getPath('userData'),'brand-icons')}));
+  }
   const expected=pathToFileURL(path.join(__dirname,'..','dist','index.html')).href;
   let microphoneApproved=false,cameraApproved=false,closingRecording=false;
   const trusted=(contents,url)=>mainWindow&&!mainWindow.isDestroyed()&&contents?.id===mainWindow.webContents.id&&(url||contents.getURL()).split('#')[0]===expected;
   mainWindow.webContents.session.setDisplayMediaRequestHandler((request,callback)=>screenCapture.handle(request,callback));
   mainWindow.webContents.session.setPermissionCheckHandler((contents,permission,_origin,details)=>details.isMainFrame!==false&&trusted(contents,details.requestingUrl)&&(permission==='display-capture'?screenCapture.permitted(contents?.mainFrame):permission==='media'&&(details.mediaType==='audio'?microphoneApproved:details.mediaType==='video'?cameraApproved:false)));
-  mainWindow.webContents.session.setPermissionRequestHandler(async(contents,permission,callback,details)=>{const types=details.mediaTypes;/* Electron 38 reports display requests as media with an empty mediaTypes array. */if(permission==='display-capture'||(permission==='media'&&Array.isArray(types)&&types.length===0)){callback(details.isMainFrame!==false&&trusted(contents,details.requestingUrl)&&screenCapture.permitted(contents?.mainFrame));return;}if(permission!=='media'||!trusted(contents,details.requestingUrl)||details.isMainFrame===false||!types?.length||types.some(t=>!['audio','video'].includes(t))){callback(false);return;}try{const mic=types.includes('audio'),camera=types.includes('video');if((mic&&!microphoneApproved)||(camera&&!cameraApproved)){const r=await dialog.showMessageBox(mainWindow,{type:'question',title:camera?'Permitir cámara':'Permitir micrófono',message:'¿Permitir a LQTAC Studio usar '+(camera?(mic?'la cámara y el micrófono':'la cámara'):'el micrófono')+'?',detail:'Solo se activan al preparar o grabar una toma local. No se envían imágenes ni audio a Internet. Cierra o desconecta el grabador para liberarlos.',buttons:['Permitir','No permitir'],defaultId:1,cancelId:1,noLink:true});if(r.response!==0){callback(false);return;}if(mic)microphoneApproved=true;if(camera)cameraApproved=true;}callback(true);}catch{callback(false);}});
+  mainWindow.webContents.session.setPermissionRequestHandler(async(contents,permission,callback,details)=>{const types=details.mediaTypes;/* Electron 38 reports display requests as media with an empty mediaTypes array. */if(permission==='display-capture'||(permission==='media'&&Array.isArray(types)&&types.length===0)){callback(details.isMainFrame!==false&&trusted(contents,details.requestingUrl)&&screenCapture.permitted(contents?.mainFrame));return;}if(permission!=='media'||!trusted(contents,details.requestingUrl)||details.isMainFrame===false||!types?.length||types.some(t=>!['audio','video'].includes(t))){callback(false);return;}try{const mic=types.includes('audio'),camera=types.includes('video');if((mic&&!microphoneApproved)||(camera&&!cameraApproved)){const r=await dialog.showMessageBox(mainWindow,{type:'question',title:camera?'Permitir cámara':'Permitir micrófono',message:'¿Permitir a Cinema Studio by LQTAC usar '+(camera?(mic?'la cámara y el micrófono':'la cámara'):'el micrófono')+'?',detail:'Solo se activan al preparar o grabar una toma local. No se envían imágenes ni audio a Internet. Cierra o desconecta el grabador para liberarlos.',buttons:['Permitir','No permitir'],defaultId:1,cancelId:1,noLink:true});if(r.response!==0){callback(false);return;}if(mic)microphoneApproved=true;if(camera)cameraApproved=true;}callback(true);}catch{callback(false);}});
   mainWindow.on('close',async event=>{if(!audioRecording.active()&&!cameraRecording.active())return;event.preventDefault();if(closingRecording)return;closingRecording=true;try{const r=await dialog.showMessageBox(mainWindow,{type:'warning',title:'Toma sin guardar',message:'Hay una grabación de cámara o micrófono en curso o pendiente.',detail:'Vuelve al grabador para detener y guardar. Salir descarta la toma pendiente.',buttons:['Volver al grabador','Descartar y salir'],defaultId:0,cancelId:0,noLink:true});if(r.response===1){await Promise.all([audioRecording.abort(),cameraRecording.abort()]);mainWindow.close();}}finally{closingRecording=false;}});
   const abortCaptures=()=>{mediaVisuals.cancel();captureToolbox.close();screenCapture.cancel();void Promise.all([audioRecording.abort(),cameraRecording.abort()]).catch(()=>{});};
   mainWindow.webContents.on('render-process-gone',abortCaptures);
@@ -200,7 +210,7 @@ function projectFilters() {
 ipcMain.handle('open-vegas-project', async (_event,requestedPath) => {
   if(requestedPath!==undefined&&(typeof requestedPath!=='string'||!path.isAbsolute(requestedPath)||!(/\.(veg|vf)$/i.test(requestedPath)||requestedPath.toLowerCase().endsWith('.lqtac.json'))))throw new Error('Ruta de proyecto no válida.');
   const result = requestedPath?{canceled:false,filePaths:[requestedPath]}:await dialog.showOpenDialog(mainWindow, {
-    title: 'Abrir proyecto VEGAS en LQTAC Video',
+    title: 'Abrir proyecto VEGAS en Cinema Studio by LQTAC',
     properties: ['openFile'],
     filters: projectFilters()
   });
@@ -235,11 +245,11 @@ ipcMain.handle('browse-media-folder',async(event,folder)=>{
 
 ipcMain.handle('open-media', async (event,kind) => {
   recordingSender(event);
-  const groups={video:['mp4','mov','mxf','avi','wmv','m4v','webm'],audio:['mp3','wav','aiff','aif','flac','m4a','aac','ogg'],image:['png','jpg','jpeg','tiff','bmp','webp']};
+  const groups={video:['mp4','mov','mxf','avi','wmv','m4v','webm'],audio:['mp3','wav','aiff','aif','flac','m4a','aac','ogg'],image:['png','jpg','jpeg','tif','tiff','bmp','webp']};
   if(kind!==undefined&&!groups[kind])throw Error('Tipo de medio no válido');
   const extensions=groups[kind]||mediaExtensions;
   const result = await dialog.showOpenDialog(mainWindow, {
-    title: kind?'Insertar '+({video:'vídeo',audio:'audio',image:'imagen'}[kind])+' en la biblioteca':'Importar media a LQTAC Video',
+    title: kind?'Insertar '+({video:'vídeo',audio:'audio',image:'imagen'}[kind])+' en la biblioteca':'Importar media a Cinema Studio by LQTAC',
     properties: ['openFile', 'multiSelections'],
     filters: [
       { name: kind?{video:'Vídeos',audio:'Audios',image:'Imágenes'}[kind]:'Media compatible', extensions }
@@ -282,7 +292,11 @@ ipcMain.handle('read-file-text', async (_event, filePath) => {
 
 ipcMain.handle('get-demo-media', async () => demoMedia.filter(item => fs.existsSync(item.filePath)));
 
-ipcMain.handle('media-file-url', async (_event, filePath) => pathToFileURL(filePath).toString());
+ipcMain.handle('media-file-url', async (_event, filePath) => {
+  if (!/\.tiff?$/i.test(filePath)) return pathToFileURL(filePath).toString();
+  const {stdout}=await execFileAsync(renderEngine.ffmpegPath(),['-v','error','-i',filePath,'-frames:v','1','-f','image2pipe','-c:v','png','pipe:1'],{encoding:'buffer',windowsHide:true,maxBuffer:64*1024*1024,timeout:30000});
+  return 'data:image/png;base64,'+stdout.toString('base64');
+});
 
 ipcMain.handle('save-transition-mask', async (_event, dataUrl) => {
   if (typeof dataUrl !== 'string' || !/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(dataUrl) || dataUrl.length > 24 * 1024 * 1024) throw new Error('Imagen de máscara no válida');
@@ -322,6 +336,7 @@ ipcMain.handle('media-duration', async (_event, filePath) => {
 
 app.whenReady().then(async () => {
   if(!ownsInstance)return;
+  Menu.setApplicationMenu(null);
   createWindow();
   mainWindow.webContents.once('did-finish-load',()=>void ensureWindowsIntegration());
   if(startupProject)void queueShellProject(startupProject,false);
@@ -331,7 +346,7 @@ app.whenReady().then(async () => {
       if(loaded.report.errors.length)throw new Error(JSON.stringify(loaded.report.errors,null,2));
       if(mainWindow.webContents.isLoading())await new Promise(resolve=>mainWindow.webContents.once('did-finish-load',resolve));
       await mainWindow.webContents.executeJavaScript(`(async()=>{await demoReady;await restoreProject(${JSON.stringify(loaded.project)});resetEditHistory();toast('Montaje VEGAS importado · consulta el informe de compatibilidad');})()`);
-      mainWindow.setTitle(path.basename(startupVegas)+' — LQTAC Studio 0.5.3');
+      mainWindow.setTitle(path.basename(startupVegas)+' — '+branding.name+' '+branding.version());
     }catch(error){dialog.showErrorBox('No se pudo abrir el VEGAS',error.message);}
   }
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });

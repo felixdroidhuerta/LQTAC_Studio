@@ -821,3 +821,56 @@ Paquete completo Windows x64 con los dos motores ASR offline, Toolbox, controles
 ### Renderizado horizontal, vertical y cuadrado
 El selector de resolución muestra dimensiones y proporción, agrupadas por orientación. MP4, WebM y GIF admiten 16:9 (640×360, 1280×720, 1920×1080), 9:16 (360×640, 720×1280, 1080×1920), 4:5 (1080×1350), 1:1 (1080×1080), 4:3 (1440×1080) y 3:4 (1080×1440). El motor valida parejas de dimensiones completas. Se conserva el encuadre Pan/Crop del proyecto; cambiar resolución no reencuadra automáticamente cada clip.
 Validación: desktop/verify-render-formats.cjs prueba la composición y codificación/decodificación real en cuatro proporciones, las diez etiquetas y el rechazo de dimensiones no admitidas.
+
+### Icono de cámara
+Arte maestro: desktop/assets/app-icon-source.png. Conversión mediante tools/build-icon.cjs a lqtac-studio.ico y lqtac-studio.png; estos nombres mantienen las referencias existentes del lanzador, BrowserWindow y asociación LQTS. No modifica portables históricos.
+El PNG maestro conserva alfa real. build-icon.cjs propaga transparencia al canal alfa y máscara AND del ICO multirresolución.
+
+Windows taskbar: BrowserWindow.setAppDetails usa taskbarDetails(integrationConfig), AppUserModelID LQTAC.Studio y relaunchCommand al lanzador con ruta de aplicación. prepare-runtime y build-portable incorporan el ICO al motor además del launcher. Validación: verify-taskbar-icon.cjs abre la aplicación y comprueba que Windows acepta los metadatos. No se alteran los anclajes del usuario ni portables históricos.
+
+
+### Cinema Studio by LQTAC 0.19.0
+Nueva identidad de aplicación y lanzador Cinema Studio.exe, símbolo de pistas y reproducción con alfa. Ayuda > Manual de usuario abre el PDF local de versión más reciente; Ayuda > Acerca de… muestra nombre, descripción y versión desde los metadatos. Se conservan el esquema LQTS (format LQTAC Studio), AppUserModelID LQTAC.Studio y el perfil local previo para mantener proyectos, ajustes e identidad de Windows. Los nuevos portables incluyen branding.cjs y el manual de Cinema Studio. La caché de anclajes antiguos de Windows puede requerir volver a anclar.
+
+Validación 0.19.0: verify-branding.cjs comprueba la cabecera, identidad de Windows, versión del proceso, apertura/cierre de Acerca de…, y que el manual seleccionado desde Ayuda es Cinema Studio 0.19.0. Manual de 30 páginas revisado con portada nueva y capturas de la interfaz y Acerca de…. Conservado lanzador local LQTAC Studio.exe como alias con nuevo icono para accesos previos. No se ha sustituido ningún portable histórico.
+Marca gráfica de firma: dist/assets/lqtac-wordmark.png, referencia visual suministrada por el usuario sin Solutions. Se conserva el icono de Cinema Studio para EXE y barra de tareas.
+Ajustada jerarquía visual de la firma LQTAC en cabecera, Acerca de y manual; marca gráfica y proporciones conservadas.
+
+Validación portable 0.19.0: verify-portable-branding.cjs comprueba metadatos, identidad Windows estable, relanzamiento a Cinema Studio.exe, tamaño de firma (44/64px), Acerca de y PDF local del paquete. verify-portable-runtime.cjs actualizado al nuevo nombre del ejecutable y superado. Informe de integridad local .openai/cinema019-portable-verified.json.
+
+
+### 0.19.1: icono de barra de tareas
+Cinema Studio usa AppUserModelID LQTAC.CinemaStudio, independiente del identificador heredado. El icono de relanzamiento se copia a brand-icons dentro del perfil con nombre SHA-256 de su contenido para evitar reutilizar la ruta de un icono anterior. El perfil y los proyectos se conservan. Los anclajes antiguos de otras versiones deben sustituirse por el de la versión corregida.
+Menu.setApplicationMenu(null) antes de crear la ventana y mainWindow.removeMenu() evitan el menú estándar de Electron, incluso mediante Alt. Verificación específica verify-no-native-menu.cjs superada.
+
+### Lanzador estable independiente de versión
+
+`tools/CinemaStudioStableLauncher.cs` genera un WinExe con el icono oficial. Instalado como `Documentos\Cinema Studio\Cinema Studio.exe`, enumera solo carpetas hermanas `Cinema_Studio_*_Windows_x64_Portable`, lee `resources/app/package.json` y elige la versión `System.Version` más alta. `current-portable.txt` cubre ubicaciones renombradas; una ruta apuntada antigua nunca gana a una versión superior encontrada. Los argumentos, incluidos proyectos LQTS, se reenvían con escapado Windows. `--resolve-file` existe exclusivamente para verificación sin abrir la interfaz.
+
+`windows-integration.ensureStableLauncher` copia el binario incluido, actualiza el puntero al portable que arranca y devuelve su ruta. `taskbarDetails` usa ese ejecutable sin incluir `appDirectory`, de modo que el comando anclado no contiene `0.19.1`, `0.19.2` ni versiones futuras. Si la preparación falla, se conserva el relanzamiento directo anterior. El build recompila el binario antes de copiar `desktop/assets`.
+
+`desktop/verify-stable-launcher.cjs` valida selección 0.19.1/0.19.2/0.20.0, puntero renombrado 0.21.0, recuperación cuando desaparece, autocopia, hash, AppUserModelID y comando sin versión. Windows exige desanclar una vez cualquier entrada Taskband antigua; no se modifica directamente ese registro binario no documentado.
+
+
+### Imágenes fijas en pistas de vídeo (0.19.2)
+Arrastra PNG, JPG/JPEG, BMP, WebP, TIF/TIFF desde Windows, Explorer o la biblioteca a una pista de vídeo. Se inserta un clip fijo de 5 segundos, ajustable por sus extremos, y se añade el archivo a Project Media si aún no existe. Se mantiene la referencia al original. Admite previsualización, FX, Pan/Crop, guardado LQTS y renderizado. TIFF usa el primer fotograma decodificado con FFmpeg local. La operación se deshace junto con el alta en biblioteca. Validado con verify-still-images.cjs mediante arrastre de archivo local y biblioteca, deduplicación, PNG/TIFF, reproducción, LQTS y MP4.
+
+### Acceso contextual a envolventes
+
+El menú contextual de un clip conserva simultáneamente `contextClip` y su `contextTrack`. Esto devuelve el acceso directo a la envolvente sin interferir con Propiedades del evento, invertir, agrupar, desagrupar, eliminar evento ni eliminar pista. El botón se muestra solo para pistas `video` y `audio`, con textos **Añadir/Ocultar línea de transparencia** y **Añadir/Ocultar línea de volumen**. Sigue disponible al pulsar en la zona vacía o en la cabecera de la pista. `subtitle` queda excluido.
+
+No cambia el modelo LQTS ni el motor de composición: `envelopeVisible` y `envelope` continúan guardándose por pista, y `envelopeValue` sigue alimentando opacidad y ganancia reales. `desktop/verify-envelope-menu.cjs` valida menú desde clips de vídeo/audio, exclusión de subtítulos, alternancia desde pista y persistencia de puntos. Regresiones superadas: `verify-event-properties-menu.cjs` y `verify-timeline-tools.cjs`.
+
+El menú compartido incorpora `add-envelope-point` y guarda `contextEnvelopeTime` a partir de la coordenada de apertura. `addEnvelopePointAt` crea o selecciona el punto, conserva el valor interpolado, muestra la envolvente y registra una única entrada de historial. Se ofrece desde eventos y espacio libre de pistas audio/vídeo, pero no desde cabeceras ni subtítulos.
+
+`drawEnvelope` separa representación e interacción: círculo visible de radio 3, `envelope-handle-hit` transparente de radio 8 y `envelope-line-hit` de 14 px. El hover usa cursor SVG cian y realce amarillo de la línea mediante `:has`, sin alterar el color funcional en reposo. `verify-envelope-menu.cjs` usa eventos nativos de ratón para validar menú en cualquier punto, alta con línea oculta, tiempo, tamaños, cursor, hover, arrastre de puntos/segmentos y persistencia.
+
+### Estado dinámico del timeline
+
+Se sustituyen los textos fijos `Selección: 00:12` y `Zoom: 78%` por nodos de estado enlazados a `timelineTime`, `selectedTimelineClips`, `lqtacRenderRange`, `timelineZoom` y la herramienta Snap. `renderTimelineTime` actualiza el código de tiempo, `applyTimelineSelection` calcula el intervalo de los eventos seleccionados, `refreshRange` da prioridad al tramo de render y `updateTimelineViewport` publica el zoom real. No cambia el formato LQTS.
+
+`desktop/verify-timeline-status.cjs` valida posición por cabezal y transporte, duración de selección, tramo de render, zoom por control y estado Snap tanto desde fuente como desde portable.
+
+La regla distingue el gesto por umbral de cuatro píxeles: clic sin arrastre ejecuta `renderTimelineAt(anchor)`; arrastre crea `lqtacRenderRange` sin exigir Mayús. Los tiradores `data-bound` conservan su ajuste y el cabezal se excluye del manejador de rango para mantener su arrastre independiente. `verify-timeline-status.cjs` cubre clic y arrastre sin modificador; `verify-timeline-tools.cjs` conserva selección, cancelación, render, Ctrl+Supr, historial y persistencia.
+
+`#rangeEndPlayhead` representa el punto de salida con color ámbar, etiqueta de fotogramas y un `data-bound=end` ampliado para arrastre. La línea derecha del tramo usa el mismo color; el relleno y el inicio permanecen cian. `activePlaybackRange` limita `startTimelinePlayback` y `advanceTimeline`: reinicia en `range.start` cuando procede y detiene exactamente en `range.end`. El render continúa usando el mismo `lqtacRenderRange`, sin duplicar estado ni cambiar LQTS. La prueba verifica arrastre del segundo cabezal, reproducción desde inicio, parada en salida, render activo y retirada del marcador al limpiar el tramo.

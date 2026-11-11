@@ -1,6 +1,8 @@
 {
   "name": "lqtac-studio",
-  "version": "0.18.1",
+  "version": "0.19.2",
   "private": true,
-  "main": "desktop/main.cjs"
+  "main": "desktop/main.cjs",
+  "productName": "Cinema Studio by LQTAC",
+  "description": "Editor local de vídeo y audio multipista"
 }

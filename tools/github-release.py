@@ -62,6 +62,7 @@ def main():
     parser.add_argument("--release-id", type=int)
     parser.add_argument("--commit")
     parser.add_argument("--notes", type=pathlib.Path)
+    parser.add_argument("--name")
     parser.add_argument("--file", type=pathlib.Path)
     args = parser.parse_args()
     token = credential()
@@ -72,7 +73,7 @@ def main():
             for r in releases], ensure_ascii=False))
     elif args.action == "create":
         result = api(token, "/releases", {"tag_name": args.tag, "target_commitish": args.commit,
-            "name": "LQTAC Studio " + args.tag.removeprefix("v").removesuffix("-portable") + " · Windows x64 portable",
+            "name": args.name or "Cinema Studio by LQTAC " + args.tag.removeprefix("v").removesuffix("-portable") + " · Windows x64 portable",
             "body": args.notes.read_text(encoding="utf-8"), "draft": True, "prerelease": False})
         print(json.dumps({"id": result["id"], "tag": result["tag_name"], "draft": result["draft"]}))
     else:

@@ -15,7 +15,7 @@ from content import PAGES
 ROOT=Path(__file__).resolve().parents[2]
 ASSETS=Path(__file__).parent/'assets'
 VERSION=sys.argv[2] if len(sys.argv)>2 else json.loads((ROOT/'desktop/portable-package.json').read_text(encoding='utf-8'))['version']
-OUT=Path(sys.argv[1]).resolve() if len(sys.argv)>1 else ROOT/f'output/pdf/LQTAC_Studio_Manual_de_usuario_{VERSION}.pdf'
+OUT=Path(sys.argv[1]).resolve() if len(sys.argv)>1 else ROOT/f'output/pdf/Cinema_Studio_Manual_de_usuario_{VERSION}.pdf'
 OUT.parent.mkdir(parents=True,exist_ok=True)
 for name,file in [('Segoe','segoeui.ttf'),('SegoeB','segoeuib.ttf')]:
     pdfmetrics.registerFont(TTFont(name,str(Path('C:/Windows/Fonts')/file)))
@@ -29,10 +29,10 @@ LEAD=ParagraphStyle('lead',fontName='Segoe',fontSize=11.2,leading=16,textColor=G
 TITLE=ParagraphStyle('title',fontName='SegoeB',fontSize=25,leading=29,textColor=NAVY)
 CAP=ParagraphStyle('caption',fontName='Segoe',fontSize=8.2,leading=11,textColor=GRAY)
 c=canvas.Canvas(str(OUT),pagesize=(W,H),pageCompression=1)
-c.setTitle('LQTAC Studio '+VERSION+' · Manual de usuario')
-c.setAuthor('LQTAC Studio')
+c.setTitle('Cinema Studio by LQTAC '+VERSION+' · Manual de usuario')
+c.setAuthor('Cinema Studio by LQTAC')
 c.setSubject('Guía funcional ilustrada: montaje, efectos, títulos, subtítulos, captura y exportación')
-c.setCreator('LQTAC Studio · Manual mantenible con ReportLab')
+c.setCreator('Cinema Studio by LQTAC · Manual mantenible con ReportLab')
 TOTAL=len(PAGES)+2
 
 def para(text,x,y,width,style):
@@ -42,7 +42,7 @@ def para(text,x,y,width,style):
 def footer(page):
     c.setStrokeColor(LIGHT);c.setLineWidth(.6);c.line(LEFT,43,RIGHT,43)
     c.setFillColor(GRAY);c.setFont('Segoe',8)
-    c.drawString(LEFT,28,'LQTAC Studio '+VERSION+'  /  Manual de usuario')
+    c.drawString(LEFT,28,'Cinema Studio by LQTAC '+VERSION+'  /  Manual de usuario')
     c.drawRightString(RIGHT,28,f'{page:02d} / {TOTAL:02d}')
     if page>2:
         c.linkRect('Volver al índice','contents',(LEFT,22,RIGHT-60,40),relative=0,thickness=0)
@@ -68,14 +68,17 @@ def badge(n,x,y):
 # Cover: genuine logo, one real application view, restrained branded typography.
 c.bookmarkPage('cover');c.addOutlineEntry('Portada','cover',0)
 c.setFillColor(HexColor('#061329'));c.rect(0,642,W,150,fill=1,stroke=0)
-logo=Image.open(ASSETS/'logo.png').convert('RGB')
-c.drawImage(ImageReader(logo),LEFT,704,width=270,height=270*logo.height/logo.width)
+logo=Image.open(ASSETS/'cinema-icon.png').convert('RGBA')
+c.drawImage(ImageReader(logo),LEFT,700,width=72,height=72,mask='auto')
+c.setFillColor(white);c.setFont('SegoeB',27);c.drawString(LEFT+88,741,'Cinema Studio')
+c.setFillColor(HexColor('#79e5f5'));c.setFont('Segoe',10);c.drawString(LEFT+89,716,'by')
+c.drawImage(str(ASSETS/'lqtac-wordmark.png'),LEFT+104,709,width=60,height=23,mask='auto',preserveAspectRatio=True)
 c.setFillColor(HexColor('#79e5f5'));c.setFont('SegoeB',9);c.drawString(LEFT,667,'GUÍA FUNCIONAL  /  VERSIÓN '+VERSION)
 para('Manual de usuario',LEFT,609,WIDTH,ParagraphStyle('cover',parent=TITLE,fontSize=35,leading=41,textColor=HexColor('#111111')))
 para('Editar, crear y dar forma a tu proyecto.',LEFT,548,WIDTH,LEAD)
 y=image('01-interfaz.png',505,max_h=335)
 para('Montaje · Audio · FX · Títulos · Subtítulos · Captura',LEFT,y-13,WIDTH,HEAD)
-para('Actualizado · 27 de octubre de 2026\nCapturas reales de la aplicación con medios de demostración.',LEFT,108,WIDTH,CAP)
+para('Actualizado · 31 de octubre de 2026\nCapturas reales de la aplicación con medios de demostración.',LEFT,108,WIDTH,CAP)
 footer(1);c.showPage()
 
 # Two-column, linked contents.
@@ -124,7 +127,7 @@ for i,p in enumerate(PAGES):
     if y<BOTTOM:raise RuntimeError(f'Page {number} overflow: bottom {y:.1f} / {p["title"]}')
     footer(number);c.showPage()
 c.save()
-md=['# LQTAC Studio '+VERSION+' - Manual de usuario','','Actualizado: 27 de octubre de 2026.','Capturas reales con medios de demostración.']
+md=['# Cinema Studio by LQTAC '+VERSION+' - Manual de usuario','','Actualizado: 31 de octubre de 2026.','Capturas reales con medios de demostración.']
 for p in PAGES:
     md.extend(['','## '+p['title'],'',p['lead']])
     if p.get('image'):md.extend(['','![Captura de '+p['title']+'](assets/'+p['image']+')','',p['caption']])

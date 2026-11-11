@@ -1,5 +1,35 @@
 # LQTAC Studio — guía de desarrollo y continuidad
 
+## Croma por zonas e instalador IA pro · 11/11/2026
+
+**Modelo:** `effects-model.js` añade `chromaZone` ('all'|'people'|'pro'), `chromaMatteModel` ('fast'|'detail'), `chromaProtect` [.05,.95] y `chromaMatteSoftness` [.01,.5], estos dos animables. Son valores por defecto, así que los LQTS antiguos se abren sin cambios.
+
+**IA rápida:** `dist/assets/ai-matte.js` carga de forma diferida `vendor/mediapipe/vision_bundle.js` (IIFE `Vision`), el WASM SIMD y el modelo, leído con `fetch` sobre file:// y pasado como `modelAssetBuffer`. ImageSegmenter funciona en modo IMAGE (sin estado, así que admite saltos hacia atrás) y prueba primero el delegado GPU y después CPU. El fotograma se reduce a un lado máximo de 256 en un canvas auxiliar. Con el modelo multiclase la confianza de persona es 1 − fondo (índice 0). La máscara se guarda en caché por vídeo y currentTime.
+
+En `effects-video.js` la máscara se sube como textura LUMINANCE en la unidad 2 (FLIP_Y como la imagen) y `keep=max(keyAlpha, smoothstep(protect±soft, matte))`. `LQTACAiMatte.prepareForProject()` se espera en Exportar y en Fotograma PNG. Mientras el modelo carga, la vista previa aplica el croma a todo el fotograma y se refresca al terminar.
+
+**UI:** `chroma-zone-controls.js` (`LQTACChromaZone.mount`) se usa en el editor individual y en el formulario general. En el formulario general la zona y el modelo viajan en inputs ocultos `fx-chromaZone` y `fx-chromaMatteModel`.
+
+**IA pro:** `desktop/ai-pro-service.cjs` expone el IPC `ai-pro-status/check/install/cancel/uninstall` y el evento `ai-pro-progress`. Contrato de publicación:
+1. Release no draft llamada `ai-pro-vX.Y.Z` en `felixdroidhuerta/LQTAC_Studio`.
+2. Asset `ai-pro-manifest.json` con `{version, package, size, sha256, minAppVersion?, engine?, notes?}`.
+3. Asset ZIP con el nombre de `package`, que contiene `ai-pro.json` `{version, entry}` en su raíz.
+
+Solo se admiten descargas https de github.com y githubusercontent.com. Se comprueba el espacio libre (tres veces el tamaño). La descarga va en streaming con SHA-256 y se descomprime con `tar.exe` de Windows. Se valida `ai-pro.json` y la entrada antes de activar, y el reemplazo es atómico con respaldo `.old`. La instalación no ejecuta nada. Destino: `ai-pro/` junto a `process.execPath` (empaquetado) o en la raíz del repositorio (desarrollo), excluido de Git.
+
+**Motor IA pro 1.0.0 (release ai-pro-v1.0.0):** `desktop/ai-pro-worker.py` usa SAM 2 en el commit 2b90b9f (Apache 2.0) y el modelo `sam2.1_hiera_tiny.pt` (SHA-256 7402e0d8…be69, verificado en cada ejecución). Bloquea los sockets. Funcionamiento:
+- `info` imprime la versión.
+- `analyze --frames DIR --prompts JSON --output DIR --models DIR --threads N --size 512` emite progreso en líneas JSON (`load`, `prompt`, `track`, `done`). Propaga hacia delante y, si el primer punto no está en el fotograma 0, también hacia atrás. Escribe `NNNNN.png` en L (unión de objetos, sigmoid·255) y `result.json`.
+- Con 512 px internos sobrescribe `image_size` y los `feat_sizes` RoPE de memory attention (`size/16`). A 1024 px eran 6 s por fotograma en este equipo y a 512 px son unos 0,9–1,2 s. Sin extensión CUDA y `apply_postprocessing=False`.
+
+Construcción: `tools/build-ai-pro.ps1` (guardado con BOM, porque PowerShell 5 lee sin BOM como ANSI) usa el venv `tmp/ai-pro-build/venv`, con Python 3.12, torch 2.5.1+cpu, torchvision 0.20.1+cpu, SAM 2 instalado desde el ZIP del commit con `SAM2_BUILD_CUDA=0` y PyInstaller 6.16.0. Ejecuta PyInstaller en modo onedir, recoge las licencias (`collect-stems-licenses.py` admite ahora el motor y el modelo como argumentos) y genera en `tmp/ai-pro-build/release` el ZIP y `ai-pro-manifest.json` sin BOM. Publicación: `gh release create ai-pro-vX.Y.Z --latest=false manifest zip`, para que el portable siga siendo la release «Latest».
+
+En la app, `ai-pro-service.analyze` extrae los fotogramas del clip con FFmpeg, con el mismo mapeo que la timeline (`-ss offset -t dur·rate`, `setpts/rate`, fps elegidos y 360 px de alto). Guarda en caché por hash (ruta, tamaño, fecha, tramo, fps, puntos y versión del motor) en `userData/ai-pro-cache/<id>`. `ai-pro-mask-info` devuelve la URL file:// de la carpeta.
+
+`ai-matte.js` (`proMask` y `prepareFrame`) carga las máscaras con fetch y las decodifica a luminancia en una LRU de 240 fotogramas. Mientras carga reutiliza el fotograma vecino. La exportación (vídeo y PNG) espera la máscara exacta antes de capturar. `chroma-zone-controls.js` añade la ventana «Marcar y analizar» y guarda la estimación de segundos por fotograma en localStorage.
+
+**Pendiente:** máscaras manuales animadas, placa limpia y aceleración por GPU (DirectML) del motor pro.
+
 ## Publicación portable 0.18.0 · 27/10/2026
 
 Paquete Windows x64 con motor/modelo Demucs y ambos motores ASR incluidos. Manual actualizado de 29 páginas, 27 enlaces de índice y 29 marcadores, con capturas reales de origen/resultados de separación y tramo iluminado. PDF renderizado completo y revisado visualmente, incluidos los capítulos nuevos. Ningún audio personal se incluye en código ni portable.

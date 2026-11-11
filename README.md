@@ -21,6 +21,8 @@ La versión local añade pista de subtítulos editable, Whisper small multiling�
 
 ## Funciones actuales
 
+**Novedad 0.20.0 · croma por zonas:** el croma puede actuar en todo el fotograma, solo fuera de las personas (IA rápida incluida, en directo) o fuera de los objetos que marques con clics (IA precisa, módulo opcional que se descarga desde la release ai-pro-v1.0.0 y requiere análisis previo). Ver FUNCIONAMIENTO.md.
+
 Icono propio del programa y de proyectos .LQTS. Al iniciar se comprueba/registra la asociación de Windows por usuario cuando no existe y se actualizan rutas propias, respetando otros programas predeterminados. El lanzador incluido en 0.14.1 corrige la apertura por doble clic, tanto inicial como en la ventana existente con confirmación de guardado. En desarrollo usar LQTAC Video.bat.
 
 Menús reorganizados: Archivo para proyecto/render/exportación (PNG hasta 4K, GIF animado y SRT), Insertar para biblioteca/pistas/grabaciones y Herramientas para división, efectos de vídeo/audio y subtítulos. Las importaciones por tipo solo alimentan la biblioteca. GIF usa el montaje completo, sin audio; se recomienda baja resolución/fps para proyectos cortos.

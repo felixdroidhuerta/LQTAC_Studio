@@ -10,7 +10,7 @@ $('#stillGo').onclick=async()=>{
   if(exporting||historyBusy)return;const previousTime=timelineTime,previousSize=exportSize;stopTimelinePlayback();exporting=true;
   $('#stillGo').disabled=$('#stillClose').disabled=$('#stillResolution').disabled=true;
   const [width,height]=$('#stillResolution').value.split(',').map(Number);exportSize={width,height};$('#stillStatus').textContent='Preparando fotograma de la composición…';
-  try{await demoReady;const base64=await captureProjectFrame(previousTime,width,height);const result=await window.lqtacDesktop.exportStill({base64});$('#stillStatus').textContent=result.canceled?'Exportación cancelada.':'PNG guardado · '+result.width+' × '+result.height+' · '+result.filePath;}
+  try{await demoReady;await LQTACAiMatte.prepareForProject();await LQTACAiMatte.prepareFrame(previousTime);const base64=await captureProjectFrame(previousTime,width,height);const result=await window.lqtacDesktop.exportStill({base64});$('#stillStatus').textContent=result.canceled?'Exportación cancelada.':'PNG guardado · '+result.width+' × '+result.height+' · '+result.filePath;}
   catch(error){$('#stillStatus').textContent=error.message;}
   finally{exportSize=previousSize;exporting=false;$('#stillGo').disabled=$('#stillClose').disabled=$('#stillResolution').disabled=false;await renderTimelineAt(previousTime);}
 };

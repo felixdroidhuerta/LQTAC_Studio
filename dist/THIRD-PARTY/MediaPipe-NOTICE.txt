@@ -1,0 +1,9 @@
+﻿MediaPipe Tasks Vision 1.1.1 (@mediapipe/tasks-vision) — Copyright Google LLC
+Licencia: Apache License 2.0 (ver MediaPipe-Apache-2.0-LICENSE.txt).
+Ficheros incluidos sin modificar en dist/assets/vendor/mediapipe:
+  vision_bundle.js, vision_wasm_internal.js, vision_wasm_internal.wasm
+Modelos incluidos sin modificar (MediaPipe Image Segmenter, Apache 2.0):
+  models/selfie_segmenter_landscape.tflite  SHA-256 490E9EA734313E0DE10FA0CD9E3C6133E36EA4DB2B7A49BDE9EF019F72796B8E
+  models/selfie_multiclass_256x256.tflite   SHA-256 C6748B1253A99067EF71F7E26CA71096CD449BAEFA8F101900EA23016507E0E0
+Origen: https://www.npmjs.com/package/@mediapipe/tasks-vision y https://storage.googleapis.com/mediapipe-models/image_segmenter/
+Se ejecuta localmente; Cinema Studio no descarga ni envía datos durante su uso.

@@ -21,3 +21,9 @@ LQTAC_Studio_*_Windows_x64_Portable.zip
 __pycache__/
 *.pyc
 *.pyo
+
+# Módulo opcional IA pro (se instala desde GitHub Releases)
+ai-pro/
+ai-pro.old/
+ai-pro.download/
+ai-pro.download.zip

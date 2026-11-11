@@ -1,6 +1,28 @@
 # LQTAC Studio — Funcionamiento y validación
 
-Última actualización: 27 de octubre de 2026.
+Última actualización: 11 de noviembre de 2026.
+
+## Croma por zonas: IA rápida incluida e IA precisa opcional · 11/11/2026 (local, sin portable)
+
+FX → Croma / fondo transparente incluye **Zona donde actúa el croma** con tres opciones. También aparece en el formulario general de efectos.
+
+- **Todo el fotograma:** el croma clásico, sin cambios.
+- **IA rápida · proteger personas (incluida, en directo):** detecta personas en cada fotograma y el color solo se elimina fuera de ellas. Sirve, por ejemplo, para quitar un fondo cuyo color también está en la ropa de los personajes. Modelos: *Rápido* (planos medios y primeros planos) y *Detallado* (cuerpo, pelo y ropa). *Umbral de protección* (menor = protege más zona) y *Suavidad del borde* se pueden animar con curvas. Solo reconoce personas.
+- **IA precisa · cualquier objeto (módulo opcional):** aparece como **No instalada** con un botón de descarga. La ventana avisa de que no es un filtro en directo, de que necesita un análisis previo y del alto consumo de CPU y gráfica. Descarga el módulo desde las Releases de GitHub `felixdroidhuerta/LQTAC_Studio` (etiqueta `ai-pro-vX.Y.Z`), comprueba tamaño y SHA-256, lo descomprime en la carpeta `ai-pro` junto al ejecutable y permite reinstalarlo o desinstalarlo. Publicada la **release ai-pro-v1.0.0**: SAM 2.1 Hiera tiny (Meta, Apache 2.0), en CPU y sin red. Descarga de 295 MB y 568 MB instalado.
+
+  **Uso:** con el módulo instalado, elegir IA precisa y pulsar **Marcar y analizar…**. Clic izquierdo sobre lo que se conserva y clic derecho sobre el fondo que se excluye. Se puede marcar en varios instantes y hasta 4 objetos. La precisión temporal puede ser 8, 12 o 24 fps. La ventana estima la duración con la velocidad medida en el propio equipo y permite cancelar. El resultado (una máscara PNG por fotograma) se guarda en la caché local `ai-pro-cache` de los datos del programa y se reutiliza si no cambian el clip, el tramo ni los puntos. El proyecto LQTS solo guarda la referencia (`chromaProMatte`), así que en otro equipo hay que volver a analizar. La exportación espera la máscara exacta de cada fotograma.
+
+  **Medido en este equipo (i5-1145G7):**
+  - Motor a 512 px internos: unos 0,9–1,2 s por fotograma. 5 minutos a 12 fps (3.600 fotogramas) supondrían alrededor de una hora.
+  - A 1024 px tardaba 6 s por fotograma, por lo que se descartó.
+  - En un plano con la cámara en movimiento y dos clics en el primer fotograma, el seguimiento se mantuvo durante los 96 fotogramas, brazos incluidos.
+  - Instalación real desde GitHub: 19 s.
+
+La IA rápida usa MediaPipe Tasks Vision 1.1.1 (Apache 2.0) con WebAssembly y la gráfica (delegado GPU, con respaldo en CPU). No hay descargas durante el uso. Aumento del programa: unos 30 MB (motor 14 MB y modelos de 0,25 y 16 MB). La exportación espera a que el modelo esté cargado antes del primer fotograma.
+
+Medido en este equipo (i5-1145G7, Iris Xe) con una imagen de 1000×667: modelo Rápido unos 27 ms por fotograma y Detallado unos 58 ms con GPU (452 ms con CPU). Carga inicial de 0,4 a 0,7 s.
+
+Validación técnica: `desktop/verify-chroma-zone.cjs` (con `LQTAC_TEST_PERSON` apuntando a una imagen de persona de cuerpo entero, no incluida en Git). Comprueba que con «Todo el fotograma» la ropa del color clave se vuelve transparente (alfa 0) y con la IA rápida se conserva (alfa 255) en los dos modelos. También valida los campos nuevos, el selector de tres opciones, el estado No instalada con botón de descarga y el aviso sin release. `desktop/verify-ai-pro-installer.cjs` simula una release: sin publicación, versión incompatible, SHA-256 erróneo (rechazado y limpiado), instalación completa, reinstalación, origen ajeno a GitHub rechazado y desinstalación. `desktop/verify-ai-pro-analysis.cjs` es la prueba de extremo a extremo real. Instala desde la release publicada (o reutiliza la instalación), analiza un MP4 de prueba (`LQTAC_TEST_VIDEO`), comprueba la reutilización de la caché y que el color del personaje desaparece en todo el fotograma (alfa 0) pero se conserva con la máscara pro (alfa 255). Resultado: correcto. Regresiones superadas: verify-effects, verify-effect-editor y verify-creative-effects. Aceptación visual del usuario pendiente con vídeo real. Guardar con versiones anteriores puede rechazar los parámetros nuevos de zona.
 
 El menú Herramientas limpia el resaltado y el submenú anterior al pasar a «Separar instrumentos…», también al navegar con teclado. No quedan dos opciones marcadas simultáneamente por un estado anterior de submenú.
 

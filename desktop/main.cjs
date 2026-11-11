@@ -362,6 +362,17 @@ ipcMain.handle('stems-sources',(event,project)=>{recordingSender(event);return s
 ipcMain.handle('stems-output-folder',async event=>{recordingSender(event);const r=await dialog.showOpenDialog(mainWindow,{title:'Carpeta para guardar las pistas separadas',defaultPath:currentProjectPath?path.dirname(currentProjectPath):app.getPath('documents'),properties:['openDirectory','createDirectory']});return r.canceled?null:r.filePaths[0];});
 ipcMain.handle('stems-separate',(event,options)=>{recordingSender(event);if(exportJob||audioRecording.active()||cameraRecording.active())throw Error('Finaliza la exportación o grabación antes de separar instrumentos');return stemsService.separate(options,p=>{if(!event.sender.isDestroyed())event.sender.send('stems-progress',p);});});
 ipcMain.handle('stems-cancel',event=>{recordingSender(event);stemsService.cancel();});
+// Optional IA pro module: installed next to the executable (portable) or the repository root (development).
+const aiProService=require('./ai-pro-service.cjs').createAiProService({root:app.isPackaged?path.dirname(process.execPath):path.join(__dirname,'..'),appVersion:branding.version(),cacheDirectory:path.join(app.getPath('userData'),'ai-pro-cache')});
+app.on('before-quit',()=>{aiProService.cancel();aiProService.cancelAnalysis();});
+ipcMain.handle('ai-pro-analyze',(event,options)=>{recordingSender(event);if(exportJob)throw Error('Finaliza la exportación antes de analizar');return aiProService.analyze(options,p=>{if(!event.sender.isDestroyed())event.sender.send('ai-pro-analyze-progress',p);});});
+ipcMain.handle('ai-pro-analyze-cancel',event=>{recordingSender(event);aiProService.cancelAnalysis();});
+ipcMain.handle('ai-pro-mask-info',(event,id)=>{recordingSender(event);return aiProService.maskInfo(id);});
+ipcMain.handle('ai-pro-status',event=>{recordingSender(event);return aiProService.status();});
+ipcMain.handle('ai-pro-check',event=>{recordingSender(event);return aiProService.check();});
+ipcMain.handle('ai-pro-install',event=>{recordingSender(event);if(exportJob)throw Error('Finaliza la exportación antes de instalar el módulo');return aiProService.install(p=>{if(!event.sender.isDestroyed())event.sender.send('ai-pro-progress',p);});});
+ipcMain.handle('ai-pro-cancel',event=>{recordingSender(event);aiProService.cancel();});
+ipcMain.handle('ai-pro-uninstall',event=>{recordingSender(event);return aiProService.uninstall();});
 app.on('before-quit',()=>subtitlesService.cancel());
 ipcMain.handle('subtitle-status',()=>subtitlesService.status());
 ipcMain.handle('subtitle-transcribe',(event,options)=>subtitlesService.transcribe(options,p=>{if(!event.sender.isDestroyed())event.sender.send('subtitle-progress',p);}));

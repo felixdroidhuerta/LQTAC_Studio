@@ -6,7 +6,7 @@
       this.canvas=document.createElement('canvas');const gl=this.gl=this.canvas.getContext('webgl',{alpha:true,premultipliedAlpha:false,preserveDrawingBuffer:true});if(!gl)throw Error('WebGL no está disponible para los efectos');
       const shader=(type,source)=>{const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));return s;};
       const vertex=shader(gl.VERTEX_SHADER,'attribute vec2 p;varying vec2 uv;void main(){uv=(p+1.)*.5;gl_Position=vec4(p,0.,1.);}');
-      const fragment=shader(gl.FRAGMENT_SHADER,`precision highp float;varying vec2 uv;uniform sampler2D image,lut;uniform vec2 pixel;uniform float brightness,contrast,saturation,temperature,blur,sharpen,vignette,lutSize,tolerance,softness;uniform vec3 keyColor;uniform bool chroma;
+      const fragment=shader(gl.FRAGMENT_SHADER,`precision highp float;varying vec2 uv;uniform sampler2D image,lut,matte;uniform bool useMatte;uniform float protectAt,protectSoft;uniform vec2 pixel;uniform float brightness,contrast,saturation,temperature,blur,sharpen,vignette,lutSize,tolerance,softness;uniform vec3 keyColor;uniform bool chroma;
         uniform float clock,crt,crtCurve,crtLines,vhs,vhsNoise,glitch,glitchSpeed,glow,glowRadius,glowThreshold,bloom,bloomRadius,bloomThreshold,film,filmGrain,filmScratches;
         float noise(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
         vec3 highlights(vec2 p,float threshold){vec4 s=texture2D(image,clamp(p,0.,1.));float y=dot(s.rgb,vec3(.2126,.7152,.0722));return s.rgb*s.a*smoothstep(threshold,min(1.,threshold+.15)+.001,y);}
@@ -25,11 +25,11 @@
           if(crt>0.){float scan=.5+.5*sin(uv.y/pixel.y*3.14159265);c*=1.-crt*crtLines*scan*.45;c*=1.-crt*.18*smoothstep(.2,.7,length(uv-.5));c*=1.+crt*.025*sin(clock*55.);}
           if(vhs>0.)c+=(noise(floor(uv/pixel)+frame)-.5)*vhs*vhsNoise*.3;
           if(film>0.){float y=dot(c,vec3(.299,.587,.114));c=mix(c,vec3(y*1.12,y*.98,y*.78),film*.8);c+=(noise(floor(uv/pixel)+frame*3.)-.5)*film*filmGrain*.28;float scratchX=noise(vec2(floor(clock*8.),3.));float scratch=(1.-smoothstep(.0,.0015,abs(uv.x-scratchX)))*step(.3,noise(vec2(frame,4.)));c+=scratch*film*filmScratches*.7;c*=1.-film*.08*noise(vec2(frame,9.));}
-          c*=1.-vignette*smoothstep(.2,.72,length(uv-.5));float alpha=s.a*edge;if(chroma)alpha*=smoothstep(tolerance,tolerance+softness,distance(clamp(c,0.,1.),keyColor));gl_FragColor=vec4(clamp(c,0.,1.),alpha);}`);
+          c*=1.-vignette*smoothstep(.2,.72,length(uv-.5));float alpha=s.a*edge;if(chroma){float keep=smoothstep(tolerance,tolerance+softness,distance(clamp(c,0.,1.),keyColor));if(useMatte){float m=texture2D(matte,uv).r;keep=max(keep,smoothstep(protectAt-protectSoft,protectAt+protectSoft,m));}alpha*=keep;}gl_FragColor=vec4(clamp(c,0.,1.),alpha);}`);
       this.program=gl.createProgram();gl.attachShader(this.program,vertex);gl.attachShader(this.program,fragment);gl.linkProgram(this.program);if(!gl.getProgramParameter(this.program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(this.program));gl.deleteShader(vertex);gl.deleteShader(fragment);gl.useProgram(this.program);
       const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);const location=gl.getAttribLocation(this.program,'p');gl.enableVertexAttribArray(location);gl.vertexAttribPointer(location,2,gl.FLOAT,false,0,0);
-      this.textures=[0,1].map(()=>{const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);return t;});
-      gl.uniform1i(gl.getUniformLocation(this.program,'image'),0);gl.uniform1i(gl.getUniformLocation(this.program,'lut'),1);
+      this.textures=[0,1,2].map(()=>{const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);return t;});
+      gl.uniform1i(gl.getUniformLocation(this.program,'image'),0);gl.uniform1i(gl.getUniformLocation(this.program,'lut'),1);gl.uniform1i(gl.getUniformLocation(this.program,'matte'),2);
     }
     draw(source,input,time=0){
       const f={...LQTACEffects.videoDefaults,...input},gl=this.gl,w=source.videoWidth||source.width,h=source.videoHeight||source.height;
@@ -44,8 +44,13 @@
       gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,this.textures[1]);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);
       if(f.lut){if(this.lastLut!==f.lut){const n=f.lut.size,data=new Uint8Array(n**3*4);for(let b=0;b<n;b++)for(let g=0;g<n;g++)for(let r=0;r<n;r++){const src=(r+g*n+b*n*n)*3,dst=(r+b*n+g*n*n)*4;data[dst]=Math.round(f.lut.values[src]*255);data[dst+1]=Math.round(f.lut.values[src+1]*255);data[dst+2]=Math.round(f.lut.values[src+2]*255);data[dst+3]=255;}gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,n*n,n,0,gl.RGBA,gl.UNSIGNED_BYTE,data);this.lastLut=f.lut;}gl.uniform1f(gl.getUniformLocation(this.program,'lutSize'),f.lut.size);}
       else{gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([0,0,0,255]));this.lastLut=null;gl.uniform1f(gl.getUniformLocation(this.program,'lutSize'),0);}
+      // Chroma zone: person matte protects the subject; the key only acts outside it.
+      let matte=null;if(f.chroma&&window.LQTACAiMatte){if(f.chromaZone==='people')matte=LQTACAiMatte.personMask(source,time,f.chromaMatteModel);else if(f.chromaZone==='pro')matte=LQTACAiMatte.proMask(f,time);}this.matteUsed=!!matte;
+      gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,this.textures[2]);gl.pixelStorei(gl.UNPACK_ALIGNMENT,1);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);
+      if(matte)gl.texImage2D(gl.TEXTURE_2D,0,gl.LUMINANCE,matte.width,matte.height,0,gl.LUMINANCE,gl.UNSIGNED_BYTE,matte.data);else gl.texImage2D(gl.TEXTURE_2D,0,gl.LUMINANCE,1,1,0,gl.LUMINANCE,gl.UNSIGNED_BYTE,new Uint8Array([0]));
+      gl.pixelStorei(gl.UNPACK_ALIGNMENT,4);gl.uniform1i(gl.getUniformLocation(this.program,'useMatte'),matte?1:0);gl.uniform1f(gl.getUniformLocation(this.program,'protectAt'),f.chromaProtect);gl.uniform1f(gl.getUniformLocation(this.program,'protectSoft'),f.chromaMatteSoftness);
       gl.drawArrays(gl.TRIANGLE_STRIP,0,4);if(gl.getError()!==gl.NO_ERROR)throw Error('Error de GPU al aplicar efectos');return this.canvas;
     }
   }
-  window.LQTACVideoEffects={draw(source,fx,time=0){if(!fx?.enabled)return source;if(!validated.has(fx)){LQTACEffects.validate(fx,'video');validated.add(fx);}if(!instance)instance=new VideoEffects();return instance.draw(source,LQTACEffects.at(fx,time),time);}};
+  window.LQTACVideoEffects={get matteUsed(){return !!instance?.matteUsed;},draw(source,fx,time=0){if(!fx?.enabled)return source;if(!validated.has(fx)){LQTACEffects.validate(fx,'video');validated.add(fx);}if(!instance)instance=new VideoEffects();return instance.draw(source,LQTACEffects.at(fx,time),time);}};
 })();

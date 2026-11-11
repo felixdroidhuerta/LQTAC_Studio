@@ -384,6 +384,8 @@
   <script src="assets/work-model.js"></script>
   <script src="assets/effects-model.js"></script>
   <script src="assets/effects-video.js"></script>
+  <script src="assets/ai-matte.js"></script>
+  <script src="assets/chroma-zone-controls.js"></script>
   <script src="assets/still-images.js"></script>
   <script>
     const $ = (sel, root = document) => root.querySelector(sel);
@@ -2188,11 +2190,12 @@
       exporting=true;cancelExport=false;exportSize={width,height};$('#renderGo').disabled=true;$('#renderProfile').disabled=true;$('#renderClose').textContent='Cancelar';$('#renderProgress').value=0;$('#renderStatus').textContent='Preparando exportación…';
       const unsubscribe=window.lqtacDesktop.onRenderProgress(value=>{if(!['mp4','webm','gif'].includes(profile)){$('#renderProgress').value=value;$('#renderStatus').textContent=`Renderizando audio · ${Math.round(value*100)} %`;}});
       try {
+        if((await LQTACAiMatte.prepareForProject()).length)$('#renderStatus').textContent='IA local de croma lista · preparando exportación…';
         const result=await window.lqtacDesktop.renderStart({project:projectSnapshot(),range:window.LQTACTimelineTools?.exportRange(),profile,width,height,fps});
         if(result.canceled){$('#renderStatus').textContent='Exportación cancelada. No se ha creado ningún archivo.';return;}
         if(result.video){const frames=Math.ceil(result.duration*fps);for(let frame=0;frame<frames;frame++){
           if(cancelExport)throw new Error('Exportación cancelada.');
-          await window.lqtacDesktop.renderFrame(await captureProjectFrame((result.startSeconds||0)+frame/fps,width,height));
+          await LQTACAiMatte.prepareFrame((result.startSeconds||0)+frame/fps);await window.lqtacDesktop.renderFrame(await captureProjectFrame((result.startSeconds||0)+frame/fps,width,height));
           $('#renderProgress').value=(frame+1)/frames;$('#renderStatus').textContent=`Renderizando vídeo · ${Math.round((frame+1)/frames*100)} % · ${frame+1}/${frames}`;
         }}
         const saved=await window.lqtacDesktop.renderFinish();$('#renderProgress').value=1;$('#renderStatus').textContent='Archivo guardado: '+saved.output;renderDialog.close();$('#renderCompletePath').textContent=saved.output;renderCompleteDialog.showModal();

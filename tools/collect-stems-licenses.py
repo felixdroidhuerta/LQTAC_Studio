@@ -12,6 +12,7 @@ for dist in metadata.distributions():
             if source.is_file():
                 destination=licenses/name/str(file).replace('../','_');destination.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(source,destination);entry['notices'].append(str(destination.relative_to(target)))
     packages.append(entry)
-manifest={'engine':'demucs-cpu','model':'htdemucs','worker_sha256':hashlib.sha256(worker.read_bytes()).hexdigest(),'python':sys.version,'packages':packages}
+engine=sys.argv[3] if len(sys.argv)>3 else 'demucs-cpu';model=sys.argv[4] if len(sys.argv)>4 else 'htdemucs'
+manifest={'engine':engine,'model':model,'worker_sha256':hashlib.sha256(worker.read_bytes()).hexdigest(),'python':sys.version,'packages':packages}
 (target/'runtime-manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2),encoding='utf-8')
 print('Notices and manifest saved for',len(packages),'packages')

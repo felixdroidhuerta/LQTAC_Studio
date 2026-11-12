@@ -1,6 +1,157 @@
 # LQTAC Studio — Funcionamiento y validación
 
-Última actualización: 11 de noviembre de 2026.
+Última actualización: 12 de noviembre de 2026.
+
+## Efectos especiales · 12/11/2026 (local, 0.22.0)
+
+Tres packs nuevos en FX → Vídeo. Todos se ven igual en la vista previa y en la exportación, y cada cambio se puede deshacer.
+
+### Pack 1 · efectos visuales (con curvas, como el resto de FX)
+
+| Efecto | Qué hace | Ajustes |
+|---|---|---|
+| Partículas | Nieve, lluvia, chispas, polvo flotando, confeti, burbujas o bokeh encima del clip; también sobre fondo transparente | Tipo (fijo), intensidad, cantidad, tamaño, velocidad, viento |
+| Destello de lente | Destello con línea anamórfica y reflejos internos | Posición X/Y, tamaño, color (cálido/frío), intensidad |
+| Rayos de luz | Rayos que salen de las zonas brillantes hacia un origen | Umbral, longitud, origen X/Y |
+| Fugas de luz | Manchas de luz de color que se mueven, al estilo de las fugas de película | Velocidad, color |
+| Parpadeo de luz | Variación aleatoria y suave de la luz (vela, fluorescente) | Velocidad |
+| Ondas de agua | Ondas circulares que se expanden desde un centro | Número de ondas, velocidad, centro |
+| Remolino | Gira la imagen alrededor de un centro | Vueltas, radio, centro |
+| Ojo de pez / lente | Abomba (+) o encoge (−) el centro de la imagen | Intensidad |
+| Onda de calor | Ondulación de espejismo | Velocidad, tamaño |
+| Espejo / caleidoscopio | Izquierda → derecha, arriba → abajo, cuatro cuadrantes o caleidoscopio | Modo (fijo), segmentos, giro, mezcla |
+| Estela / desenfoque de movimiento | Los fotogramas anteriores dejan rastro (estela) o se mezclan (desenfoque) | Modo (fijo), intensidad |
+
+- Los ajustes marcados como «fijo» son listas desplegables y no se animan; el resto admite curvas.
+- **Presets:** 30 nuevos, entre ellos nieve suave, tormenta, lluvia, chispas de hoguera, confeti, bokeh nocturno, destello que cruza (animado), rayos de sol, onda expansiva (animada), remolino de entrada (animado), caleidoscopio girando (animado), estela fantasma y desenfoque de movimiento. En total hay 125 presets de fábrica.
+- **Estela y desenfoque:** usan los fotogramas anteriores del mismo clip. Al saltar en el tiempo (hacia atrás o más de 0,3 s) se reinician. Al exportar, el rastro empieza con el primer fotograma exportado.
+
+### Pack 2 · seguimiento y estabilización
+
+**Estabilizar imagen** (tarjeta en FX → Vídeo):
+- Analiza el temblor de la cámara y lo suaviza en dos pasadas de FFmpeg (vid.stab). Prepara una copia estabilizada local de todo el archivo; el original no cambia.
+- Los recortes, divisiones y cambios de velocidad del clip se conservan.
+- **Ajustes:** suavizado (1–100 fotogramas) y bordes («ampliar para ocultarlos» o «mantener el encuadre con bordes negros»).
+- La copia se guarda en `stabilize-cache` dentro de los datos del programa y se reutiliza.
+- Para quitarla, «Quitar estabilización». No se puede estabilizar un clip invertido: primero hay que restaurar su dirección.
+
+**Seguimiento de movimiento.** La ventana está organizada en cuatro pasos y cada uno muestra su estado (✓ hecho, ○ pendiente):
+1. **Tramo:** inicio y fin del seguimiento. Se escriben en segundos o se marcan con «Marcar inicio aquí» y «Marcar fin aquí» en la posición del deslizador. Por defecto es todo el clip.
+2. **Zona:** en el instante de inicio, arrastras un rectángulo sobre algo con detalle. Si lo dibujas en otro instante, el inicio se mueve a ese momento.
+3. **Analizar:** «Analizar el tramo» sigue la zona entre el inicio y el fin (15 posiciones por segundo). El análisis se guarda en el clip, así que al volver a abrir la ventana se ve el recorrido y se puede aplicar a otros destinos sin repetirlo.
+4. **Aplicar:** eliges el destino y pulsas «Aplicar». Los destinos son:
+   - **la posición de un efecto:** destello de lente, origen de los rayos, centro de las ondas o centro del remolino (se crean sus curvas X/Y);
+   - **la máscara dibujada del clip,** que se desplaza con el objeto;
+   - **un título** de otra pista que coincida en el tiempo: se crean fotogramas clave de composición para que el texto acompañe al objeto.
+
+Para comprobar el resultado y gestionar los destinos:
+- Debajo, «Seguimiento aplicado a:» lista los destinos con un ✓ (también marcados con ✓ en el desplegable). Cada uno tiene un botón **Quitar**:
+  - en un efecto, borra sus curvas de posición;
+  - en la máscara, la deja fija con su forma inicial;
+  - en un título, borra los fotogramas clave de composición.
+- **▶ Reproducir tramo** y **Ver con los efectos del clip** muestran en la propia ventana el resultado ya aplicado; por ejemplo, el destello siguiendo al objeto.
+- Antes del inicio y después del fin, el destino se queda en la primera o la última posición.
+- El análisis tiene en cuenta la velocidad del clip, la inversión y la estabilización.
+- Cada análisis, aplicación o retirada es un paso de deshacer.
+- Al dividir el clip, cada parte conserva su tramo del análisis.
+
+### Pack 3 · máscaras y formas animadas
+
+**Máscara dibujada (rotoscopia):**
+- **Dibujar:** haces clic alrededor de la zona y pulsas el primer punto (o doble clic) para cerrar la forma. Admite de 3 a 64 puntos.
+- **Animar:** en otro instante, arrastra los puntos (se crea o actualiza un fotograma clave). Mayúsculas + arrastrar mueve toda la máscara. Entre fotogramas clave la forma se interpola.
+- **Uso:**
+  - «Recortar el clip a la máscara»: fuera queda transparente, para componer sobre otra pista.
+  - «Efectos solo dentro de la máscara»: por ejemplo, desenfocar solo una cara o una matrícula.
+- **Opciones:** invertir (actúa fuera), suavizado del borde (0–20 % de la altura) y «Ver resultado» con fondo de cuadros.
+- Al dividir el clip, cada parte conserva su tramo de la máscara.
+
+**Formas animadas en los títulos:**
+- El editor de títulos añade «Añadir elipse» y «Añadir línea», además del rectángulo.
+- «Sin relleno» deja solo el contorno.
+- El efecto **Dibujar el trazo** traza el contorno a lo largo de su longitud y después aparece el relleno.
+- Plantilla nueva: «Trazos que se dibujan» (círculo, subrayado y texto). Ya son 14 plantillas.
+
+### Medidas y pruebas
+
+- **`verify-vfx-pack1.cjs`:**
+  - Con todo a 0 la imagen no cambia (diferencia 0), y cada efecto cambia la imagen.
+  - Los 7 tipos de partícula dibujan, sobre fondo transparente también; son repetibles en el mismo instante y se mueven con el tiempo.
+  - El destello aclara su posición más de 50 veces que la esquina contraria.
+  - El espejo es simétrico (error 0).
+  - La estela mantiene encendida la posición anterior de un objeto en movimiento y se reinicia tras saltar en el tiempo.
+  - El editor usa desplegables para los ajustes fijos.
+- **`verify-vfx-pack2.cjs`** (Node):
+  - Seguimiento de un objeto con trayectoria conocida: error medio de 1,7 px y máximo de 2,5 px, y error de 0,9 px con el clip a media velocidad desde el segundo 2.
+  - Estabilización de un clip con temblor sintético: la diferencia entre fotogramas baja de 11,9 a 0,6; la duración se conserva y la caché se reutiliza.
+- **`verify-vfx-pack23-ui.cjs`:**
+  - La máscara recorta (255 dentro, 0 fuera), se mueve entre fotogramas clave y se invierte.
+  - El seguimiento lleva el destello a su posición final, mueve la máscara un 46 % del ancho y desplaza el título unos 876 × 287 px.
+  - La estabilización cambia la fuente de reproducción a la copia estabilizada.
+  - Elipse y línea se guardan sin relleno, y el trazo se dibuja progresivamente.
+
+**Límites:**
+- El seguimiento sigue una zona (posición), no rotación ni escala. Si el objeto queda tapado o cambia mucho, puede perderse: conviene elegir una zona con contraste.
+- La estabilización procesa el archivo completo: en archivos largos tarda, aproximadamente una vez y media la duración del vídeo en este equipo.
+- No hay cámara 3D, ni «plano limpio» para croma, ni congelar imagen o cámara lenta con fotogramas interpolados.
+- Las partículas y la luz son efectos generados, no simulaciones físicas.
+
+## Títulos animados · 11/11/2026 (local, posterior a 0.21.0)
+
+El editor de títulos y gráficos (Generadores → Título, Rótulo, Créditos o Cartel; doble clic en un título del timeline para editarlo) incorpora:
+
+**Plantillas.** El selector «Plantilla», arriba a la derecha, sustituye el diseño por uno listo para usar. Después se puede editar todo. Si eliges una plantilla por error, «Cancelar» descarta los cambios.
+
+| Grupo | Plantillas |
+|---|---|
+| Títulos | Título de cine, Neón, Degradado dorado, Impacto, Máquina de escribir, Capítulo, Frase palabra a palabra, Crawl galáctico (texto en perspectiva) |
+| Rótulos | Rótulo clásico, Rótulo moderno, Rótulo degradado |
+| Créditos | Créditos a dos columnas (cargo a la izquierda, nombre a la derecha), Créditos centrados |
+
+**Pestaña «Efectos»** (para el objeto seleccionado):
+- **Entrada:** el efecto (fundido, subir, caer, desde la izquierda o la derecha, escalar, desenfoque, girar, barrido o máquina de escribir) y cómo se aplica (letra a letra, palabra a palabra, línea a línea u objeto completo). También se eligen la duración de cada unidad, el escalonado entre unidades, el retraso y el suavizado.
+- **Salida:** igual que la entrada, pero al final del título. La última unidad termina justo al acabar el título.
+- **Movimiento continuo:** ola, latido o temblor, con su intensidad y velocidad.
+- Los rectángulos se animan siempre como objeto completo. El barrido, por ejemplo, los revela de izquierda a derecha.
+- En palabras y líneas, el escalado y el giro se hacen sobre el centro de la palabra o de la línea.
+
+**Suavizados:** lineal, suave, frenada, acelerada, con rebase, rebote y elástica. Se usan en los efectos de entrada y salida y en la «Interpolación» de la animación general (fotogramas clave de la composición).
+
+**Estilo:**
+- **Degradado:** lineal, del color del objeto a un segundo color, con un ángulo de 0 a 360°. Las plantillas pueden traer hasta 5 colores; si tocas los controles del degradado, se conservan los colores intermedios.
+- **Brillo (glow):** color, tamaño (0–200) e intensidad (1–5 pasadas). Funciona en textos y formas, y se combina con contorno y sombra.
+
+La vista previa y la exportación usan el mismo dibujo, así que el vídeo exportado es idéntico a lo que se ve.
+
+Comprobado con `desktop/verify-titles.cjs`:
+- Con la entrada terminada, el texto animado letra a letra queda idéntico al texto estático (0 % de diferencia).
+- A mitad de la entrada, la mitad izquierda tiene mucha más tinta que la derecha.
+- Con salida por objeto, el texto desaparece al final.
+- El degradado vertical pasa de rojo arriba a azul abajo, y el brillo duplica la luz alrededor del texto.
+- El barrido revela el rectángulo de izquierda a derecha y la ola mueve las letras.
+- Las 13 plantillas dibujan. El crawl muestra la introducción fija antes de empezar, entra por abajo, se estrecha con la distancia (en la parte lejana, menos del 80 % de la anchura cercana) y termina desvanecido.
+- El editor aplica plantillas, guarda los efectos y el degradado y lleva el título al timeline.
+
+**Texto en perspectiva (crawl).** Se elige en Animación → «Texto en perspectiva (crawl)», o con la plantilla «Crawl galáctico». El texto sube desde abajo sobre un plano inclinado, se estrecha al alejarse y se desvanece hacia el horizonte. Ajustes:
+
+| Ajuste | Qué hace |
+|---|---|
+| Inclinación del plano (20–80°) | Más inclinación = el plano más tumbado y las líneas se comprimen antes |
+| Altura del horizonte (0–0,6) | Dónde se pierde el texto (0 = borde superior) |
+| Desvanecimiento al alejarse (0–1) | Cuánto antes desaparece. El recorrido termina cuando la última línea llega a esa zona, así que la duración del título marca la velocidad |
+| Empieza a subir en (s) | Espera antes de que empiece a subir (para la frase de introducción) |
+| Fondo de estrellas | Estrellas generadas por el programa, siempre iguales. Sin él, con fondo transparente, se puede poner sobre otro vídeo |
+
+- **Fijo en pantalla** (pestaña Efectos): el objeto no entra en la perspectiva y se dibuja plano encima. Es lo que usa la frase azul inicial.
+- **La salida termina en (s):** el objeto desaparece en ese momento en lugar de al final del título. Así la introducción se va antes de que suba el texto.
+- **Justificado:** nueva alineación. La última línea de cada párrafo queda a la izquierda.
+- La plantilla usa Franklin Gothic Medium (incluida en Windows), amarillo sobre negro, 90 s, y un texto de ejemplo propio para sustituir. No usa nombres ni logotipos de películas.
+- El texto que sube puede ser más alto que la pantalla. En la vista Diseño solo se ve la parte superior: el texto completo se edita en el cuadro «Texto».
+- Cada fotograma tarda unos 10–60 ms en dibujarse.
+
+**Límites:**
+- Los efectos por letra o palabra solo se aplican a textos. No hay degradado radial.
+- Las curvas de la composición siguen animando el título entero.
 
 ## Autotune · 11/11/2026 (0.21.0)
 
@@ -93,7 +244,7 @@ Pendiente: ducking (necesita la pista de voz como referencia) y normalización e
 
 Cada editor individual de efectos (FX → tarjeta de vídeo o de audio) tiene arriba una barra **Preset**:
 
-- **De fábrica:** 95 presets en total (31 de vídeo y 64 de audio, incluidos los del pack de audio, la panorámica y el autotune). Vídeo: contraste, blanco y negro, colores vivos, «Color → blanco y negro (animado)», cálido y frío, desenfoques (incluido «Enfocar al empezar», animado), enfoque, viñetas, croma verde o azul o con personas protegidas, TV, VHS, glitch, resplandor, bloom y película. Audio: voz clara, más graves, teléfono o radio, brillo, compresión para podcast, música o fuerte, limitador −1 y −3 dB, ruido ligero o intenso, normalización a −16, −14 o −23 LUFS, eco corto o largo y sala pequeña o grande.
+- **De fábrica:** 125 presets en total (61 de vídeo y 64 de audio, incluidos los del pack de audio, la panorámica y el autotune). Vídeo: contraste, blanco y negro, colores vivos, «Color → blanco y negro (animado)», cálido y frío, desenfoques (incluido «Enfocar al empezar», animado), enfoque, viñetas, croma verde o azul o con personas protegidas, TV, VHS, glitch, resplandor, bloom y película. Audio: voz clara, más graves, teléfono o radio, brillo, compresión para podcast, música o fuerte, limitador −1 y −3 dB, ruido ligero o intenso, normalización a −16, −14 o −23 LUFS, eco corto o largo y sala pequeña o grande.
 - **Elegir un preset** lo aplica al borrador al momento: se ve y se escucha en la vista previa. **Aplicar al clip** lo confirma y **Cancelar** lo descarta.
 - **Guardar como preset…** guarda los valores del efecto abierto con un nombre y, si se marca, su animación. Las curvas se guardan en proporción a la duración del clip, así que se adaptan a clips de otra longitud. Si el nombre ya existe, pide confirmación para sustituirlo.
 - **Eliminar** borra un preset propio. **Exportar mis presets…** crea un `.lqfx` con todos tus presets de vídeo o de audio. **Importar…** los añade y renombra los duplicados.
@@ -895,7 +1046,16 @@ La toma guardada se añade a la biblioteca y, por defecto, se inserta en una pis
 
 Cerrar o descartar libera las pistas del dispositivo y el contexto de audio. Se pide confirmación para descartar una toma en curso; al cerrar la aplicación con una toma pendiente se permite volver al grabador o descartarla. No se eliminan grabaciones que ya se hayan guardado. Los errores de permiso, ausencia de dispositivo o dispositivo ocupado se explican en el diálogo.
 
-Límites del grabador de audio: una toma mono de hasta dos horas, sin pausa, punch-in, calibración de latencia ni monitorización por altavoces. La timeline se detiene al abrir el grabador: no es aún doblaje sincronizado durante reproducción. Solo captura el micrófono; la cámara dispone ahora de un grabador separado descrito arriba. No hay recuperación garantizada de una toma temporal tras fallo brusco o apagado; hay que detener y guardar. Pruebas automatizadas con dispositivo simulado de Chromium; el usuario ha validado el micrófono real.
+### Grabar sobre el proyecto (0.22.0)
+
+Además del destino (pista nueva o existente), el grabador tiene dos casillas que se recuerdan entre sesiones:
+
+- **Grabar desde la posición del cursor** (marcada por defecto): la toma se coloca donde está la flecha de posición de la timeline y el campo «Posición (s)» queda bloqueado mostrando ese tiempo. Desmarcada, se usa el valor que escribas en «Posición (s)».
+- **Reproducir el proyecto mientras grabas**: al pulsar Grabar (después de elegir el archivo) el proyecto empieza a sonar desde esa misma posición y la captura arranca en cuanto la reproducción está en marcha; la toma se coloca en el instante exacto en que empezó a grabar. Detener para la reproducción, guarda la toma y devuelve el cursor al punto de partida, listo para repetir la toma. Ideal para cantar o doblar sobre una base.
+
+Con la reproducción activada aparece **Compensación de latencia (ms)**: adelanta la toma ese tiempo para corregir el retraso de la tarjeta de sonido (lo que tarda la música en llegar a los auriculares más lo que tarda la voz en llegar al programa). Si la voz queda algo detrás de la música, súbelo; con 0 no se corrige. Si la compensación lleva la toma antes del segundo 0, se recorta el principio de la toma. Una línea bajo las casillas resume dónde empezará la toma y si sonará el proyecto. Si la posición está después del final del proyecto no hay nada que reproducir y solo se graba. Usa auriculares: el micrófono captaría la música de los altavoces.
+
+Límites del grabador de audio: una toma mono de hasta dos horas, sin pausa ni punch-in automático. La voz no se monitoriza por altavoces (sí suena el proyecto si se activa la casilla). La compensación de latencia es manual. Solo captura el micrófono; la cámara dispone ahora de un grabador separado descrito arriba. No hay recuperación garantizada de una toma temporal tras fallo brusco o apagado; hay que detener y guardar. Pruebas automatizadas con dispositivo simulado de Chromium; el usuario ha validado el micrófono real.
 
 ### Pendientes acordados
 

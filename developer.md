@@ -1,5 +1,119 @@
 # LQTAC Studio — guía de desarrollo y continuidad
 
+## Efectos especiales (packs 1–3) · 12/11/2026
+
+**Registro.**
+- Los efectos del Pack 1 son entradas nuevas de `LQTACEffects.creative`, en `effects-model.js`. De ahí salen el catálogo, el editor con curvas, el formulario, los valores por defecto, los rangos y la declaración de uniforms del sombreado (`uniform float clock,${...}`).
+- Un sexto elemento en la tupla de un campo es la lista de opciones de un selector. Esos campos van en `videoStatic` (`particleType`, `mirrorMode`, `echoMode`): son enteros, no se pueden animar, se muestran como `select` en `effect-editor.js` y en `effects-controls.js`, y no aparecen en la lista de curvas.
+
+**Sombreado** (`effects-video.js`):
+- Funciones procedurales:
+  - `particleLayer`: 3 capas en rejilla, una partícula por celda con `hash2`, y forma y velocidad según el tipo.
+  - `flareAt`, `raysAt` (desenfoque radial de las luces altas, en modo trama), `leakAt` y `mirrored`.
+- Las distorsiones (ojo de pez, remolino, ondas, calor) modifican `p` antes de muestrear la imagen. El espejo mezcla la muestra reflejada.
+- La luz se calcula después del bloom. `lightA` y las partículas suben el alfa, para que se vean sobre fondos transparentes. Chispas y bokeh se suman; el resto se compone encima.
+- **Estela:** la pasada principal se dibuja en `this.cur` (FBO). `echo()` combina con el historial de cada fuente (ping-pong; máximo de 6 fuentes en un `Map`):
+  - modo estela: `max(cur, hist·decay)`;
+  - modo desenfoque: `mix`.
+  - El historial se reinicia si el tiempo retrocede o salta más de 0,3 s, y no acumula cuando se repite el mismo instante.
+  - Los FBO se crean en la unidad de textura 5 para no crear un bucle con las texturas de la pasada principal.
+- **Máscara dibujada:**
+  - `LQTACEffects.maskAt(mask,t)` interpola el polígono.
+  - Se rellena en un lienzo a media resolución con `ctx.filter` blur (`feather·alto`) y se sube a la unidad 6 (`shape`).
+  - `shapeMode` 1 recorta el alfa; 2 mezcla original y procesado.
+
+**Modelo.** `videoDefaults` incluye `stabilize: {smoothing 1–100, crop zoom|borders}` y `shapeMask: {mode cut|effects, invert, feather 0–0,2, keys [{time, points[[x,y]] 3–64}] ≤ 500}`.
+- `slice()` divide también los fotogramas clave de la máscara.
+- El formulario general conserva `stabilize` y `shapeMask`, igual que `chromaProMatte`.
+
+**Pack 2.**
+- `desktop/stabilize-service.cjs` hace dos pasadas de FFmpeg:
+  - `vidstabdetect` (`result=transforms.trf` relativo: el `cwd` es una carpeta temporal, porque los dos puntos de las unidades de Windows rompen los argumentos);
+  - `vidstabtransform` (`smoothing`, `optzoom`), seguido de `unsharp`, x264 crf 17 y AAC.
+  - La copia se guarda en caché por hash del archivo y los ajustes, en `userData/stabilize-cache`.
+- `clipPlaybackPath` usa `LQTACStabilize.path(clip)` cuando `LQTACStabilize.active(clip)`; la inversión tiene prioridad.
+- `desktop/tracking-service.cjs`: FFmpeg decodifica desde `offset + start·rate`, con `setpts=/rate`, `fps=15` y escala de 480 px en gris, y envía los fotogramas a un worker con `tracking-core.cjs`.
+- `tracking-core.cjs` (SAD de media cero):
+  - imagen integral para las medias;
+  - búsqueda gruesa con paso 2 en ±0,8 × el tamaño, y fina ±2 con paso 1;
+  - ajuste por debajo del píxel con una parábola;
+  - plantilla adaptativa: 80 % actual, 15 % nueva y 5 % la original.
+- IPC: `prepare-stabilize`, `cancel-stabilize`, `track-motion` y `cancel-track` (validados con `recordingSender`), con los eventos de progreso `stabilize-progress` y `track-progress`.
+
+**Interfaz.**
+- `dist/assets/fx-tools.js` define `LQTACFxTools.{stabilize, tracking, frameSource, fit, decimate, saveFx, currentFx, titleKeys, applyToEffect}` y `LQTACStabilize`.
+- `dist/assets/mask-editor.js` define `LQTACMask.{open, applyTrack, trackedMask}` y `LQTACFxTools.shapeMask`.
+- Las claves `stabilize`, `tracking` y `shapeMask` del catálogo de vídeo se desvían a estos diálogos al principio de `openEffectEditor`.
+- Seguimiento aplicado a un título: claves de composición = estado sin claves + desplazamiento × 1920/1080, en el tiempo del generador.
+- Las curvas se reducen a 900 puntos como máximo (480 en la máscara).
+- Sesiones de prueba: `window.trackingSession`, `window.maskSession`.
+- **Seguimiento guardado:** `videoFx.tracking` = `{start, end, box, points[{time,x,y,score}] ≤ 20000, applied[ids]}`. Los ids son `fx:<efecto>`, `mask` y `title:<inicio>:<nombre>`. `slice()` lo recorta al dividir y el formulario general lo conserva.
+- El servicio admite `end` (en segundos del clip, mayor que `start` + 0,05).
+- En la ventana, `commit()` aplica o quita un destino y actualiza `applied` en un único paso de deshacer.
+- Quitar un destino: borra las curvas X/Y del efecto; deja la máscara con solo su primer fotograma clave; o vacía las claves del título.
+- `trackingSession` expone `setRange`, `setBox`, `seek`, `analyze`, `apply(id)`, `remove(id)`, `points`, `applied` y `range`.
+
+**Formas en títulos.**
+- `design-vendor.js` exporta además `Ellipse` y `Line`.
+- El modelo admite los tipos `ellipse` y `line` (`x1..y2`) y `fill: null`.
+- El efecto `draw` (`look` → `s.draw`): en formas, `decorate` dibuja el contorno con `strokeDashArray=[len·e, len]` y después el relleno con alfa e². En texto se comporta como un fundido.
+- `pathLength`: rectángulo 2(w+h), elipse por la fórmula de Ramanujan, línea por hipotenusa.
+
+**Pruebas:** `verify-vfx-pack1.cjs` (Electron), `verify-vfx-pack2.cjs` (Node: `node desktop\verify-vfx-pack2.cjs [imagen]`) y `verify-vfx-pack23-ui.cjs` (Electron).
+
+## Títulos animados · 11/11/2026
+
+**`dist/assets/title-motion.js`** (UMD, `LQTACTitleMotion`, también en Node) contiene:
+- `easings` (linear, smooth, out, in, back, bounce, elastic).
+- `effects`, `units` (letter, word, line, object) y `loops` (wave, pulse, shake).
+- `look(effect,e,size)`, que devuelve `{alpha,dx,dy,scale,rotate,blur,reveal}`, y `combine`.
+- `unitState(anim,index,count,t,total,size)`: la entrada empieza en `delay+index·stagger`. La salida termina en `total`: empieza en `total − span(out,count)`.
+- `unitMap(lines,by)`: los espacios valen −1. En modo `object` todo es la unidad 0.
+- `validate(anim)`.
+
+**Modelo** (`generator-model.js`), objetos `textbox` y `rect`:
+- `gradient {angle 0–360, stops[2–5] {offset ascendente, color}}`.
+- `glow {color, size 0–200, strength entero 1–5}`.
+- `anim {in, out, loop}`. Cada fase lleva `{effect, by, duration 0,02–60, stagger 0–10, delay, easing}`.
+- `motion.easing` acepta los 7 suavizados (antes solo smooth/linear). Es compatible con los proyectos anteriores.
+
+**Dibujo** (`generators.js`):
+- `object(F,data)` guarda `o.lq = {gradient, glow, anim}` y `o.lqFill` (el color base; con degradado, `fill` es un `F.Gradient` en coordenadas de porcentaje). Después llama a `decorate(o)`.
+- `decorate` envuelve:
+  - `_render`, para el estado del objeto completo: alfa, desplazamiento, escala, giro, `ctx.filter` blur y recorte del barrido. Las pasadas de brillo usan `shadowBlur` con el zoom del lienzo.
+  - `Textbox._renderChars`, para dibujar grafema a grafema con `__charBounds` de Fabric 6.7.1. El pivote es el centro de la palabra o línea.
+- `draw()` llama a `animate(o,d,time,duration)` en cada fotograma. Las fases `by:'object'`, y todas las de los rectángulos, van a `__lqObject`; el resto, a `__lqChars[line][i]`.
+- `serialize` escribe `fill` como color base y copia `gradient`, `glow` y `anim`.
+- El bundle `design-vendor.js` exporta ahora `Gradient` (`tools/build-design-vendor.cjs`, misma versión de Fabric).
+
+**Plantillas** (`title-templates.js`, `LQTACTitleTemplates`): `list` (id, nombre, categoría) y `build(id)`. Devuelve un generador completo y validado; son 12 diseños.
+
+**Editor:**
+- El selector `genTemplate` está en la cabecera.
+- La pestaña «Efectos» (`anim` en `generator-layout.js`) usa `genIn*`, `genOut*` y `genLoop*`.
+- La pestaña «Estilo» añade `genGradient*` y `genGlow*`.
+- `lqFields()` y `lqApply()` leen y escriben `o.lq`. `genColor` ya no pisa el degradado.
+- «Añadir forma» crea el rectángulo con `object()` para que se pueda animar.
+
+**Crawl en perspectiva:**
+- `motion.preset = 'crawl'` y `g.crawl {tilt 20–80, horizon 0–0,6, fade 0–1, stars, delay < duration}`.
+- Opciones nuevas en los objetos:
+  - `fixed` (booleano): el objeto queda fuera del plano.
+  - `textAlign: 'justify-left'`.
+  - `anim.out.end`: la salida termina en ese segundo en lugar de al final.
+- `scene()` crea en modo crawl un lienzo transparente tan alto como el contenido no fijo (`entry.top/bottom`, máximo 16000 px).
+- `drawCrawl()` deforma el lienzo fila a fila. Para la fila de pantalla `y`:
+  - profundidad `s = (y − hY) / span`;
+  - distancia en el plano `D·(1/s − 1)`, con `D = span / tan(tilt)`;
+  - banda de origen `D/(s²·span)`;
+  - anchura `1920·s`;
+  - alfa `(s − fadeEnd)/fadeEnd`, con `fadeEnd = 0,04 + 0,25·fade`.
+- El recorrido `P` va de 0 a `contenido + D·(1/fadeEnd − 1)` entre `delay` y `duration`.
+- Los objetos fijos se dibujan después, planos, con un segundo `renderAll`. Las estrellas salen de una LCG con semilla fija.
+- Editor: `genCrawl*` (visibles solo con el preset crawl), `genFixed` y `genOutEnd`.
+
+**Pruebas:** `desktop/verify-titles.cjs` (Electron).
+
 ## Autotune · 11/11/2026
 
 **Núcleo compartido** `dist/assets/autotune-core.js` (UMD: `module.exports` en Node, `globalThis.LQTACAutotune` en la página y en el worklet): escalas, `notes(key,scale)`, `nearest(midi,pcs)`, `detector(rate)` (YIN, ventana 32 ms, 65–1100 Hz, umbral 0,15, interpolación parabólica, silencio < 2e-5 de energía media), `corrector()` (histéresis de 0,15 st, límite ±2,5 st, retención de 80 ms en huecos, suavizado exponencial τ = speed·0,3 s) y `analyze(samples,rate,duration,settingsAt)`, con un valor por `HOP` = 10 ms.
@@ -841,6 +955,8 @@ audio-recording.cjs gestiona un único token de toma, cola ordenada de muestras,
 Los permission handlers permiten audio y, tras la incorporación del grabador de cámara descrito al inicio, vídeo desde el índice local principal con confirmación por sesión; pantalla sigue pendiente. Cerrar la ventana con toma nativa pendiente pide confirmación y render-process-gone cancela la toma. El renderer desconecta puerto/nodos/contexto y detiene todos los tracks al guardar/descartar/cancelar, incluidos los fallos de getUserMedia. Build-portable copia el nuevo servicio; dist incluye los dos scripts. No se modifica un ZIP histórico ni se publica nada en esta tarea.
 
 verify-microphone.cjs usa Chromium con dispositivo/audio de prueba, nunca el micrófono físico: valida PCM sin pérdida y silencio de salida del worklet; grabación real del grafo→IPC→FFmpeg; WAV decodificado no silencioso, ganancia50 %, formato mono48k24 y duración real; biblioteca/timeline/posición y Ctrl+Z/Y; persistencia LQTS; cancelación de ruta, descarte, permiso denegado, inserción manual posterior; PCM/tokens inválidos, colisión de archivos y retry conservador; cierre de aplicación protegido. Se inspecciona el diálogo mediante captura. Falta prueba del usuario con hardware real y sus permisos de Windows.
+
+Grabar sobre el proyecto (0.22.0): casillas #micFromCursor y #micPlayProject más #micLatency (ms), guardadas en localStorage 'lqtac.micOptions'. startTimelinePlayback(fromStart, at) acepta una posición fija que no se recoloca por rango ni por final de proyecto. start() tras elegir ruta llama startTimelinePlayback(false,posición), espera a que timelineTime avance (máx. 8 s) y entonces envía 'start' al worklet; s.startedAt=timelineTime real y s.takeAt=startedAt−latencia. insert() usa s.takeAt; si es negativo coloca en 0 con sourceOffsetSeconds=−takeAt. haltProject() para la reproducción y vuelve el cursor a s.playFrom en stop/discard/close/errores. verify-microphone.cjs añade cuatro tomas sobre una base: cursor+reproducción+50 ms, posición escrita, compensación que recorta y sin reproducción, más las preferencias guardadas.
 
 Roadmap acordado: cámara implementada en la fase siguiente descrita al inicio; pantalla con audio opcional, autoguardado/recuperación y mezclador con medidores de pista/máster pendientes. No se incluyen en esta fase pausa de toma, grabación multipista simultánea, overdub sincronizado ni ajuste de latencia. Los temporales de una caída brusca no tienen un flujo de recuperación soportado todavía. El usuario ha validado la grabación real de micrófono el 24/10/2026.
 

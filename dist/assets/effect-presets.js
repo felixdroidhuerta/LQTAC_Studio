@@ -17,7 +17,18 @@
       glitch:[F('Glitch sutil',{glitch:.25,glitchSpeed:6}),F('Glitch fuerte',{glitch:.8,glitchSpeed:14})],
       glow:[F('Resplandor suave',{glow:.5,glowRadius:10,glowThreshold:.6}),F('Sueño',{glow:1.2,glowRadius:30,glowThreshold:.45})],
       bloom:[F('Bloom suave',{bloom:.4,bloomRadius:20,bloomThreshold:.7}),F('Bloom intenso',{bloom:1.2,bloomRadius:50,bloomThreshold:.55})],
-      film:[F('Película antigua',{film:.6,filmGrain:.35,filmScratches:.3}),F('Cine mudo',{film:1,filmGrain:.6,filmScratches:.6})]
+      film:[F('Película antigua',{film:.6,filmGrain:.35,filmScratches:.3}),F('Cine mudo',{film:1,filmGrain:.6,filmScratches:.6})],
+      particles:[F('Nieve suave',{"particles":0.85,"particleType":0,"particleDensity":0.5,"particleSize":1,"particleSpeed":0.8,"particleWind":0.1}),F('Tormenta de nieve',{"particles":1,"particleType":0,"particleDensity":1,"particleSize":1.3,"particleSpeed":2,"particleWind":0.8}),F('Lluvia',{"particles":0.85,"particleType":1,"particleDensity":0.8,"particleSize":1,"particleSpeed":1,"particleWind":0.2}),F('Chispas de hoguera',{"particles":1,"particleType":2,"particleDensity":0.5,"particleSize":1,"particleSpeed":1,"particleWind":0.1}),F('Polvo en el aire',{"particles":0.7,"particleType":3,"particleDensity":0.6,"particleSize":0.8,"particleSpeed":0.6,"particleWind":0}),F('Confeti de fiesta',{"particles":1,"particleType":4,"particleDensity":0.8,"particleSize":1.2,"particleSpeed":1,"particleWind":0}),F('Burbujas',{"particles":0.85,"particleType":5,"particleDensity":0.4,"particleSize":1.2,"particleSpeed":0.7,"particleWind":0}),F('Bokeh nocturno',{"particles":0.8,"particleType":6,"particleDensity":0.4,"particleSize":1.5,"particleSpeed":0.4,"particleWind":0})],
+      flare:[F('Destello cálido',{flare:1,flareX:.25,flareY:.25,flareSize:1,flareHue:0}),F('Destello frío anamórfico',{flare:1.2,flareX:.7,flareY:.3,flareSize:1.3,flareHue:1}),F('Destello que cruza (animado)',{flare:1,flareX:.1,flareY:.3,flareSize:1,flareHue:.2},{flareX:[{t:0,value:.05},{t:1,value:.95}]})],
+      rays:[F('Rayos de sol',{rays:1.2,raysThreshold:.55,raysLength:.6,raysX:.5,raysY:.1}),F('Luz de ventana lateral',{rays:1,raysThreshold:.6,raysLength:.8,raysX:.05,raysY:.2})],
+      leak:[F('Fugas de luz cálidas',{leak:.6,leakSpeed:.5,leakHue:.1}),F('Fugas de luz mágicas',{leak:.7,leakSpeed:1,leakHue:.9})],
+      flicker:[F('Luz de vela',{flicker:.4,flickerSpeed:6}),F('Fluorescente averiado',{flicker:.9,flickerSpeed:20})],
+      ripple:[F('Gota en el agua',{ripple:.6,rippleFreq:14,rippleSpeed:2,rippleX:.5,rippleY:.5}),F('Onda expansiva (animada)',{ripple:1,rippleFreq:8,rippleSpeed:3},{ripple:[{t:0,value:1},{t:1,value:0}]})],
+      swirl:[F('Remolino suave',{swirl:.5,swirlRadius:.5}),F('Remolino de entrada (animado)',{swirl:2,swirlRadius:.7},{swirl:[{t:0,value:2},{t:.5,value:0},{t:1,value:0}]})],
+      fisheye:[F('Lente gran angular',{fisheye:.6}),F('Encoger el centro',{fisheye:-.5})],
+      heat:[F('Calor del desierto',{heat:.4,heatSpeed:1,heatScale:10}),F('Espejismo intenso',{heat:.9,heatSpeed:2,heatScale:16})],
+      mirror:[F('Espejo horizontal',{mirror:1,mirrorMode:0}),F('Cuatro cuadrantes',{mirror:1,mirrorMode:2}),F('Caleidoscopio girando (animado)',{mirror:1,mirrorMode:3,mirrorSegments:8,mirrorRotate:0},{mirrorRotate:[{t:0,value:0},{t:1,value:1}]})],
+      echo:[F('Estela fantasma',{echo:.85,echoMode:0}),F('Desenfoque de movimiento',{echo:.6,echoMode:1})]
     },
     audio:{
       bass:[F('Voz clara',{bass:-3,mid:2,treble:3}),F('Más graves',{bass:6,mid:0,treble:0}),F('Teléfono / radio',{bass:-18,mid:6,treble:-12}),F('Más brillo',{bass:0,mid:0,treble:5})],

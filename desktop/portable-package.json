@@ -1,6 +1,6 @@
 {
   "name": "lqtac-studio",
-  "version": "0.21.0",
+  "version": "0.22.0",
   "private": true,
   "main": "desktop/main.cjs",
   "productName": "Cinema Studio by LQTAC",

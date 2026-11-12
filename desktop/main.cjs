@@ -36,6 +36,12 @@ app.on('before-quit',()=>mediaVisuals.cancel());
 const reverseDirectory=()=>path.join(app.getPath('userData'),'reverse-cache');
 ipcMain.handle('prepare-reverse',(event,options)=>{recordingSender(event);return reverseMedia.prepare(options,reverseDirectory(),progress=>{if(!event.sender.isDestroyed())event.sender.send('reverse-progress',progress);});});
 ipcMain.handle('cancel-reverse',event=>{recordingSender(event);reverseMedia.cancel();});
+// Stabilized copies and motion tracking (local analysis; the project keeps the original media).
+const stabilizer=require('./stabilize-service.cjs'),tracker=require('./tracking-service.cjs');
+ipcMain.handle('prepare-stabilize',(event,options)=>{recordingSender(event);return stabilizer.prepare(options,path.join(app.getPath('userData'),'stabilize-cache'),p=>{if(!event.sender.isDestroyed())event.sender.send('stabilize-progress',p);});});
+ipcMain.handle('cancel-stabilize',event=>{recordingSender(event);stabilizer.cancel();});
+ipcMain.handle('track-motion',(event,options)=>{recordingSender(event);return tracker.track(options,p=>{if(!event.sender.isDestroyed())event.sender.send('track-progress',p);});});
+ipcMain.handle('cancel-track',event=>{recordingSender(event);tracker.cancel();});
 ipcMain.handle('prepare-audio-effects',async(_event,filePath,fx,segment)=>{if(segment?.reverse){filePath=await reverseMedia.prepare({filePath,kind:'audio',offset:segment.offset,duration:segment.duration*segment.rate},reverseDirectory());segment={...segment,offset:0,reverse:false};}return audioEffects.prepare(filePath,fx,path.join(app.getPath('userData'),'effects-cache'),segment);});
 ipcMain.handle('autotune-guide-melody',(_event,pieces,duration)=>audioEffects.guideMelody(pieces,duration));
 ipcMain.handle('cancel-audio-effects',()=>{audioEffects.cancel();reverseMedia.cancel();});
@@ -45,7 +51,7 @@ ipcMain.handle('audio-cache-info',async event=>{recordingSender(event);const fil
 ipcMain.handle('audio-cache-clear',async event=>{recordingSender(event);if(exportJob)throw Error('Finaliza la exportación antes de vaciar la caché');let removed=0,bytes=0,busy=0;for(const f of await audioCacheFiles()){try{await fs.promises.rm(f.file);removed++;bytes+=f.size;}catch{busy++;}}return {removed,bytes,busy};});
 ipcMain.handle('audio-effects-waveform',(_event,filePath,segment)=>{const root=path.resolve(app.getPath('userData'),'effects-cache')+path.sep;if(typeof filePath!=='string'||!path.resolve(filePath).startsWith(root))return [];return audioEffects.waveform(filePath,segment);});
 app.on('before-quit',()=>audioEffects.cancel());
-app.on('before-quit',()=>reverseMedia.cancel());
+app.on('before-quit',()=>{reverseMedia.cancel();stabilizer.cancel();tracker.cancel();});
 let currentProjectPath = null;
 ipcMain.handle('confirm-new-project',async()=>{
   const result=await dialog.showMessageBox(mainWindow,{type:'question',title:'Nuevo proyecto',message:'¿Guardar el proyecto actual antes de crear uno nuevo?',detail:'Si continúas sin guardar, se perderán los cambios actuales.',buttons:['Guardar','No guardar','Cancelar'],defaultId:0,cancelId:2,noLink:true});

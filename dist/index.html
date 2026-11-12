@@ -611,7 +611,7 @@
     };
     const clipIsActiveAt = (clip, seconds) => { const timing = clipTiming(clip); return seconds >= timing.startSeconds && seconds < timing.startSeconds + timing.durationSeconds; };
     const clipPlaybackOffset=clip=>clip.dataset.reverse==='true'?0:Number(clip.dataset.sourceOffsetSeconds||0);
-    const clipPlaybackPath=async clip=>clip.dataset.reverse==='true'&&!LQTACStillImages.isClip(clip)?window.LQTACReverse.path(clip):clip.dataset.filePath;
+    const clipPlaybackPath=async clip=>clip.dataset.reverse==='true'&&!LQTACStillImages.isClip(clip)?window.LQTACReverse.path(clip):window.LQTACStabilize?.active(clip)?window.LQTACStabilize.path(clip):clip.dataset.filePath;
     const clipLocalTime = (clip, seconds) => Math.max(0, clipPlaybackOffset(clip) + (seconds - clipTiming(clip).startSeconds)*Number(clip.dataset.playbackRate||1));
     const effectSettingsCache=new WeakMap(),effectAudioCache=new Map();
     function clipEffectsState(clip,kind){let entry=effectSettingsCache.get(clip);if(!entry){entry={};effectSettingsCache.set(clip,entry);}const text=clip.dataset[kind+'Fx']||'{}';if(entry[kind]?.text!==text){const value=JSON.parse(text);LQTACEffects.validate(value,kind);entry[kind]={text,value};}return entry[kind].value;}
@@ -950,12 +950,14 @@
       await renderTimelineAt(timelineTime);
       if (playing) timer = requestAnimationFrame(advanceTimeline);
     };
-    const startTimelinePlayback = async (fromStart=false) => {
+    const startTimelinePlayback = async (fromStart=false, at=null) => {
       if(exporting||historyBusy)return;
-      const range=activePlaybackRange();
-      if(fromStart){stopTimelinePlayback();timelineTime=range?.start??0;}
+      const range=activePlaybackRange(),fixed=Number.isFinite(at);
+      if(fixed){stopTimelinePlayback();timelineTime=Math.max(0,at);}
+      else if(fromStart){stopTimelinePlayback();timelineTime=range?.start??0;}
       playbackError = '';
-      if(range && (timelineTime < range.start || timelineTime >= range.end)) timelineTime=range.start;
+      if(fixed);
+      else if(range && (timelineTime < range.start || timelineTime >= range.end)) timelineTime=range.start;
       else if(!range && timelineTime >= timelineDurationSeconds) timelineTime = 0;
       playing = true; lastPlaybackTick = 0; $('#playButton').textContent = '❚❚';$('#playButton').setAttribute('aria-label','Pausar');
       await renderTimelineAt(timelineTime);
@@ -2249,9 +2251,13 @@
 <script src="assets/menu-controls.js"></script>
 <script src="assets/timeline-tools.js"></script>
 <script src="assets/track-order.js"></script>
+<script src="assets/title-motion.js"></script>
 <script src="assets/generator-model.js"></script>
 <script src="assets/workspace-panels.js"></script>
 <script src="assets/generator-layout.js"></script>
+<script src="assets/fx-tools.js"></script>
+<script src="assets/mask-editor.js"></script>
+<script src="assets/title-templates.js"></script>
 <script src="assets/generators.js"></script>
 <script src="assets/event-properties-menu.js"></script>
 <script src="assets/workspaces.js"></script>

@@ -33,7 +33,9 @@
         vec3 flareAt(vec2 uv){float asp=pixel.y/pixel.x,s=flareSize;vec2 f=vec2(flareX,1.-flareY),d=(uv-f)*vec2(asp,1.);vec3 tint=mix(vec3(1.,.72,.42),vec3(.55,.78,1.),flareHue);
           vec3 col=tint*(exp(-length(d)*20./s)*1.1+exp(-length(d)*4./s)*.18)+mix(vec3(1.),tint,.5)*exp(-abs(d.y)*90./s)*exp(-abs(d.x)*1.6/s)*.6;vec2 axis=vec2(.5)-f;
           for(int i=0;i<4;i++){float k=i==0?.5:i==1?1.1:i==2?1.45:2.1,rr=(i==0?.05:i==1?.09:i==2?.03:.14)*s;float l=length((uv-(f+axis*k*2.))*vec2(asp,1.));col+=(smoothstep(rr,rr*.7,l)*.1+smoothstep(rr,rr*.95,l)*.06)*hue(fract(.08+float(i)*.21+flareHue*.4))*.8;}
-          return col;}
+          float radial=exp(-length(d)/max(.025,flareBeamLength*.28*s));
+          float arms=exp(-abs(d.y)*220./s)+exp(-abs(d.x)*220./s)*.8+exp(-abs(d.y-d.x)*150./s)*.55+exp(-abs(d.y+d.x)*150./s)*.55;
+          col+=tint*flareBeam*radial*arms*.75;return col;}
         vec3 raysAt(vec2 uv){vec2 o=vec2(raysX,1.-raysY),st=(o-uv)*raysLength/32.,q=uv;vec3 sum=vec3(0.);float w=1.;for(int i=0;i<32;i++){sum+=highlights(q,raysThreshold)*w;w*=.96;q+=st;}return sum/21.3;}
         vec3 leakAt(vec2 uv){float t=clock*leakSpeed,asp=pixel.y/pixel.x;vec3 a=mix(vec3(1.,.55,.15),vec3(1.,.25,.55),leakHue),b=mix(vec3(1.,.8,.35),vec3(.7,.3,1.),leakHue);
           vec2 p1=vec2(.15+.25*sin(t*.7),.75+.2*cos(t*.5)),p2=vec2(.85+.15*cos(t*.6+1.),.3+.25*sin(t*.8+2.));

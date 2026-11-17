@@ -1,5 +1,14 @@
 const LQTACScreenCapture={
-  async prepare({source,systemAudio,microphone,microphoneId,height,cameraMode='none',cameraId='default',position='bottom-right',size=25}){
+  // Region: fractions {x,y,width,height} of the source frame (0..1) or null for the whole source.
+  normalizeRegion(region){
+    if(region==null)return null;
+    const keys=['x','y','width','height'];if(typeof region!=='object'||keys.some(k=>!Number.isFinite(region[k])))throw Error('Zona de captura no válida');
+    const r=Object.fromEntries(keys.map(k=>[k,Math.max(0,Math.min(1,region[k]))]));
+    if(r.width<=0||r.height<=0||r.x+r.width>1.0001||r.y+r.height>1.0001)throw Error('La zona de captura debe quedar dentro de la fuente');
+    if(r.x<=1e-4&&r.y<=1e-4&&r.width>=.9999&&r.height>=.9999)return null;
+    return {x:r.x,y:r.y,width:Math.min(r.width,1-r.x),height:Math.min(r.height,1-r.y)};
+  },
+  async prepare({source,systemAudio,microphone,microphoneId,height,cameraMode='none',cameraId='default',position='bottom-right',size=25,region=null}){
     let display=null,mic=null,camera=null,context=null,stream=null,cameraStream=null,timer=null;
     const videos=[],channels={};
     const state={microphoneMuted:false,systemMuted:false,cameraMuted:false,position,size};
@@ -29,14 +38,27 @@ const LQTACScreenCapture={
         await context.resume();audioTracks=destination.stream.getAudioTracks();
       }
       const displayVideo=await videoFor(display),cameraVideo=camera?await videoFor(camera):null;
-      const width=displayVideo.videoWidth,h=displayVideo.videoHeight;
+      const sourceWidth=displayVideo.videoWidth,sourceHeight=displayVideo.videoHeight;
+      let width=sourceWidth,h=sourceHeight,crop=null,currentRegion=null;
       const snapshotCanvas=canvasFor(width,h),snapshotContext=snapshotCanvas.getContext('2d',{alpha:false});
+      // Crop in source pixels; even sizes keep VP8 and later H.264 exports happy.
+      function applyRegion(value){
+        const r=LQTACScreenCapture.normalizeRegion(value);
+        if(r){
+          const even=n=>Math.max(16,Math.floor(n/2)*2);
+          const sw=Math.min(even(r.width*sourceWidth),sourceWidth-(sourceWidth%2)),sh=Math.min(even(r.height*sourceHeight),sourceHeight-(sourceHeight%2));
+          const sx=Math.max(0,Math.min(sourceWidth-sw,Math.round(r.x*sourceWidth))),sy=Math.max(0,Math.min(sourceHeight-sh,Math.round(r.y*sourceHeight)));
+          crop={sx,sy,sw,sh};width=sw;h=sh;currentRegion={x:sx/sourceWidth,y:sy/sourceHeight,width:sw/sourceWidth,height:sh/sourceHeight};
+        }else{crop=null;width=sourceWidth;h=sourceHeight;currentRegion=null;}
+        snapshotCanvas.width=width;snapshotCanvas.height=h;draw();
+      }
       const cameraCanvas=cameraVideo?canvasFor(cameraVideo.videoWidth,cameraVideo.videoHeight):null;
       const cameraContext=cameraCanvas?.getContext('2d',{alpha:false});
       const thumbnail=cameraVideo?canvasFor(192,108):null;
       function draw(){
         if(displayVideo.readyState<2)return;
-        snapshotContext.drawImage(displayVideo,0,0,width,h);
+        if(crop)snapshotContext.drawImage(displayVideo,crop.sx,crop.sy,crop.sw,crop.sh,0,0,width,h);
+        else snapshotContext.drawImage(displayVideo,0,0,width,h);
         if(cameraVideo&&cameraVideo.readyState>=2){
           cameraContext.fillStyle='#000';cameraContext.fillRect(0,0,cameraCanvas.width,cameraCanvas.height);
           if(!state.cameraMuted)cameraContext.drawImage(cameraVideo,0,0,cameraCanvas.width,cameraCanvas.height);
@@ -51,7 +73,7 @@ const LQTACScreenCapture={
           }
         }
       }
-      draw();timer=setInterval(draw,1000/30);
+      applyRegion(region);timer=setInterval(draw,1000/30);
       // The camera overlay is composed explicitly; the Toolbox is never a video layer.
       // Keep submitting frames even for a completely static source window.
       stream=new MediaStream([...snapshotCanvas.captureStream(30).getVideoTracks(),...audioTracks]);
@@ -64,6 +86,10 @@ const LQTACScreenCapture={
         setPosition(value){state.position=value;draw();},setSize(value){state.size=value;draw();},
         levels(){return Object.fromEntries(Object.entries(channels).map(([id,c])=>{c.analyser.getFloatTimeDomainData(c.samples);return [id,Math.min(1,Math.sqrt(c.samples.reduce((n,x)=>n+x*x,0)/c.samples.length)*4)];}));},
         cameraPreview(){if(!thumbnail||state.cameraMuted)return null;thumbnail.getContext('2d').drawImage(cameraVideo,0,0,192,108);return thumbnail.toDataURL('image/jpeg',.6);},
+        // Region changes are only allowed before a take starts (the caller enforces it).
+        setRegion(value){applyRegion(value);return this.region();},
+        region(){return {region:currentRegion,sourceWidth,sourceHeight,width,height,pixels:crop?{x:crop.sx,y:crop.sy,width:crop.sw,height:crop.sh}:{x:0,y:0,width:sourceWidth,height:sourceHeight}};},
+        fullFrame(maxWidth=1600){const scale=Math.min(1,maxWidth/sourceWidth),c=document.createElement('canvas');c.width=Math.max(1,Math.round(sourceWidth*scale));c.height=Math.max(1,Math.round(sourceHeight*scale));if(displayVideo.readyState>=2)c.getContext('2d').drawImage(displayVideo,0,0,c.width,c.height);return c;},
         snapshot(){draw();const scale=Math.min(1,3840/width,2160/h),c=document.createElement('canvas');c.width=Math.max(1,Math.round(width*scale));c.height=Math.max(1,Math.round(h*scale));c.getContext('2d').drawImage(snapshotCanvas,0,0,c.width,c.height);return c.toDataURL('image/png').split(',')[1];},
         microphoneAvailable:!!mic,systemAvailable:!!display.getAudioTracks().length,cameraAvailable:!!camera
       };
@@ -71,5 +97,5 @@ const LQTACScreenCapture={
   }
 };
 function openScreenRecorder(){return openCameraRecorder('screen');}
-const screenDock=document.createElement('button');screenDock.type='button';screenDock.className='dock-panel-item';screenDock.innerHTML='<span>▤</span><strong>Grabar pantalla</strong>';screenDock.onclick=()=>void openScreenRecorder();$('.dock-panel-list').append(screenDock);
+const screenDock=document.createElement('button');screenDock.type='button';screenDock.dataset.capture='screen';screenDock.className='dock-panel-item';screenDock.innerHTML='<span>▤</span><strong>Grabar pantalla</strong>';screenDock.onclick=()=>void openScreenRecorder();$('.dock-panel-list').append(screenDock);
 fileMenu.insertAdjacentHTML('beforeend','<button type="button" data-file="screen">Grabar pantalla o ventana…</button>');fileMenu.addEventListener('click',event=>{if(event.target.closest('[data-file="screen"]'))void openScreenRecorder();});

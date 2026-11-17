@@ -5,6 +5,7 @@ const root=path.join(app.getPath('temp'),'lqtac-vfx1-'+process.pid);app.setPath(
 app.on('browser-window-created',(_e,w)=>w.webContents.setBackgroundThrottling(false));require('./main.cjs');
 app.whenReady().then(async()=>{const timer=setTimeout(()=>{console.error('VFX pack 1 timeout');app.exit(1);},240000);timer.unref();try{
   const model=require('../dist/assets/effects-model.js');assert(['particles','flare','rays','leak','flicker','ripple','swirl','fisheye','heat','mirror','echo'].every(k=>model.creative.some(e=>e[0]===k)));
+  assert.deepEqual(model.ranges.video.flareBeam,[0,2]);assert.deepEqual(model.ranges.video.flareBeamLength,[.1,1.5]);
   assert.deepEqual(model.videoStatic,['particleType','mirrorMode','echoMode']);assert.throws(()=>model.validate({animation:{particleType:[{time:0,value:1}]}},'video'));
   const win=BrowserWindow.getAllWindows()[0];if(win.webContents.isLoading())await new Promise(r=>win.webContents.once('did-finish-load',r));
   const js=c=>win.webContents.executeJavaScript(c,true);await js('demoReady');
@@ -22,6 +23,7 @@ app.whenReady().then(async()=>{const timer=setTimeout(()=>{console.error('VFX pa
     r.repeat=diff(grab({particles:1},2,clear),grab({particles:1},2,clear));r.moves=diff(grab({particles:1},2,clear),grab({particles:1},2.5,clear));
     // Flare brightens around its position (x .25, y .25 from the top).
     {const d=grab({flare:1,flareX:.25,flareY:.25},1),px=(x,y,a)=>{const i=(y*W+x)*4;return a[i]+a[i+1]+a[i+2];};r.flare=[px(160,90,d)-px(160,90,base),px(560,320,d)-px(560,320,base)];}
+    r.beam=diff(grab({flare:1,flareX:.5,flareY:.5,flareBeam:0},1,clear),grab({flare:1,flareX:.5,flareY:.5,flareBeam:1,flareBeamLength:.6},1,clear));
     // Mirror left→right: right half repeats the left half.
     {const d=grab({mirror:1,mirrorMode:0},1);let e=0;for(let y=0;y<H;y+=7)for(let x=0;x<W/2;x+=7){const a=(y*W+x)*4,b=(y*W+(W-1-x))*4;e+=Math.abs(d[a]-d[b]);}r.mirrorError=e/((H/7)*(W/14));}
     // Echo: the white square moves right; with a trail the old position stays lit, after a seek it does not.
@@ -33,7 +35,11 @@ app.whenReady().then(async()=>{const timer=setTimeout(()=>{console.error('VFX pa
     const clip=timelineClips().find(c=>c.dataset.kind==='video'&&c.dataset.filePath);r.clip=!!clip;
     if(clip){openEffectEditor(clip,'particles');await new Promise(x=>setTimeout(x,300));r.editor=[$('#editor-particleType')?.tagName,[...$('#editorParameter').options].map(o=>o.value).includes('particleType'),$('#effectEditor .fxp-select').options.length-1];
       const sel=$('#editor-particleType');sel.value='4';sel.dispatchEvent(new Event('input'));r.editorValue=effectEditorSession.draft.particleType;$('#effectEditor footer button')?.click();if(effectEditor.open)effectEditor.close();await new Promise(x=>setTimeout(x,100));
-      openClipEffects(clip);await new Promise(x=>setTimeout(x,200));r.form=['fx-particleType','fx-mirrorMode','fx-echoMode'].every(id=>$('#'+id,effectsDialog)?.tagName==='SELECT')&&!!$('#fx-flareX',effectsDialog);if(effectsDialog.open)effectsDialog.close();}
+      openClipEffects(clip);await new Promise(x=>setTimeout(x,200));r.form=['fx-particleType','fx-mirrorMode','fx-echoMode'].every(id=>$('#'+id,effectsDialog)?.tagName==='SELECT')&&!!$('#fx-flareX',effectsDialog)&&!!$('#fx-flareBeam',effectsDialog);if(effectsDialog.open)effectsDialog.close();
+      openEffectEditor(clip,'flare');for(let i=0;i<30&&effectEditorSession?.video.readyState<2;i++)await new Promise(x=>setTimeout(x,100));
+      const canvas=$('#editorPreview'),rect=canvas.getBoundingClientRect();r.flareEditor=!!$('#editor-flareBeam')&&!!$('#editor-rays')&&!$('#editorPositionHint').hidden&&typeof canvas.onpointerdown==='function';
+      canvas.setPointerCapture=()=>{};canvas.onpointerdown({button:0,preventDefault(){},currentTarget:canvas,clientX:rect.left+rect.width*.35,clientY:rect.top+rect.height*.4,pointerId:1});
+      r.pick=[effectEditorSession.draft.flareX,effectEditorSession.draft.flareY,effectEditorSession.draft.raysX,effectEditorSession.draft.raysY];if(effectEditor.open)effectEditor.close();}
     r.cards=['particles','flare','rays','leak','flicker','ripple','swirl','fisheye','heat','mirror','echo'].filter(k=>$('#effectsCatalog [data-fx-kind="video"][data-fx-key="'+k+'"]')).length;
     return r;})()`);
   console.log(JSON.stringify(r));
@@ -41,6 +47,7 @@ app.whenReady().then(async()=>{const timer=setTimeout(()=>{console.error('VFX pa
   for(const [k,v] of Object.entries(r.changes))assert(v>.5,'effect has no visible result: '+k);
   r.types.forEach((n,i)=>assert(n>200,'particle type '+i+' draws nothing'));assert.equal(r.repeat,0);assert(r.moves>.05,'particles do not move');
   assert(r.flare[0]>150&&r.flare[0]>r.flare[1]*2,'flare centred on its position');assert(r.mirrorError<3,'mirror symmetry');
+  assert(r.beam>.01,'point beam has no visible result');assert(r.flareEditor,'flare point picker or beam controls missing');assert(r.pick[0]>=0&&r.pick[0]<=1&&r.pick[1]>=0&&r.pick[1]<=1);assert.equal(r.pick[0],r.pick[2]);assert.equal(r.pick[1],r.pick[3]);
   assert(r.echo[0]>150&&r.echo[1]>240,'trail keeps the old position');assert(r.echo[2]>40,'motion blur mixes frames');assert(r.echo[3]<10,'history resets after a seek');
   assert(r.clip,'demo has a video clip');assert.deepEqual(r.editor.slice(0,2),['SELECT',false]);assert(r.editor[2]>=8,'particle presets');assert.equal(r.editorValue,4);assert(r.form);assert.equal(r.cards,11);
   console.log('VFX PACK 1 VERIFICATION PASSED');app.exit(0);

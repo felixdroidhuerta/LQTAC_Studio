@@ -12,7 +12,7 @@
   // Original LQTAC luminance mask transition. Black and white endpoints are exact.
   window.LQTACTransitionShaders.lumaMask=`
     uniform sampler2D maskTexture;uniform float maskSoftness;uniform bool maskInvert;
-    uniform int maskMotion;uniform float maskAmount;
+    uniform int maskMotion;uniform float maskAmount;uniform float maskRotation;
     vec4 transition(vec2 uv){
       if(progress<=0.)return getFromColor(uv);
       if(progress>=1.)return getToColor(uv);
@@ -24,6 +24,7 @@
       if(maskMotion==5)p.y+=mix(-amount,amount,progress);
       if(maskMotion==6)p.y-=mix(-amount,amount,progress);
       if(maskMotion==7)p+=vec2(sin(progress*125.6637),cos(progress*169.646))*amount*.12*sin(progress*3.14159265);
+      if(maskRotation!=0.) {float angle=maskRotation*progress;vec2 d=p-.5;d.x*=ratio;d=vec2(d.x*cos(angle)+d.y*sin(angle),-d.x*sin(angle)+d.y*cos(angle));d.x/=ratio;p=d+.5;}
       // Samples outside a moved mask use its outer background, never a tiled logo.
       vec4 pixel=texture2D(maskTexture,clamp(p,0.,1.));
       float luminance=dot(pixel.rgb,vec3(.2126,.7152,.0722))*pixel.a;
@@ -125,6 +126,7 @@
         gl.uniform1i(gl.getUniformLocation(program,'maskInvert'),options.invert?1:0);
         gl.uniform1i(gl.getUniformLocation(program,'maskMotion'),['none','zoomIn','zoomOut','left','right','up','down','shake'].indexOf(options.motion||'none'));
         gl.uniform1f(gl.getUniformLocation(program,'maskAmount'),Math.max(0,Math.min(1,Number(options.amount??.5))));
+        gl.uniform1f(gl.getUniformLocation(program,'maskRotation'),Math.max(-1440,Math.min(1440,Number(options.rotation)||0))*Math.PI/180);
       }
       gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
     }

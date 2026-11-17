@@ -112,7 +112,7 @@
     .monitor-screen { height:calc(100% - 86px); min-height:180px; border-radius:5px; overflow:hidden; position:relative; background-image:linear-gradient(90deg, rgba(5,15,33,.78), rgba(5,15,33,.08) 62%, rgba(5,15,33,.3)), url('assets/lqtac-video-frame.png'); background-size:cover; background-position:center; }
     .monitor-screen::before { content:""; position:absolute; inset:0; background: linear-gradient(110deg, transparent 0 22%, rgba(255,255,255,.12) 22.3% 22.8%, transparent 23% 66%, rgba(255,255,255,.12) 66.2% 66.7%, transparent 67%); mix-blend-mode:screen; opacity:.6; }
     .monitor-screen::after { content:"CINEMA STUDIO"; position:absolute; left: 20px; bottom: 17px; color: rgba(247,251,255,.86); font-size: 11px; letter-spacing:.16em; font-weight:750; }
-    .preview-media { display:none; position:absolute; inset:0; width:100%; height:100%; object-fit:cover; background:#000; z-index:1; }
+    .preview-media { display:none; position:absolute; inset:0; width:100%; height:100%; object-fit:cover; background:transparent; z-index:1; }
     .frame-label, .frame-title, .monitor-screen::after { z-index:2; }
     .frame-label { position:absolute; left:20px; top:17px; color: rgba(247,251,255,.6); font-size:10px; letter-spacing:.13em; }
     .frame-title { position:absolute; left:20px; top:50%; transform:translateY(-50%); font-size: clamp(26px, 3vw, 48px); letter-spacing:-.06em; font-weight: 300; line-height:.96; }
@@ -185,6 +185,7 @@
     .clip-context-menu button { width:100%; border:0; border-radius:6px; padding:8px 10px; text-align:left; color:var(--text); background:transparent; font:inherit; font-size:12px; cursor:pointer; }
     .clip-context-menu button:hover { background:rgba(110,162,255,.18); }
     .clip-context-menu button.danger { color:#ffb3bd; }
+    .clip-context-menu button:disabled { opacity:.45; cursor:default; background:transparent; }
     .clip.video { background:linear-gradient(90deg, #4d88ff, #8bb7ff); }
     .clip.video.alt { background:linear-gradient(90deg, #e7a0ff, #8bb7ff); }
     .clip.audio { background:linear-gradient(90deg, #52d6dc, #79e5f5); color:#082333; }
@@ -201,9 +202,11 @@
     .envelope-line-hit, .envelope-segment { stroke:transparent; stroke-width:14; fill:none; pointer-events:stroke; vector-effect:non-scaling-stroke; cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 18 18'%3E%3Ccircle cx='9' cy='9' r='5' fill='%23061a32' stroke='%2379e5f5' stroke-width='2'/%3E%3Cpath d='M9 1v4M9 13v4M1 9h4M13 9h4' stroke='%2379e5f5' stroke-width='2'/%3E%3C/svg%3E") 9 9,crosshair; }
     .envelope-segment { cursor:ns-resize; }
     .envelope-layer:has(.envelope-line-hit:hover,.envelope-segment:hover) .envelope-line { stroke:#ffe08a; stroke-width:3; filter:drop-shadow(0 0 6px rgba(255,224,138,.85)); }
-    .envelope-handle-hit { fill:transparent; stroke:none; pointer-events:all; cursor:grab; }
-    .envelope-handle { fill:var(--text); stroke:var(--accent-2); stroke-width:1.5; vector-effect:non-scaling-stroke; pointer-events:none; }
-    .envelope-handle.opacity { stroke:var(--pink); }
+    .envelope-handle-hit { position:absolute; width:14px; height:14px; margin:-7px 0 0 -7px; display:grid; place-items:center; pointer-events:all; cursor:grab; z-index:1; }
+    .envelope-handle { width:7px; height:7px; box-sizing:border-box; border-radius:50%; background:var(--text); border:1.5px solid var(--accent-2); pointer-events:none; }
+    .envelope-handle.opacity { border-color:var(--pink); }
+    .envelope-handle.selected { background:#ffcc70; }
+    .envelope-handle-hit:hover .envelope-handle { transform:scale(1.3); }
     .envelope-handle-hit:active { cursor:grabbing; }
     .envelope-label { position:absolute; right:8px; top:4px; padding:3px 5px; border-radius:5px; background:rgba(6,19,41,.72); color:var(--muted); font-size:8px; pointer-events:none; }
     .transition-zone { display:none; }
@@ -1115,7 +1118,7 @@
     window.updateTimelineSelectionStatus = updateTimelineSelectionStatus;
     const clipContextMenu = document.createElement('div');
     clipContextMenu.className = 'clip-context-menu';
-    clipContextMenu.innerHTML = '<button type="button" data-action="reverse-clip">Invertir clip</button><button type="button" data-action="reverse-group">Invertir grupo</button><button type="button" data-action="toggle-envelope">Mostrar envolvente</button><button type="button" data-action="add-envelope-point">Añadir punto aquí</button><button type="button" data-action="group">Agrupar selección</button><button type="button" data-action="ungroup">Desagrupar</button><button type="button" data-action="delete" class="danger">Eliminar evento</button>';
+    clipContextMenu.innerHTML = '<button type="button" data-action="reverse-clip">Invertir clip</button><button type="button" data-action="reverse-group">Invertir grupo</button><button type="button" data-action="toggle-envelope">Mostrar envolvente</button><button type="button" data-action="add-envelope-point">Añadir punto aquí</button><button type="button" data-action="voice-studio">Voz de estudio…</button><button type="button" data-action="copy-fx">Copiar efectos</button><button type="button" data-action="paste-fx">Pegar efectos</button><button type="button" data-action="group">Agrupar selección</button><button type="button" data-action="ungroup">Desagrupar</button><button type="button" data-action="delete" class="danger">Eliminar evento</button>';
     document.body.append(clipContextMenu);
     const hideClipContextMenu = () => clipContextMenu.classList.remove('open');
     const groupMembers = clip => {
@@ -1217,12 +1220,24 @@
       contextEnvelopeTime=inside?Math.max(0,Math.min(timelineDurationSeconds,(event.clientX-rect.left)/rect.width*timelineDurationSeconds)):0;
       add.style.display=supported&&inside?'block':'none';add.textContent=`Añadir punto de ${label} aquí`;
     };
+    // Copy / paste effects between clips of the same kind. Clip-bound data (stabilization, tracking, drawn mask,
+    // precise-AI chroma analysis) stays with each clip; animation curves are rescaled to the target's length.
+    let fxClipboard=null;
+    const CLIP_BOUND_FX=['stabilize','shapeMask','tracking','chromaProMatte'];
+    const clipFxKinds=clip=>clip.dataset.kind==='video'?['video','audio']:clip.dataset.kind==='audio'?['audio']:[];
+    const rescaleFxAnimation=(fx,from,to)=>{const out={...fx,animation:{}},ratio=from>0&&to>0?to/from:1;for(const [key,points] of Object.entries(fx.animation||{})){const list=[];for(const point of points){const time=Math.round(Math.min(to,point.time*ratio)*1000)/1000;if(list.length&&time<=list.at(-1).time)continue;list.push({...point,time});}if(list.length)out.animation[key]=list;}return out;};
+    const pasteTargets=()=>fxClipboard?selectedTimelineClips.filter(clip=>clip.isConnected&&clip.dataset.kind===fxClipboard.kind):[];
+    const configureClipFxMenu=clip=>{const copy=$('[data-action="copy-fx"]',clipContextMenu),paste=$('[data-action="paste-fx"]',clipContextMenu),usable=clipFxKinds(clip).length>0;copy.style.display=usable?'block':'none';$('[data-action="voice-studio"]',clipContextMenu).style.display=clip.dataset.kind==='audio'&&window.lqtacDesktop?.analyzeVoice?'block':'none';paste.style.display=usable?'block':'none';if(!usable)return;const targets=pasteTargets(),kindName=k=>k==='video'?'vídeo':'audio';paste.disabled=!targets.length;paste.textContent=!fxClipboard?'Pegar efectos (copia antes unos)':fxClipboard.kind!==clip.dataset.kind?'Pegar efectos (copiados de un clip de '+kindName(fxClipboard.kind)+')':targets.length>1?'Pegar efectos en '+targets.length+' clips':'Pegar efectos de «'+fxClipboard.name+'»';};
+    const copyClipEffects=clip=>{const kinds=clipFxKinds(clip);if(!kinds.length)return;fxClipboard={kind:clip.dataset.kind,name:[...clip.childNodes].find(n=>n.nodeType===3&&n.textContent.trim())?.textContent.trim()||'clip',duration:clipTiming(clip).durationSeconds,fx:Object.fromEntries(kinds.map(kind=>[kind,JSON.parse(JSON.stringify(clipEffectsState(clip,kind)))]))};const count=Object.values(fxClipboard.fx).reduce((n,fx)=>n+(fx.enabled?1:0),0);toast('Efectos copiados de «'+fxClipboard.name+'»'+(count?'':' (sin efectos activos: pegarlos los quitará)')+'. Selecciona clips del mismo tipo y elige Pegar efectos.');};
+    const pasteClipEffects=async()=>{const targets=pasteTargets();if(!targets.length)return;let fallback=false;const updates=targets.map(clip=>{const duration=clipTiming(clip).durationSeconds,values={};for(const [kind,source] of Object.entries(fxClipboard.fx)){const next=rescaleFxAnimation(source,fxClipboard.duration,duration);if(kind==='video'){const own=clipEffectsState(clip,'video');for(const key of CLIP_BOUND_FX)next[key]=own[key]??null;if(next.chromaZone==='pro'&&!next.chromaProMatte){next.chromaZone='people';fallback=true;}}LQTACEffects.validate(next,kind);values[kind]=JSON.stringify(next);}return [clip,values];});historyCheckpoint();for(const [clip,values] of updates)for(const [kind,text] of Object.entries(values))clip.dataset[kind+'Fx']=text;await renderTimelineAt(timelineTime);toast('Efectos de «'+fxClipboard.name+'» pegados en '+(targets.length===1?'1 clip':targets.length+' clips')+(fallback?'. La IA precisa del croma necesita su propio análisis: se usa IA rápida hasta que la analices':''));};
+    window.LQTACClipFx={copy:copyClipEffects,paste:pasteClipEffects,get clipboard(){return fxClipboard;}};
     const showClipContextMenu = (event, clip) => {
       contextTrack = clip.closest('.track');contextClip=clip;
       const reverseButton=$('[data-action="reverse-clip"]',clipContextMenu),reverseGroup=$('[data-action="reverse-group"]',clipContextMenu),members=groupMembers(clip),media=members.filter(c=>c.dataset.kind!=='subtitle');
       reverseButton.style.display=clip.dataset.kind==='subtitle'?'none':'block';reverseButton.textContent=clip.dataset.reverse==='true'?'Restaurar clip hacia delante':'Invertir clip';
       reverseGroup.style.display=members.length>1&&media.length?'block':'none';reverseGroup.textContent=media.length&&media.every(c=>c.dataset.reverse==='true')?'Restaurar grupo hacia delante':'Invertir grupo';
       if (!selectedTimelineClips.includes(clip)) selectTimelineClip(clip);
+      configureClipFxMenu(clip);
       configureEnvelopeContextMenu(event,contextTrack);
       $('[data-action="group"]', clipContextMenu).style.display = selectedTimelineClips.length > 1 ? 'block' : 'none';
       $('[data-action="ungroup"]', clipContextMenu).style.display = selectedTimelineClips.some(item => item.dataset.groupId) ? 'block' : 'none';
@@ -1235,7 +1250,7 @@
     };
     const showTrackContextMenu = (event, track) => {
       contextTrack = track;contextClip=null;
-      $$('[data-action^="reverse-"]',clipContextMenu).forEach(button=>button.style.display='none');
+      $$('[data-action^="reverse-"],[data-action$="-fx"],[data-action="voice-studio"]',clipContextMenu).forEach(button=>button.style.display='none');
       applyTimelineSelection([]);
       configureEnvelopeContextMenu(event,track);
       $('[data-action="group"]', clipContextMenu).style.display = 'none';
@@ -1248,6 +1263,9 @@
     clipContextMenu.addEventListener('click', event => {
       if(event.target.closest('[data-action="reverse-clip"]'))void window.LQTACReverse.invert(contextClip,false);
       if(event.target.closest('[data-action="reverse-group"]'))void window.LQTACReverse.invert(contextClip,true);
+      if(event.target.closest('[data-action="voice-studio"]')){const clip=contextClip;hideClipContextMenu();LQTACVoiceStudio.open(clip);}
+      if(event.target.closest('[data-action="copy-fx"]')){copyClipEffects(contextClip);hideClipContextMenu();}
+      if(event.target.closest('[data-action="paste-fx"]:not(:disabled)')){hideClipContextMenu();void pasteClipEffects().catch(error=>toast('No se pudieron pegar los efectos: '+error.message));}
       if (event.target.closest('[data-action="group"]')) createTimelineGroup(selectedTimelineClips);
       if (event.target.closest('[data-action="ungroup"]')) ungroupTimelineSelection();
       if (event.target.closest('[data-action="delete"]')) removeTimelineClip(selectedTimelineClip);
@@ -1639,17 +1657,17 @@
         line.setAttribute('x1',x(points[i])); line.setAttribute('y1',y(points[i]));
         line.setAttribute('x2',x(points[i+1])); line.setAttribute('y2',y(points[i+1])); svg.append(line);
       }
+      // Handles are HTML dots with a fixed pixel size: the SVG is stretched to the track width (preserveAspectRatio none),
+      // so SVG circles became wide ellipses, especially when zooming the timeline.
+      $$('.envelope-handle-hit',layer).forEach(node=>node.remove());
       points.forEach((point,index) => {
-        const hit = document.createElementNS('http://www.w3.org/2000/svg','circle');
-        hit.setAttribute('class','envelope-handle-hit');hit.dataset.point=index;
-        hit.setAttribute('cx',x(point));hit.setAttribute('cy',y(point));hit.setAttribute('r',8);
-        const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
-        circle.setAttribute('class',`envelope-handle${pink}`); circle.dataset.point=index;
-        circle.setAttribute('cx',x(point)); circle.setAttribute('cy',y(point)); circle.setAttribute('r',3);
-        if(selectedEnvelopePoint?.point===point)circle.style.fill='#ffcc70';
-        const title = document.createElementNS('http://www.w3.org/2000/svg','title');
-        title.textContent=`${formatTimelineLabel(point.time)} · ${Math.round(point.value*100)}%`;
-        hit.append(title);svg.append(hit,circle);
+        const hit = document.createElement('span');
+        hit.className='envelope-handle-hit';hit.dataset.point=index;
+        hit.style.left=`${x(point)/6.4}%`;hit.style.top=`${y(point)/46*100}%`;
+        hit.title=`${formatTimelineLabel(point.time)} · ${Math.round(point.value*100)}%`;
+        const dot = document.createElement('span');
+        dot.className=`envelope-handle${pink}${selectedEnvelopePoint?.point===point?' selected':''}`;
+        hit.append(dot);layer.append(hit);
       });
     };
     const bindEnvelopeHandles = () => $$('.track').forEach(track => {
@@ -1709,7 +1727,7 @@
     maskHeader.innerHTML='<h2 id="maskDialogTitle">Máscara personalizada</h2><button class="icon-btn" type="button" id="closeMaskDialog" aria-label="Cerrar configuración de máscara">×</button>';
     maskControls.prepend(maskHeader);
     const maskAnimationControls=document.createElement('div');
-    maskAnimationControls.innerHTML='<label class="transition-help">Movimiento de la máscara<select id="maskMotion" class="ghost-btn" style="display:block;width:100%;background:#10213b"><option value="none">Estática · revelado por luminancia</option><option value="zoomIn">Zoom in · acercar</option><option value="zoomOut">Zoom out · alejar</option><option value="left">Travelling a la izquierda</option><option value="right">Travelling a la derecha</option><option value="up">Travelling hacia arriba</option><option value="down">Travelling hacia abajo</option><option value="shake">Temblor</option></select></label><label class="transition-help">Intensidad del movimiento <output id="maskAmountValue">50%</output><input id="maskAmount" type="range" min="0" max="100" value="50" style="width:100%"></label><label class="transition-help">Blur de la imagen <output id="maskBlurValue">0 px</output><input id="maskBlur" type="range" min="0" max="50" value="0" style="width:100%"></label><p class="transition-help">El movimiento anima la máscara, no añade su imagen sobre el vídeo. Blur difumina la imagen; Suavidad mezcla únicamente el borde del revelado. No se añade un fundido global.</p><div id="maskMotionPreview" style="aspect-ratio:16/9;background:#000;border-radius:6px;overflow:hidden"></div><label class="transition-help">Posición de la muestra <output id="maskProgressValue">50%</output><input id="maskProgress" type="range" min="0" max="100" value="50" style="width:100%"></label>';
+    maskAnimationControls.innerHTML='<label class="transition-help">Movimiento de la máscara<select id="maskMotion" class="ghost-btn" style="display:block;width:100%;background:#10213b"><option value="none">Estática · revelado por luminancia</option><option value="zoomIn">Zoom in · acercar</option><option value="zoomOut">Zoom out · alejar</option><option value="left">Travelling a la izquierda</option><option value="right">Travelling a la derecha</option><option value="up">Travelling hacia arriba</option><option value="down">Travelling hacia abajo</option><option value="shake">Temblor</option></select></label><label class="transition-help">Intensidad del movimiento <output id="maskAmountValue">50%</output><input id="maskAmount" type="range" min="0" max="100" value="50" style="width:100%"></label><label class="transition-help">Blur de la imagen <output id="maskBlurValue">0 px</output><input id="maskBlur" type="range" min="0" max="50" value="0" style="width:100%"></label><label class="transition-help">Giro durante la transición <output id="maskRotationValue">0°</output><input id="maskRotation" type="range" min="-720" max="720" step="15" value="0" style="width:100%"></label><p class="transition-help">El movimiento anima la máscara, no añade su imagen sobre el vídeo. El giro se suma al movimiento elegido (negativo = sentido contrario). Blur difumina la imagen; Suavidad mezcla únicamente el borde del revelado. No se añade un fundido global.</p><div id="maskMotionPreview" style="aspect-ratio:16/9;background:#000;border-radius:6px;overflow:hidden"></div><label class="transition-help">Posición de la muestra <output id="maskProgressValue">50%</output><input id="maskProgress" type="range" min="0" max="100" value="50" style="width:100%"></label>';
     maskControls.append(maskAnimationControls);
     $('#maskSoftness',maskControls).value='0';$('#maskSoftnessValue',maskControls).textContent='0%';
     const maskActions=document.createElement('div');maskActions.className='mask-dialog-actions';
@@ -1743,6 +1761,7 @@
       $('#maskAmountValue').textContent=$('#maskAmount').value+'%';
       $('#maskAmount').disabled=$('#maskMotion').value==='none';
       $('#maskBlur').value=String(customMask?.blur||0);$('#maskBlurValue').textContent=$('#maskBlur').value+' px';
+      $('#maskRotation').value=String(customMask?.rotation||0);$('#maskRotationValue').textContent=$('#maskRotation').value+'°';
     };
     const loadCustomMask=async file=>{
       if(!file || file.size>20*1024*1024) throw new Error('Elige una imagen de hasta 20 MB');
@@ -1754,7 +1773,7 @@
         const ctx=canvas.getContext('2d');ctx.fillStyle='#000';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(image,0,0,canvas.width,canvas.height);
         const dataUrl=canvas.toDataURL('image/png');
         const stored=await window.lqtacDesktop.saveTransitionMask(dataUrl);
-        customMask={image:canvas,dataUrl,name:file.name,softness:Number($('#maskSoftness').value)/100,invert:$('#maskInvert').checked,motion:$('#maskMotion').value,amount:Number($('#maskAmount').value)/100,blur:Number($('#maskBlur').value),...stored};
+        customMask={image:canvas,dataUrl,name:file.name,softness:Number($('#maskSoftness').value)/100,invert:$('#maskInvert').checked,motion:$('#maskMotion').value,amount:Number($('#maskAmount').value)/100,blur:Number($('#maskBlur').value),rotation:Number($('#maskRotation').value),...stored};
         refreshMaskControls();toast('Máscara guardada localmente · pulsa Aplicar al solapamiento');
         renderMaskConfigurationPreview();
         return customMask;
@@ -1780,7 +1799,7 @@
     const updateMaskSettings=()=>{
       $('#maskSoftnessValue').textContent=$('#maskSoftness').value+'%';
       if(!customMask)return;
-      customMask={...customMask,softness:Number($('#maskSoftness').value)/100,invert:$('#maskInvert').checked,motion:$('#maskMotion').value,amount:Number($('#maskAmount').value)/100,blur:Number($('#maskBlur').value)};
+      customMask={...customMask,softness:Number($('#maskSoftness').value)/100,invert:$('#maskInvert').checked,motion:$('#maskMotion').value,amount:Number($('#maskAmount').value)/100,blur:Number($('#maskBlur').value),rotation:Number($('#maskRotation').value)};
       refreshMaskControls();renderMaskConfigurationPreview();
       const pair=selectedOverlap();
       if(pair?.to.dataset.transition==='lumaMask' && transitionMasks.get(pair.to)?.id===customMask.id) {
@@ -1789,7 +1808,7 @@
       }
     };
     $('#maskSoftness').addEventListener('input',updateMaskSettings);$('#maskInvert').addEventListener('change',updateMaskSettings);
-    $('#maskMotion').addEventListener('change',updateMaskSettings);$('#maskAmount').addEventListener('input',updateMaskSettings);$('#maskBlur').addEventListener('input',updateMaskSettings);
+    $('#maskMotion').addEventListener('change',updateMaskSettings);$('#maskAmount').addEventListener('input',updateMaskSettings);$('#maskBlur').addEventListener('input',updateMaskSettings);$('#maskRotation').addEventListener('input',updateMaskSettings);
     const transitionPreview=document.createElement('canvas');transitionPreview.width=240;transitionPreview.height=135;
     let previewRenderer=null, transitionPreviewFrame=0;
     const previewSources=['#129ee6','#ed9950'].map((color,index)=>{
@@ -2261,5 +2280,8 @@
 <script src="assets/generators.js"></script>
 <script src="assets/event-properties-menu.js"></script>
 <script src="assets/workspaces.js"></script>
+<script src="assets/voice-studio.js"></script>
 <script src="assets/stems-controls.js"></script>
+<script src="assets/mcp-controls.js"></script>
+<script src="assets/automation-ui.js"></script>
 </html>

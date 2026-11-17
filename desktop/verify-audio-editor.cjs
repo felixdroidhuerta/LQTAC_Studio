@@ -29,7 +29,7 @@ app.whenReady().then(async()=>{
       return 'Audio disk persistence, undo/redo, split continuity and copy OK';
     })()`));
     console.log(await js(`(()=>{
-      if(document.querySelectorAll('#audioEditorLegend button').length!==3)throw Error('Missing EQ legend');
+      if(document.querySelectorAll('#audioEditorLegend button').length!==5)throw Error('Missing EQ legend');
       const draft=audioEditorSession.draft;draft.animation.mid=[{time:0,value:6},{time:1,value:6}];draft.animation.treble=[{time:0,value:-9},{time:1,value:-9}];
       document.querySelector('#audioEditorLegend [data-parameter=bass]').click();
       const canvas=$('#audioEditorCurve'),r=canvas.getBoundingClientRect(),x=r.left+r.width*.5,y=r.top+(140-(6+18)/36*130)/150*r.height;
@@ -37,7 +37,7 @@ app.whenReady().then(async()=>{
       if($('#audioEditorParameter').value!=='mid')throw Error('Curve hit failed to select mid');
       window.dispatchEvent(new PointerEvent('pointermove',{clientX:x,clientY:y-10,bubbles:true}));window.dispatchEvent(new PointerEvent('pointerup',{bubbles:true}));
       if(draft.animation.mid.length!==3||draft.animation.mid[1].value<=6||draft.animation.treble[0].value!==-9)throw Error('Independent EQ curve edit failed');
-      return 'Three EQ curves, color legend, automatic band hit and independent drag OK';
+      return 'Five EQ curves, color legend, automatic band hit and independent drag OK';
     })()`));
     await fs.writeFile(path.join(root,'audio-editor.png'),(await win.webContents.capturePage()).toPNG());console.log('ALL AUDIO EDITOR TESTS PASSED '+root);app.exit(0);
   }catch(error){console.error(error.stack);app.exit(1);}

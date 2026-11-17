@@ -45,12 +45,18 @@ ipcMain.handle('cancel-track',event=>{recordingSender(event);tracker.cancel();})
 ipcMain.handle('prepare-audio-effects',async(_event,filePath,fx,segment)=>{if(segment?.reverse){filePath=await reverseMedia.prepare({filePath,kind:'audio',offset:segment.offset,duration:segment.duration*segment.rate},reverseDirectory());segment={...segment,offset:0,reverse:false};}return audioEffects.prepare(filePath,fx,path.join(app.getPath('userData'),'effects-cache'),segment);});
 ipcMain.handle('autotune-guide-melody',(_event,pieces,duration)=>audioEffects.guideMelody(pieces,duration));
 ipcMain.handle('cancel-audio-effects',()=>{audioEffects.cancel();reverseMedia.cancel();});
+// Voz de estudio: measure a voice clip (same trim/speed/reversal as playback) and turn the measurements into effect settings.
+const voiceStudio=require('./voice-studio.cjs');
+ipcMain.handle('voice-studio-analyze',async(_event,filePath,segment,options)=>{if(typeof filePath!=='string'||!filePath)throw Error('Archivo no válido');if(segment?.reverse){filePath=await reverseMedia.prepare({filePath,kind:'audio',offset:segment.offset,duration:segment.duration*segment.rate},reverseDirectory());segment={...segment,offset:0,reverse:false};}return voiceStudio.analyze(filePath,{offset:segment?.offset,duration:segment?.duration,rate:segment?.rate},options||{});});
+ipcMain.handle('voice-studio-recommend',(_event,measurements,profile,options)=>voiceStudio.recommend(measurements,profile,options||{}));
+ipcMain.handle('voice-studio-reference',async()=>{const r=await dialog.showOpenDialog(mainWindow,{title:'Voz de referencia',properties:['openFile'],filters:[{name:'Audio o vídeo',extensions:['wav','mp3','m4a','aac','flac','ogg','opus','wma','aif','aiff','mp4','mov','mkv','webm']}]});return r.canceled?null:r.filePaths[0]||null;});
+ipcMain.handle('voice-studio-cancel',()=>voiceStudio.cancel());
 // Processed-audio cache: size report and manual purge (only finished .wav files; files in use are skipped).
 async function audioCacheFiles(){const dir=path.join(app.getPath('userData'),'effects-cache');let names=[];try{names=await fs.promises.readdir(dir);}catch{return [];}const files=[];for(const name of names){if(!/^[0-9a-f]{64}\.wav$/.test(name))continue;try{const s=await fs.promises.stat(path.join(dir,name));files.push({file:path.join(dir,name),size:s.size});}catch{}}return files;}
 ipcMain.handle('audio-cache-info',async event=>{recordingSender(event);const files=await audioCacheFiles();return {files:files.length,bytes:files.reduce((s,f)=>s+f.size,0)};});
 ipcMain.handle('audio-cache-clear',async event=>{recordingSender(event);if(exportJob)throw Error('Finaliza la exportación antes de vaciar la caché');let removed=0,bytes=0,busy=0;for(const f of await audioCacheFiles()){try{await fs.promises.rm(f.file);removed++;bytes+=f.size;}catch{busy++;}}return {removed,bytes,busy};});
 ipcMain.handle('audio-effects-waveform',(_event,filePath,segment)=>{const root=path.resolve(app.getPath('userData'),'effects-cache')+path.sep;if(typeof filePath!=='string'||!path.resolve(filePath).startsWith(root))return [];return audioEffects.waveform(filePath,segment);});
-app.on('before-quit',()=>audioEffects.cancel());
+app.on('before-quit',()=>{audioEffects.cancel();voiceStudio.cancel();});
 app.on('before-quit',()=>{reverseMedia.cancel();stabilizer.cancel();tracker.cancel();});
 let currentProjectPath = null;
 ipcMain.handle('confirm-new-project',async()=>{
@@ -86,7 +92,10 @@ ipcMain.handle('render-start',async(event,options)=>{
   if(exportJob)throw new Error('Ya hay una exportación en curso.');
   if(audioRecording.active()||cameraRecording.active()||recordingDestinationOpen)throw new Error('Detén y guarda la toma antes de exportar.');
   const preset=renderEngine.presets[options.profile];if(!preset)throw new Error('Formato no válido.');
-  const result=await dialog.showSaveDialog(mainWindow,{title:'Renderizar proyecto actual',defaultPath:String(options.project.name||'Proyecto').replace(/[<>:"/\\|?*]/g,'_')+'.'+options.profile,filters:[{name:preset.label,extensions:[options.profile]}]});
+  const automated=automationTicket&&options.automationTicket===automationTicket.token;
+  let result;
+  if(automated){result={canceled:false,filePath:automationTicket.output};automationTicket=null;}
+  else result=await dialog.showSaveDialog(mainWindow,{title:'Renderizar proyecto actual',defaultPath:String(options.project.name||'Proyecto').replace(/[<>:"/\\|?*]/g,'_')+'.'+options.profile,filters:[{name:preset.label,extensions:[options.profile]}]});
   if(result.canceled || !result.filePath)return {canceled:true};
   let output=result.filePath;if(path.extname(output).toLowerCase()!=='.'+options.profile)output+='.'+options.profile;
   const job=await renderEngine.startRender({...options,output,effectsDirectory:path.join(app.getPath('userData'),'effects-cache')},progress=>{if(!event.sender.isDestroyed())event.sender.send('render-progress',progress);});
@@ -136,7 +145,7 @@ ipcMain.handle('microphone-recording-finish',async(event,id,saveAs)=>{recordingS
 ipcMain.handle('microphone-recording-abort',async(event,id)=>{recordingSender(event);try{return await audioRecording.abort(id);}finally{syncVisualPriority();}});
 let videoRecordingMode='camera';
 async function cameraDestination(){const label=videoRecordingMode==='screen'?'Pantalla':'Camara';return dialog.showSaveDialog(mainWindow,{title:'Guardar nueva toma de '+(videoRecordingMode==='screen'?'pantalla':'cámara'),defaultPath:path.join(currentProjectPath?path.dirname(currentProjectPath):app.getPath('documents'),label+'_'+new Date().toISOString().replace(/[:.]/g,'-')+'.webm'),filters:[{name:'Vídeo WebM · VP8 / Opus',extensions:['webm']}]});}
-ipcMain.handle('camera-recording-start',async(event,mode='camera',options={})=>{recordingSender(event);if(!['camera','screen'].includes(mode)||options&&typeof options!=='object')throw Error('Tipo de captura no válido');if(exportJob||audioRecording.active()||cameraRecording.active()||recordingDestinationOpen)throw Error('Hay una exportación o toma en curso');videoRecordingMode=mode;recordingDestinationOpen=true;syncVisualPriority();try{const r=await cameraDestination();if(r.canceled||!r.filePath)return {canceled:true};await mediaVisuals.quiesce();return {canceled:false,...await cameraRecording.start(/\.webm$/i.test(r.filePath)?r.filePath:r.filePath+'.webm',mode==='screen'&&options?.cameraSeparate===true)};}finally{recordingDestinationOpen=false;syncVisualPriority();}});
+ipcMain.handle('camera-recording-start',async(event,mode='camera',options={})=>{recordingSender(event);if(!['camera','screen'].includes(mode)||options&&typeof options!=='object')throw Error('Tipo de captura no válido');if(exportJob||audioRecording.active()||cameraRecording.active()||recordingDestinationOpen)throw Error('Hay una exportación o toma en curso');videoRecordingMode=mode;recordingDestinationOpen=true;syncVisualPriority();try{const r=takeRecordingTicket(options?.automationTicket)||await cameraDestination();if(r.canceled||!r.filePath)return {canceled:true};await mediaVisuals.quiesce();return {canceled:false,...await cameraRecording.start(/\.webm$/i.test(r.filePath)?r.filePath:r.filePath+'.webm',mode==='screen'&&options?.cameraSeparate===true)};}finally{recordingDestinationOpen=false;syncVisualPriority();}});
 ipcMain.handle('camera-recording-append',(event,id,data)=>{recordingSender(event);return cameraRecording.append(id,data);});
 ipcMain.handle('camera-recording-finish',async(event,id,saveAs)=>{recordingSender(event);let file;if(saveAs){const r=await cameraDestination();if(r.canceled||!r.filePath)return {canceled:true};file=/\.webm$/i.test(r.filePath)?r.filePath:r.filePath+'.webm';}try{return {canceled:false,...await cameraRecording.finish(id,file)};}finally{syncVisualPriority();}});
 ipcMain.handle('camera-recording-abort',async(event,id)=>{recordingSender(event);try{return await cameraRecording.abort(id);}finally{syncVisualPriority();}});
@@ -349,6 +358,8 @@ app.whenReady().then(async () => {
   if(!ownsInstance)return;
   Menu.setApplicationMenu(null);
   createWindow();
+  if(process.argv.includes('--enable-mcp'))await automationBridge.setEnabled(true);
+  else await automationBridge.initialize();
   mainWindow.webContents.once('did-finish-load',()=>void ensureWindowsIntegration());
   if(startupProject)void queueShellProject(startupProject,false);
   else if(startupVegas){
@@ -396,3 +407,61 @@ ipcMain.handle('subtitle-transcribe',(event,options)=>subtitlesService.transcrib
 ipcMain.handle('subtitle-cancel',()=>subtitlesService.cancel());
 ipcMain.handle('subtitle-import',async()=>{const r=await dialog.showOpenDialog(mainWindow,{title:'Importar subtítulos SRT',properties:['openFile'],filters:[{name:'Subtítulos',extensions:['srt']}]});if(r.canceled)return null;const p=r.filePaths[0];if((await fs.promises.stat(p)).size>8*1024*1024)throw Error('SRT demasiado grande');return require('../dist/assets/subtitle-model.js').parse(await fs.promises.readFile(p,'utf8'));});
 ipcMain.handle('subtitle-export',async(_event,cues)=>{if(!Array.isArray(cues)||cues.length>10000)throw Error('Subtítulos no válidos');for(const c of cues){require('../dist/assets/subtitle-model.js').validate(c);if(!Number.isFinite(c.startSeconds)||c.startSeconds<0||!Number.isFinite(c.durationSeconds)||c.durationSeconds<=0||c.startSeconds+c.durationSeconds>604800)throw Error('Tiempo de subtítulo no válido');}const r=await dialog.showSaveDialog(mainWindow,{title:'Exportar subtítulos SRT',defaultPath:'Subtitulos.srt',filters:[{name:'Subtítulos',extensions:['srt']}]});if(r.canceled)return null;const p=/\.srt$/i.test(r.filePath)?r.filePath:r.filePath+'.srt';await fs.promises.writeFile(p,require('../dist/assets/subtitle-model.js').srt(cues),'utf8');return p;});
+
+// Local automation is opt-in; the token never leaves the user's profile.
+let automationTicket=null,recordingTicket=null;
+function takeRecordingTicket(token){if(!token)return null;const t=recordingTicket;recordingTicket=null;if(!t||t.token!==token||t.expires<Date.now())throw Error('Autorización de grabación MCP no válida o caducada');return {canceled:false,filePath:t.output};}
+// Native file/message dialogs answered in advance by an MCP UI action (one use, 60 s). Camera and
+// microphone permission prompts are never answered automatically.
+const automationDialogAnswers=[];
+function takeDialogAnswer(kind,options){
+ while(automationDialogAnswers.length&&automationDialogAnswers[0].expires<Date.now())automationDialogAnswers.shift();
+ const index=automationDialogAnswers.findIndex(a=>kind==='message'?a.button!==undefined:a.paths?.length);if(index<0)return null;
+ if(kind==='message'&&/^Permitir/i.test(options?.title||''))return null;
+ return automationDialogAnswers.splice(index,1)[0];
+}
+for(const [method,kind] of [['showOpenDialog','open'],['showSaveDialog','save'],['showMessageBox','message']]){
+ const original=dialog[method].bind(dialog);
+ dialog[method]=async(...args)=>{
+  const options=args.find(a=>a&&typeof a==='object'&&!(a instanceof BrowserWindow))||{};const answer=takeDialogAnswer(kind,options);
+  if(!answer)return original(...args);
+  if(kind==='open')return {canceled:false,filePaths:answer.paths};
+  if(kind==='save')return {canceled:false,filePath:answer.paths[0]};
+  const buttons=options.buttons||['OK'];const response=typeof answer.button==='number'?answer.button:buttons.findIndex(b=>b.toLowerCase()===String(answer.button).toLowerCase());
+  if(response<0||response>=buttons.length){automationDialogAnswers.unshift(answer);return original(...args);}
+  return {response,checkboxChecked:false};
+ };
+}
+async function automationCaptureSources(){
+ const {screen}=require('electron');const sources=await desktopCapturer.getSources({types:['screen','window'],thumbnailSize:{width:0,height:0},fetchWindowIcons:false});
+ const displays=screen.getAllDisplays(),primary=screen.getPrimaryDisplay().id;
+ return sources.map(s=>{const d=s.id.startsWith('screen:')?displays.find(x=>String(x.id)===String(s.display_id)):null;
+  return {id:s.id,name:s.name,kind:s.id.startsWith('screen:')?'screen':'window',...(d?{display:{primary:d.id===primary,bounds:d.bounds,scaleFactor:d.scaleFactor,pixelWidth:Math.round(d.size.width*d.scaleFactor),pixelHeight:Math.round(d.size.height*d.scaleFactor)}}:{})};});
+}
+async function automationCaptureThumbnail(id,width){
+ const sources=await desktopCapturer.getSources({types:['screen','window'],thumbnailSize:{width,height:width},fetchWindowIcons:false});
+ const source=sources.find(s=>s.id===id);if(!source||source.thumbnail.isEmpty())throw Error('Fuente no disponible. Consulta cinema_record_sources');
+ const size=source.thumbnail.getSize();return {data:source.thumbnail.toPNG().toString('base64'),width:size.width,height:size.height};
+}
+
+const automationDirectory=path.join(app.getPath('userData'),'mcp');
+const automationBridge=require('./mcp-bridge.cjs').createBridge({
+ directory:automationDirectory,getWindow:()=>mainWindow,
+ isBusy:()=>!!exportJob||audioRecording.active()||cameraRecording.active()||recordingDestinationOpen,
+ setProjectPath:file=>{currentProjectPath=file;mainWindow?.setTitle((file?path.basename(file)+' — ':'')+branding.name);},
+ authorizeRender:options=>{automationTicket={...options,token:crypto.randomBytes(24).toString('hex')};return automationTicket.token;},
+ authorizeRecording:output=>{recordingTicket={output,token:crypto.randomBytes(24).toString('hex'),expires:Date.now()+120000};return recordingTicket.token;},
+ queueDialog:answer=>{automationDialogAnswers.push({...answer,expires:Date.now()+60000});},
+ clearDialogs:()=>{automationDialogAnswers.length=0;},
+ captureSources:automationCaptureSources,captureThumbnail:automationCaptureThumbnail,
+ recordingActive:()=>cameraRecording.active()||audioRecording.active(),
+ subtitles:subtitlesService
+});
+function automationConfig(){return {mcpServers:{'cinema-studio':{command:process.execPath,args:[path.join(__dirname,'mcp-server.cjs')],env:{ELECTRON_RUN_AS_NODE:'1',CINEMA_MCP_DIR:automationDirectory}}}};}
+function automationClients(){return require('./mcp-clients.cjs').clients({command:process.execPath,server:path.join(__dirname,'mcp-server.cjs'),directory:automationDirectory});}
+async function writeAutomationClients(){const c=automationClients();await fs.promises.mkdir(automationDirectory,{recursive:true});await fs.promises.writeFile(path.join(automationDirectory,'mcp-client.json'),JSON.stringify(automationConfig(),null,2));await fs.promises.writeFile(path.join(automationDirectory,'codex-config.toml'),c.codex);await fs.promises.writeFile(path.join(automationDirectory,'claude-code.txt'),c.claudeCommand+String.fromCharCode(10));}
+ipcMain.handle('mcp-status',event=>{recordingSender(event);return automationBridge.status();});
+ipcMain.handle('mcp-enable',async(event,value)=>{recordingSender(event);const status=await automationBridge.setEnabled(value);await writeAutomationClients();return status;});
+ipcMain.handle('mcp-recording',async(event,value)=>{recordingSender(event);return automationBridge.setRecordingAllowed(value);});
+ipcMain.handle('mcp-config',event=>{recordingSender(event);const c=automationClients();return {configuration:automationConfig(),filePath:path.join(automationDirectory,'mcp-client.json'),codex:c.codex,codexFilePath:path.join(automationDirectory,'codex-config.toml'),claudeCommand:c.claudeCommand,claudeJson:c.claudeJson};});
+app.on('before-quit',()=>automationBridge.close());

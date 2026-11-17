@@ -15,10 +15,13 @@ $appRoot = Join-Path $OutputDirectory 'resources\app'
 $desktopTarget = Join-Path $appRoot 'desktop'
 New-Item -ItemType Directory -Path $desktopTarget -Force | Out-Null
 & (Join-Path $projectRoot 'tools\build-stable-launcher.ps1')
-foreach ($name in @('branding.cjs','main.cjs','preload.cjs','veg-parser.cjs','vegas-bridge.cjs','vegas-automation.cjs','project-io.cjs','render-engine.cjs','reverse-media.cjs','stabilize-service.cjs','tracking-service.cjs','tracking-core.cjs','media-visuals.cjs','effects-audio.cjs','audio-automation.cjs','subtitles-service.cjs','stems-service.cjs','ai-pro-service.cjs','presets-store.cjs','audio-recording.cjs','camera-recording.cjs','capture-recording.cjs','screen-capture.cjs','capture-toolbox.cjs','capture-toolbox-preload.cjs','capture-toolbox.html','capture-toolbox-ui.js','windows-integration.cjs','windows-association.ps1')) {
+foreach ($name in @('branding.cjs','main.cjs','preload.cjs','veg-parser.cjs','vegas-bridge.cjs','vegas-automation.cjs','project-io.cjs','render-engine.cjs','reverse-media.cjs','stabilize-service.cjs','tracking-service.cjs','tracking-core.cjs','media-visuals.cjs','effects-audio.cjs','audio-automation.cjs','voice-studio.cjs','subtitles-service.cjs','stems-service.cjs','ai-pro-service.cjs','presets-store.cjs','audio-recording.cjs','camera-recording.cjs','capture-recording.cjs','screen-capture.cjs','capture-toolbox.cjs','capture-toolbox-preload.cjs','capture-toolbox.html','capture-toolbox-ui.js','windows-integration.cjs','windows-association.ps1')) {
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot $name) -Destination $desktopTarget
 }
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'assets') -Destination $desktopTarget -Recurse
+foreach($name in @('mcp-tools.cjs','mcp-edit.cjs','mcp-bridge.cjs','mcp-server.cjs','mcp-clients.cjs')){Copy-Item -LiteralPath (Join-Path $PSScriptRoot $name) -Destination $desktopTarget}
+Copy-Item -LiteralPath (Join-Path $projectRoot 'Cinema Studio MCP.bat') -Destination $OutputDirectory
+Copy-Item -LiteralPath (Join-Path $projectRoot 'docs\MCP.md') -Destination (Join-Path $OutputDirectory 'MCP.md')
 $codecTarget = Join-Path $desktopTarget 'codecs'
 New-Item -ItemType Directory -Path $codecTarget -Force | Out-Null
 $ffmpegRoot = Join-Path $PSScriptRoot 'node_modules\ffmpeg-static'

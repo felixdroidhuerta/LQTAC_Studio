@@ -1,0 +1,45 @@
+// Copy / paste effects between clips from the clip context menu.
+// Usage: desktop\node_modules\.bin\electron.cmd desktop\verify-clip-fx-copy.cjs
+const {app,BrowserWindow}=require('electron'),fs=require('node:fs/promises'),path=require('node:path'),assert=require('node:assert/strict');
+const {promisify}=require('node:util'),run=promisify(require('node:child_process').execFile);
+const root=path.join(app.getPath('temp'),'lqtac-clipfx-test-'+process.pid);app.setPath('userData',path.join(root,'profile'));
+require('./main.cjs');
+app.whenReady().then(async()=>{const timeout=setTimeout(()=>app.exit(1),120000);timeout.unref();try{
+  await fs.mkdir(root,{recursive:true});const ff=require('./render-engine.cjs').ffmpegPath(),wav=path.join(root,'tone.wav'),mp4=path.join(root,'clip.mp4');
+  await run(ff,['-v','error','-y','-f','lavfi','-i','sine=frequency=330:duration=4','-ar','48000','-ac','1',wav],{windowsHide:true});
+  await run(ff,['-v','error','-y','-f','lavfi','-i','testsrc2=s=320x180:d=4:r=25','-pix_fmt','yuv420p',mp4],{windowsHide:true});
+  const win=BrowserWindow.getAllWindows()[0];if(win.webContents.isLoading())await new Promise(r=>win.webContents.once('did-finish-load',r));const js=c=>win.webContents.executeJavaScript(c,true);await js('demoReady');
+  const r=JSON.parse(await js(`(async()=>{await restoreProject({format:'LQTAC Studio',version:1,name:'Copiar efectos',library:[],tracks:[]});resetEditHistory();
+    const audio='audio',video='video';
+    const mk=(track,kind,file,name,start,duration)=>createTimelineClip(addTimelineTrack(track),{kind,name,filePath:file,durationSeconds:duration,sourceDurationSeconds:4,sourceOffsetSeconds:0},start);
+    const a1=mk(audio,'audio',${JSON.stringify(wav)},'voz-a.wav',0,4),a2=mk(audio,'audio',${JSON.stringify(wav)},'voz-b.wav',0,2),a3=mk(audio,'audio',${JSON.stringify(wav)},'voz-c.wav',0,4),v1o=mk(video,'video',${JSON.stringify(mp4)},'plano-a.mp4',0,4),v2o=mk(video,'video',${JSON.stringify(mp4)},'plano-b.mp4',0,2);
+    refreshTimelineScale();
+    const fxA={...clipEffectsState(a1,'audio'),enabled:true,bass:4,compressor:true,animation:{bass:[{time:0,value:0},{time:2,value:6},{time:4,value:2}]}};a1.dataset.audioFx=JSON.stringify(fxA);
+    a3.dataset.audioFx=JSON.stringify({...clipEffectsState(a3,'audio'),enabled:true,treble:-5});
+    const fxV={...clipEffectsState(v1o,'video'),enabled:true,brightness:.2,saturation:1.4,chroma:true,chromaZone:'pro',chromaProMatte:{id:'a'.repeat(64),fps:5,frames:20},stabilize:{smoothing:30,crop:'zoom'},animation:{brightness:[{time:0,value:0},{time:4,value:.3}]}};v1o.dataset.videoFx=JSON.stringify(fxV);
+    const ownMask={mode:'cut',invert:false,feather:.05,keys:[{time:0,points:[[.1,.1],[.9,.1],[.5,.9]]}]};v2o.dataset.videoFx=JSON.stringify({...clipEffectsState(v2o,'video'),shapeMask:ownMask});
+    const menu=()=>document.querySelector('.clip-context-menu'),open=clip=>{const b=clip.getBoundingClientRect();clip.dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,cancelable:true,clientX:b.left+5,clientY:b.top+5}));},btn=a=>menu().querySelector('[data-action="'+a+'"]');
+    const out={};
+    open(a1);out.beforeCopy=[btn('copy-fx').style.display,btn('paste-fx').disabled,btn('paste-fx').textContent];btn('copy-fx').click();
+    open(v1o);out.otherKind=[btn('paste-fx').disabled,btn('paste-fx').textContent];document.body.click();
+    applyTimelineSelection([a2,a3]);open(a2);out.multi=[btn('paste-fx').disabled,btn('paste-fx').textContent];btn('paste-fx').click();await new Promise(r=>setTimeout(r,300));
+    const b=clipEffectsState(a2,'audio'),c=clipEffectsState(a3,'audio');out.a2=[b.enabled,b.bass,b.compressor,b.animation.bass];out.a3=[c.treble??0,c.animation.bass.at(-1).time];out.undo=undoHistory.length;
+    const byName=n=>timelineClips().find(c=>c.firstChild?.textContent.trim()===n);await navigateHistory(false);out.afterUndo=[!!clipEffectsState(byName('voz-b.wav'),'audio').enabled,clipEffectsState(byName('voz-c.wav'),'audio').treble];await navigateHistory(true);const v1=byName('plano-a.mp4'),v2=byName('plano-b.mp4');
+    open(v1);btn('copy-fx').click();applyTimelineSelection([v2]);open(v2);out.single=btn('paste-fx').textContent;btn('paste-fx').click();await new Promise(r=>setTimeout(r,300));
+    const v=clipEffectsState(v2,'video');out.v2=[v.brightness,v.saturation,v.chroma,v.chromaZone,v.chromaProMatte,v.stabilize,!!v.shapeMask&&v.shapeMask.keys.length,v.animation.brightness.at(-1)];
+    const sub=document.querySelector('.track');open(sub);out.trackMenu=[btn('copy-fx').style.display,btn('paste-fx').style.display];document.body.click();
+    return JSON.stringify(out);})()`));
+  console.log(JSON.stringify(r));
+  assert.deepEqual(r.beforeCopy,['block',true,'Pegar efectos (copia antes unos)']);
+  assert(r.otherKind[0]&&/de audio/.test(r.otherKind[1]),'other kind cannot paste');
+  assert(!r.multi[0]&&r.multi[1]==='Pegar efectos en 2 clips');
+  assert.deepEqual(r.a2,[true,4,true,[{time:0,value:0},{time:1,value:6},{time:2,value:2}]],'animation rescaled to a 2 s clip');
+  assert.deepEqual(r.a3,[0,4],'pasted effects replace the target ones');
+  assert.deepEqual(r.afterUndo,[false,-5],'one undo step restores every target');
+  assert.equal(r.single,'Pegar efectos de «plano-a.mp4»');
+  assert.deepEqual(r.v2.slice(0,6),[.2,1.4,true,'people',null,null],'clip-bound data not copied; precise AI falls back');
+  assert.equal(r.v2[6],1,'target keeps its own drawn mask');assert.deepEqual(r.v2[7],{time:2,value:.3});
+  assert.deepEqual(r.trackMenu,['none','none']);
+  await fs.writeFile(path.join(root,'menu.png'),(await win.webContents.capturePage()).toPNG());
+  console.log('CLIP EFFECTS COPY/PASTE PASSED '+root);app.exit(0);
+}catch(e){console.error(e.stack);app.exit(1)}});

@@ -6,6 +6,7 @@ let cameraSession=null;
 const cameraCss=document.createElement('style');cameraCss.textContent='#cameraDialog .camera-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}#cameraDialog select{max-width:260px}#cameraDialog video{display:block;width:100%;height:min(32vh,290px);background:#020a16;object-fit:contain;border:1px solid #355078;border-radius:8px;margin:12px 0}#cameraDialog .camera-buttons{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}#cameraDialog button:disabled{opacity:.4;cursor:not-allowed}#cameraDialog .camera-live{color:#ffd164}#cameraDialog .camera-live.recording{color:#ff6979}#cameraDialog label:has(input[type=checkbox]){justify-content:flex-start;gap:10px}';document.head.append(cameraCss);
 function cameraError(e){if(e.name==='NotAllowedError')return 'Permiso de cámara o micrófono denegado. Revisa Configuración de Windows → Privacidad → Cámara / Micrófono → aplicaciones de escritorio.';if(e.name==='NotFoundError')return 'No se encuentra la cámara o el micrófono seleccionado.';if(e.name==='NotReadableError')return 'No se puede abrir la cámara o el micrófono. Comprueba si otra aplicación lo está usando.';return e.message||String(e);}
 cameraCss.textContent+='#cameraDialog .camera-grid label:not(:has(input[type=checkbox])){display:flex;flex-direction:column;align-items:stretch;gap:6px}#cameraDialog .camera-grid select,#cameraDialog .camera-grid input[type=number]{width:100%;max-width:100%;box-sizing:border-box}';
+cameraCss.textContent+='#cameraDialog .region-picker{position:fixed;inset:0;z-index:20;background:#020a16;display:flex;flex-direction:column;gap:10px;padding:12px;box-sizing:border-box}#cameraDialog .region-bar{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}#cameraDialog .region-bar label{display:flex;align-items:center;gap:6px;margin:0}#cameraDialog .region-bar input{width:84px}#cameraDialog .region-stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}#cameraDialog .region-frame{position:relative;overflow:hidden;touch-action:none;cursor:crosshair;line-height:0}#cameraDialog .region-frame canvas{display:block;max-width:calc(100vw - 24px);max-height:calc(100vh - 120px)}#cameraDialog .region-box{position:absolute;border:2px solid #ffd164;box-shadow:0 0 0 9999px rgba(0,0,0,.6);cursor:move;box-sizing:border-box}';
 cameraCss.textContent+='#cameraDialog.screen-mode video{height:min(23vh,190px)}#cameraDialog.screen-mode .camera-grid{gap:8px 12px}#cameraDialog.screen-mode label{margin:6px 0}#cameraDialog.screen-mode p{margin:8px 0}';
 async function cameraFileInfo(filePath){const video=document.createElement('video');video.preload='metadata';try{const url=await window.lqtacDesktop.mediaFileUrl(filePath);return await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('No se pudo leer la duración del vídeo guardado')),15000);video.onloadedmetadata=()=>{clearTimeout(timer);if(Number.isFinite(video.duration)&&video.duration>0&&video.videoWidth)resolve({durationSeconds:video.duration,width:video.videoWidth,height:video.videoHeight});else reject(Error('La toma guardada no tiene una duración válida'));};video.onerror=()=>{clearTimeout(timer);reject(Error('No se puede abrir la toma guardada'));};video.src=url;});}finally{video.removeAttribute('src');video.load();}}
 async function openCameraRecorder(mode='camera'){
@@ -31,6 +32,7 @@ async function openCameraRecorder(mode='camera'){
     $('.camera-grid',cameraDialog).insertAdjacentHTML('beforeend',`<label>Cámara simultánea<select id="screenCameraMode"><option value="none">Sin cámara</option><option value="embedded">Integrada en la pantalla</option><option value="separate">Archivo y pista separados</option></select></label><label>Entrada de cámara<select id="screenCameraDevice"><option value="default">Cámara predeterminada</option></select></label><label>Posición de cámara<select id="screenCameraPosition"><option value="bottom-right">Abajo derecha</option><option value="bottom-left">Abajo izquierda</option><option value="top-right">Arriba derecha</option><option value="top-left">Arriba izquierda</option></select></label><label>Tamaño de cámara (%)<input id="screenCameraSize" type="range" min="15" max="40" value="25"></label>`);
     $('#screenCameraPosition').replaceChildren(...[['top-left','Arriba izquierda'],['top-center','Centro superior'],['top-right','Arriba derecha'],['center-left','Centro izquierda'],['center-center','Centro pantalla'],['center-right','Centro derecha'],['bottom-left','Abajo izquierda'],['bottom-center','Centro inferior'],['bottom-right','Abajo derecha']].map(([value,label])=>new Option(label,value)));$('#screenCameraPosition').value='bottom-right';
     $('.camera-buttons',cameraDialog).insertAdjacentHTML('beforeend','<button id="screenToolbox" type="button" disabled>Mostrar Toolbox</button>');
+    $('#cameraLive').insertAdjacentHTML('afterend','<div class="camera-buttons" id="screenRegionRow"><button id="screenRegionPick" type="button" disabled>Seleccionar zona…</button><button id="screenRegionFull" type="button" disabled>Fuente completa</button><span id="screenRegionInfo" style="align-self:center;color:#b9d7ff">Zona: fuente completa</span></div>');
     const help=$$('.camera-grid ~ p',cameraDialog).find(p=>p.id==='');if(help)help.textContent='La Toolbox flotante controla la toma aunque minimices LQTAC y se excluye de la captura en Windows 10 (2004+) / 11. Elige la cámara y los audios antes de preparar; puedes apagarlos durante la toma. Cámara separada: vídeo silencioso sincronizado debajo de la pista de pantalla.';
   }
   s.recorders=[];s.pausedMs=0;s.pauseStarted=0;s.cameraOffset=0;s.toolStatus='';
@@ -42,7 +44,7 @@ async function openCameraRecorder(mode='camera'){
     if(s.closed)return;const locked=!['idle','done'].includes(s.state),active=['recording','paused'].includes(s.state);
     for(const id of ['cameraDevice','cameraQuality','cameraUseAudio','cameraRefresh','cameraPrepare',...(isScreen?['screenSystemAudio','screenCameraMode','screenCameraDevice','screenCameraPosition','screenCameraSize']:[])])$('#'+id).disabled=locked;
     $('#cameraMicrophone').disabled=locked||!$('#cameraUseAudio').checked;$('#cameraDisconnect').disabled=s.state!=='ready';$('#cameraRecord').disabled=s.state!=='ready';$('#cameraStop').disabled=!active;$('#cameraDiscard').disabled=!(active||s.state==='pending');$('#cameraRetry').disabled=s.state!=='pending';$('#cameraInsert').disabled=!s.saved||s.inserted||locked;$('#cameraPosition').disabled=locked;$('#cameraAutoInsert').disabled=locked;$('#cameraClose').disabled=['preparing','choosing','stopping','saving','closing'].includes(s.state);$('#cameraLive').classList.toggle('recording',active);
-    if(isScreen){$('#screenToolbox').disabled=!(s.capture&&(active||s.state==='ready'));const noCamera=$('#screenCameraMode').value==='none',embedded=$('#screenCameraMode').value==='embedded';$('#screenCameraDevice').disabled=locked||noCamera;$('#screenCameraPosition').disabled=$('#screenCameraSize').disabled=locked||!embedded;}
+    if(isScreen){$('#screenToolbox').disabled=!(s.capture&&(active||s.state==='ready'));$('#screenRegionPick').disabled=!(s.capture&&s.state==='ready');$('#screenRegionFull').disabled=!(s.capture&&s.state==='ready'&&s.region);const noCamera=$('#screenCameraMode').value==='none',embedded=$('#screenCameraMode').value==='embedded';$('#screenCameraDevice').disabled=locked||noCamera;$('#screenCameraPosition').disabled=$('#screenCameraSize').disabled=locked||!embedded;}
     if(!s.stream)$('#cameraLive').textContent=isScreen?'Pantalla y entradas de audio desconectadas':'Cámara y micrófono desconectados';
     if(isScreen){$('#cameraClose').textContent=s.capture?'Cerrar panel':'Cerrar';if(s.panelHidden&&!s.capture&&['idle','done','pending'].includes(s.state))showResult();}pushToolbox();
   }
@@ -54,7 +56,7 @@ async function openCameraRecorder(mode='camera'){
     const preview=$('#cameraPreview');preview.pause();preview.removeAttribute('src');preview.controls=false;preview.muted=true;
     try{
       const device=$('#cameraDevice').value,mic=$('#cameraMicrophone').value,height=Number($('#cameraQuality').value),width=height===480?640:height===1080?1920:1280;let sourceTracks=[];
-      if(isScreen){const capture=await LQTACScreenCapture.prepare({source:device,systemAudio:$('#screenSystemAudio').checked,microphone:$('#cameraUseAudio').checked,microphoneId:mic,height,cameraMode:$('#screenCameraMode').value,cameraId:$('#screenCameraDevice').value,position:$('#screenCameraPosition').value,size:Number($('#screenCameraSize').value)});s.capture=capture;s.stream=capture.stream;s.releaseExtra=capture.dispose;s.audioLabel=capture.audioLabel;sourceTracks=capture.sourceTracks;}
+      if(isScreen){const capture=await LQTACScreenCapture.prepare({source:device,systemAudio:$('#screenSystemAudio').checked,microphone:$('#cameraUseAudio').checked,microphoneId:mic,height,cameraMode:$('#screenCameraMode').value,cameraId:$('#screenCameraDevice').value,position:$('#screenCameraPosition').value,size:Number($('#screenCameraSize').value),region:s.region});s.capture=capture;showRegion();s.stream=capture.stream;s.releaseExtra=capture.dispose;s.audioLabel=capture.audioLabel;sourceTracks=capture.sourceTracks;}
       else s.stream=await navigator.mediaDevices.getUserMedia({video:{...(device==='default'?{}:{deviceId:{exact:device}}),width:{ideal:width},height:{ideal:height},frameRate:{ideal:30,max:30}},audio:$('#cameraUseAudio').checked?{...(mic==='default'?{}:{deviceId:{exact:mic}}),echoCancellation:false,noiseSuppression:false,autoGainControl:false}:false});
       s.hasAudio=s.stream.getAudioTracks().length>0;preview.srcObject=s.stream;await preview.play();
       [...s.stream.getTracks(),...sourceTracks].forEach(t=>t.onended=()=>{if(['recording','paused'].includes(s.state)){status('Fuente desconectada. Finalizando lo capturado…');void stop();}else if(s.state==='ready'){release();s.state='idle';update();status('La fuente se ha desconectado. Prepara de nuevo la captura.');}});
@@ -80,7 +82,8 @@ async function openCameraRecorder(mode='camera'){
     if(s.state!=='ready')return;s.state='choosing';update();
     try{
       const mime=s.hasAudio?'video/webm;codecs=vp8,opus':'video/webm;codecs=vp8';if(!MediaRecorder.isTypeSupported(mime))throw Error('Este equipo no admite grabación WebM VP8');
-      const result=await window.lqtacDesktop.cameraRecordingStart(mode,{cameraSeparate:!!s.capture?.cameraStream});
+      const ticket=s.automationTicket;s.automationTicket=null;
+      const result=await window.lqtacDesktop.cameraRecordingStart(mode,{cameraSeparate:!!s.capture?.cameraStream,...(ticket?{automationTicket:ticket}:{})});
       if(result.canceled){release();s.state='idle';status('Selección cancelada. Fuentes de captura liberadas.');return;}
       s.id=result.id;s.saved=null;s.inserted=false;s.error=null;s.queue=Promise.resolve();s.backlog=0;s.recorders=[];s.pausedMs=0;s.pauseStarted=0;s.cameraOffset=0;$('#cameraSavedPath').textContent=result.filePath;
       for(const [stream,id,mimeType] of [[s.stream,s.id,mime],...(result.cameraId?[[s.capture.cameraStream,result.cameraId,'video/webm;codecs=vp8']]:[])]){
@@ -124,6 +127,81 @@ async function openCameraRecorder(mode='camera'){
     if(isScreen&&s.capture){s.panelHidden=true;cameraDialog.close();$('.workspace').inert=s.previousInert;return;}
     if(s.id&&!await discard())return;release();s.unsubscribeToolbox?.();$('#cameraPreview').pause();$('#cameraPreview').removeAttribute('src');$('#cameraPreview').load();s.closed=true;$('.workspace').inert=s.previousInert;cameraDialog.close();cameraSession=null;
   }
+  // --- Screen region: chosen on a still of the whole source, applied before the take starts.
+  function showRegion(){
+    const el=isScreen&&!s.closed?$('#screenRegionInfo'):null;if(!el)return;const info=s.capture?.region();
+    if(info?.region){const p=info.pixels;el.textContent=`Zona: ${p.width} × ${p.height} px desde (${p.x}, ${p.y}) · fuente ${info.sourceWidth} × ${info.sourceHeight}`;}
+    else el.textContent=info?`Zona: fuente completa · ${info.sourceWidth} × ${info.sourceHeight}`:(s.region?'Zona guardada: se aplicará al preparar':'Zona: fuente completa');
+  }
+  function setRegion(region){
+    if(!s.capture||s.state!=='ready')throw Error('Prepara la captura y elige la zona antes de empezar a grabar');
+    const result=s.capture.setRegion(region);s.region=result.region;showRegion();update();live();return result;
+  }
+  function pickRegion(){
+    if(!s.capture||s.state!=='ready'||s.closeRegion)return;
+    const info=s.capture.region(),sw=info.sourceWidth,sh=info.sourceHeight,frame=s.capture.fullFrame(1920);
+    let rect=info.region?{...info.pixels}:{x:Math.round(sw*.1),y:Math.round(sh*.1),width:Math.round(sw*.8),height:Math.round(sh*.8)},drag=null;
+    const overlay=document.createElement('div');overlay.className='region-picker';
+    overlay.innerHTML=`<div class="region-bar"><strong>Arrastra sobre la imagen para marcar la zona · arrastra dentro para moverla</strong><label>Proporción <select id="regionAspect"><option value="free">Libre</option><option value="${16/9}">16:9</option><option value="${9/16}">9:16</option><option value="1">1:1</option><option value="${4/3}">4:3</option><option value="0.8">4:5</option></select></label><label>X <input id="regionX" type="number" min="0" max="${sw}"></label><label>Y <input id="regionY" type="number" min="0" max="${sh}"></label><label>Ancho <input id="regionW" type="number" min="16" max="${sw}"></label><label>Alto <input id="regionH" type="number" min="16" max="${sh}"></label><button id="regionOk" type="button">Usar zona</button><button id="regionCancel" type="button">Cancelar</button></div><div class="region-stage"><div class="region-frame"><div class="region-box"></div></div></div>`;
+    const stage=$('.region-frame',overlay),box=$('.region-box',overlay);stage.prepend(frame);cameraDialog.append(overlay);
+    const fields={x:$('#regionX',overlay),y:$('#regionY',overlay),width:$('#regionW',overlay),height:$('#regionH',overlay)};
+    const clamp=()=>{rect.width=Math.max(16,Math.min(sw,Math.round(rect.width)));rect.height=Math.max(16,Math.min(sh,Math.round(rect.height)));rect.x=Math.max(0,Math.min(sw-rect.width,Math.round(rect.x)));rect.y=Math.max(0,Math.min(sh-rect.height,Math.round(rect.y)));};
+    const render=()=>{clamp();Object.assign(box.style,{left:rect.x/sw*100+'%',top:rect.y/sh*100+'%',width:rect.width/sw*100+'%',height:rect.height/sh*100+'%'});for(const k in fields)if(document.activeElement!==fields[k])fields[k].value=rect[k];};
+    const point=event=>{const b=frame.getBoundingClientRect();return {x:Math.max(0,Math.min(sw,(event.clientX-b.left)/b.width*sw)),y:Math.max(0,Math.min(sh,(event.clientY-b.top)/b.height*sh))};};
+    const aspect=()=>Number($('#regionAspect',overlay).value)||0;
+    const fitAspect=()=>{const a=aspect();if(!a)return;const cx=rect.x+rect.width/2,cy=rect.y+rect.height/2;let w=rect.width,h=w/a;if(h>sh){h=sh;w=h*a;}if(w>sw){w=sw;h=w/a;}rect={x:cx-w/2,y:cy-h/2,width:w,height:h};};
+    stage.addEventListener('pointerdown',event=>{const p=point(event);stage.setPointerCapture(event.pointerId);drag=event.target===box?{mode:'move',dx:p.x-rect.x,dy:p.y-rect.y}:{mode:'draw',ox:p.x,oy:p.y};if(drag.mode==='draw')rect={x:p.x,y:p.y,width:16,height:16};render();});
+    stage.addEventListener('pointermove',event=>{if(!drag)return;const p=point(event);
+      if(drag.mode==='move'){rect.x=p.x-drag.dx;rect.y=p.y-drag.dy;}
+      else{let w=Math.abs(p.x-drag.ox),h=Math.abs(p.y-drag.oy);const a=aspect();if(a){if(w/h>a)h=w/a;else w=h*a;}rect={x:p.x<drag.ox?drag.ox-w:drag.ox,y:p.y<drag.oy?drag.oy-h:drag.oy,width:w,height:h};}
+      render();});
+    stage.addEventListener('pointerup',()=>{drag=null;});
+    for(const [k,input] of Object.entries(fields))input.addEventListener('input',()=>{const v=Number(input.value);if(Number.isFinite(v)){rect[k]=v;if(aspect()){if(k==='width')rect.height=rect.width/aspect();if(k==='height')rect.width=rect.height*aspect();}render();}});
+    $('#regionAspect',overlay).onchange=()=>{fitAspect();render();};
+    const done=()=>{overlay.remove();s.closeRegion=null;};s.closeRegion=done;
+    $('#regionCancel',overlay).onclick=done;
+    $('#regionOk',overlay).onclick=()=>{try{clamp();setRegion({x:rect.x/sw,y:rect.y/sh,width:rect.width/sw,height:rect.height/sh});done();status('Zona aplicada. La grabación y los snapshots usarán solo esa parte de la fuente.');}catch(e){status(e.message);}};
+    render();
+  }
+  if(isScreen){
+    $('#screenRegionPick').onclick=pickRegion;
+    $('#screenRegionFull').onclick=()=>{try{setRegion(null);status('Se grabará la fuente completa.');}catch(e){status(e.message);}};
+  }
+  s.elapsed=elapsed;
+  // Programmatic control used by the local MCP bridge; same code path as the buttons.
+  s.automation={
+    async start(o){
+      if(!['idle','done','ready'].includes(s.state))throw Error('El grabador está ocupado ('+s.state+')');
+      if(s.state==='ready'){release();s.state='idle';}
+      await devices();
+      const select=$('#cameraDevice');if(![...select.options].some(op=>op.value===o.sourceId))throw Error('Fuente no encontrada. Consulta cinema_record_sources y usa su id');
+      select.value=o.sourceId;$('#cameraQuality').value=String(o.quality||1080);
+      $('#cameraUseAudio').checked=!!o.microphone;if(o.microphoneId&&[...$('#cameraMicrophone').options].some(op=>op.value===o.microphoneId))$('#cameraMicrophone').value=o.microphoneId;
+      $('#screenSystemAudio').checked=!!o.systemAudio;$('#screenCameraMode').value=o.camera||'none';
+      if(o.cameraId&&[...$('#screenCameraDevice').options].some(op=>op.value===o.cameraId))$('#screenCameraDevice').value=o.cameraId;
+      if(o.cameraPosition)$('#screenCameraPosition').value=o.cameraPosition;if(o.cameraSize)$('#screenCameraSize').value=String(o.cameraSize);
+      if(o.position!==undefined)$('#cameraPosition').value=String(o.position);$('#cameraAutoInsert').checked=o.insert!==false;
+      s.region=null;s.automated=true;s.sourceId=o.sourceId;update();
+      await prepare();
+      if(s.state!=='ready')throw Error($('#cameraStatus').textContent||'No se pudo preparar la captura');
+      try{
+        if(o.region){const base=o.regionUnit==='fraction'?{width:1,height:1}:(o.nativeSize||(({sourceWidth,sourceHeight})=>({width:sourceWidth,height:sourceHeight}))(s.capture.region()));
+          setRegion({x:o.region.x/base.width,y:o.region.y/base.height,width:o.region.width/base.width,height:o.region.height/base.height});}
+      }catch(e){release();s.state='idle';update();throw e;}
+      s.automationTicket=o.ticket;await start();
+      if(s.state!=='recording')throw Error($('#cameraStatus').textContent||'No se pudo iniciar la grabación');
+      if(cameraDialog.open){s.panelHidden=true;cameraDialog.close();$('.workspace').inert=s.previousInert;}
+      return true;
+    },
+    async control(action){
+      if(action==='pause'||action==='resume'){if(s.state!==(action==='pause'?'recording':'paused'))throw Error(action==='pause'?'No hay una grabación activa':'La grabación no está en pausa');await pause();return true;}
+      if(action==='snapshot'){if(!s.capture)throw Error('No hay captura preparada');await snapshot();return true;}
+      if(action==='stop'){if(!['recording','paused'].includes(s.state))throw Error('No hay una grabación en curso');await stop();const result={saved:s.saved,inserted:s.inserted,status:$('#cameraStatus').textContent};if(s.state==='done')await close();return result;}
+      if(action==='discard'){const original=window.confirm;window.confirm=()=>true;try{if(['recording','paused','pending'].includes(s.state)&&!await discard())throw Error('No se pudo descartar');}finally{window.confirm=original;}release();s.state='idle';await close();return true;}
+      if(action==='close'){if(['recording','paused'].includes(s.state))throw Error('Detén o descarta la grabación antes de cerrar');if(s.state==='pending')throw Error('Hay una toma pendiente de guardar: usa discard');release();if(s.state==='ready')s.state='idle';await close();return true;}
+      throw Error('Acción de grabación no válida');
+    }
+  };
   s.showPanel=showPanel;
   if(isScreen){
     s.controls={start,stop,pause,snapshot};
@@ -141,7 +219,29 @@ async function openCameraRecorder(mode='camera'){
   $('#cameraRefresh').onclick=devices;$('#cameraPrepare').onclick=prepare;$('#cameraUseAudio').onchange=update;$('#cameraRecord').onclick=start;$('#cameraStop').onclick=stop;$('#cameraRetry').onclick=()=>save(true);$('#cameraDiscard').onclick=discard;$('#cameraClose').onclick=close;
   $('#cameraDisconnect').onclick=()=>{release();s.state=s.saved?'done':'idle';status('Cámara y micrófono desconectados.');update();};
   $('#cameraInsert').onclick=async()=>{try{if(!s.saved.durationSeconds)Object.assign(s.saved,await cameraFileInfo(s.saved.filePath));if(s.saved.camera&&!s.saved.camera.durationSeconds)Object.assign(s.saved.camera,await cameraFileInfo(s.saved.camera.filePath),{startOffsetSeconds:s.cameraOffset});await insert(s.saved,true);status('Toma insertada en el proyecto.');}catch(e){status(e.message);}update();};
-  cameraDialog.oncancel=event=>{event.preventDefault();void close();};cameraDialog.showModal();update();await devices();
+  cameraDialog.oncancel=event=>{event.preventDefault();if(s.closeRegion){s.closeRegion();return;}void close();};cameraDialog.showModal();update();await devices();
 }
-const cameraDock=document.createElement('button');cameraDock.type='button';cameraDock.className='dock-panel-item';cameraDock.innerHTML='<span>▣</span><strong>Grabar vídeo</strong>';cameraDock.title='Grabar desde una cámara';cameraDock.onclick=()=>void openCameraRecorder();$('.dock-panel-list').append(cameraDock);
+const cameraDock=document.createElement('button');cameraDock.type='button';cameraDock.className='dock-panel-item';cameraDock.innerHTML='<span>▣</span><strong>Grabar vídeo</strong>';cameraDock.title='Grabar desde una cámara';cameraDock.dataset.capture='camera';cameraDock.onclick=()=>void openCameraRecorder();$('.dock-panel-list').append(cameraDock);
 fileMenu.insertAdjacentHTML('beforeend','<button type="button" data-file="camera">Grabar vídeo desde cámara…</button>');fileMenu.addEventListener('click',event=>{if(event.target.closest('[data-file="camera"]'))void openCameraRecorder();});
+// Screen recording for the local MCP bridge. Opening, preparing and recording reuse the visible recorder,
+// so the floating Toolbox (stop/pause) is always shown to the person at the computer.
+window.LQTACRecorderAutomation={
+  status(){
+    const s=cameraSession;if(!s)return {state:'none'};
+    const info=s.capture?.region?.();
+    return {mode:s.mode,state:s.state,automated:!!s.automated,source:s.sourceId||null,elapsedSeconds:['recording','paused'].includes(s.state)?Math.round(s.elapsed()*10)/10:0,
+      region:info?{fraction:info.region,pixels:info.pixels,sourceWidth:info.sourceWidth,sourceHeight:info.sourceHeight}:(s.region?{fraction:s.region}:null),
+      audio:s.audioLabel,saved:s.saved||null,inserted:!!s.inserted,status:document.querySelector('#cameraStatus')?.textContent||''};
+  },
+  async start(options){
+    if(cameraSession&&cameraSession.mode!=='screen')throw Error('Hay un panel de grabación de cámara abierto');
+    if(!cameraSession){if(exporting||historyBusy||document.querySelector('dialog[open]'))throw Error('Cierra el diálogo abierto o espera a que termine la operación antes de grabar');await openCameraRecorder('screen');}
+    const s=cameraSession;if(!s||s.mode!=='screen')throw Error('No se pudo abrir el grabador de pantalla');
+    try{await s.automation.start(options);}catch(e){if(cameraSession===s&&!['recording','paused','pending'].includes(s.state))await s.automation.control('close').catch(()=>{});throw e;}
+    return this.status();
+  },
+  async control(action){
+    const s=cameraSession;if(!s||s.mode!=='screen')throw Error('No hay grabación de pantalla abierta');
+    const result=await s.automation.control(action);return {result,status:this.status()};
+  }
+};

@@ -1,6 +1,10 @@
 const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 contextBridge.exposeInMainWorld('lqtacDesktop', {
+  mcpStatus:()=>ipcRenderer.invoke('mcp-status'),
+  mcpEnable:value=>ipcRenderer.invoke('mcp-enable',value),
+  mcpConfig:()=>ipcRenderer.invoke('mcp-config'),
+  mcpRecording:value=>ipcRenderer.invoke('mcp-recording',value),
   appInfo:()=>ipcRenderer.invoke('app-info'),
   openUserManual:()=>ipcRenderer.invoke('open-user-manual'),
   stemsStatus:()=>ipcRenderer.invoke('stems-status'),
@@ -59,6 +63,10 @@ contextBridge.exposeInMainWorld('lqtacDesktop', {
   prepareAudioEffects:(filePath,fx,segment)=>ipcRenderer.invoke('prepare-audio-effects',filePath,fx,segment),
   autotuneGuideMelody:(pieces,duration)=>ipcRenderer.invoke('autotune-guide-melody',pieces,duration),
   cancelAudioEffects:()=>ipcRenderer.invoke('cancel-audio-effects'),
+  analyzeVoice:(filePath,segment,options)=>ipcRenderer.invoke('voice-studio-analyze',filePath,segment,options),
+  recommendVoice:(measurements,profile,options)=>ipcRenderer.invoke('voice-studio-recommend',measurements,profile,options),
+  pickVoiceReference:()=>ipcRenderer.invoke('voice-studio-reference'),
+  cancelVoiceStudio:()=>ipcRenderer.invoke('voice-studio-cancel'),
   audioCacheInfo:()=>ipcRenderer.invoke('audio-cache-info'),
   audioCacheClear:()=>ipcRenderer.invoke('audio-cache-clear'),
   audioEffectsWaveform:(filePath,segment)=>ipcRenderer.invoke('audio-effects-waveform',filePath,segment),

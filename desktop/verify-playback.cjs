@@ -42,11 +42,15 @@ app.whenReady().then(async () => {
         renderer.gl.readPixels(28,16,1,1,renderer.gl.RGBA,renderer.gl.UNSIGNED_BYTE,right);
         if((invert?left[2]:left[0])<240 || (invert?right[0]:right[2])<240) throw new Error('Mask luminance/inversion failed');
       }
+      // Rotation: 360° over the transition = half turn at 50%, so the white half swaps sides.
+      renderer.draw('lumaMask',from,to,.5,{image:mask,softness:.1,rotation:360});
+      {const left=new Uint8Array(4),right=new Uint8Array(4);renderer.gl.readPixels(4,16,1,1,renderer.gl.RGBA,renderer.gl.UNSIGNED_BYTE,left);renderer.gl.readPixels(28,16,1,1,renderer.gl.RGBA,renderer.gl.UNSIGNED_BYTE,right);
+       if(left[2]<240||right[0]<240||renderer.gl.getError()!==renderer.gl.NO_ERROR)throw new Error('Mask rotation failed '+left+' / '+right);}
       const blurred=LQTACTransitions.prepareMask(mask,5),blurPixels=blurred.getContext('2d').getImageData(0,0,32,32).data;
       if(!blurPixels.some((value,index)=>index%4===0 && value>2 && value<253))throw new Error('Blur did not produce grayscale edges');
       for(const motion of ['none','zoomIn','zoomOut','left','right','up','down','shake']){
         for(const progress of [0,.3,.7,1]){
-          renderer.draw('lumaMask',from,to,progress,{image:mask,softness:0,blur:5,motion,amount:.75});
+          renderer.draw('lumaMask',from,to,progress,{image:mask,softness:0,blur:5,motion,amount:.75,rotation:progress*400-200});
           const pixel=new Uint8Array(4);renderer.gl.readPixels(16,16,1,1,renderer.gl.RGBA,renderer.gl.UNSIGNED_BYTE,pixel);
           if((progress===0&&pixel[2]<240)||(progress===1&&pixel[0]<240)||renderer.gl.getError()!==renderer.gl.NO_ERROR)throw new Error('Mask motion endpoint/render failed: '+motion);
         }
@@ -141,9 +145,11 @@ app.whenReady().then(async () => {
         $('#maskInvert').checked=true;$('#maskInvert').dispatchEvent(new Event('change'));
         $('#maskMotion').value='zoomIn';$('#maskMotion').dispatchEvent(new Event('change'));
         $('#maskBlur').value='8';$('#maskBlur').dispatchEvent(new Event('input'));
+        $('#maskRotation').value='-270';$('#maskRotation').dispatchEvent(new Event('input'));
         await renderTimelineAt(2);
         const maskState=transitionMasks.get(incoming);
         if(maskState.softness!==.3 || !maskState.invert || compositor.canvas.style.display!=='block')throw new Error('Custom mask settings/composition failed');
+        if(maskState.rotation!==-270||$('#maskRotationValue').textContent!=='-270°')throw new Error('Mask rotation setting failed');
         if(maskState.motion!=='zoomIn'||maskState.blur!==8||videoPool.get(incoming).style.opacity!=='0')throw new Error('Motion/blur settings or unwanted crossfade');
         $('.transition-card[data-transition="lumaMask"]').click();
         if(!maskControls.open || $('#maskSoftness').value!=='30'||!$('#maskInvert').checked)throw new Error('Reopening mask configuration lost settings');

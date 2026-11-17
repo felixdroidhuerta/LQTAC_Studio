@@ -1,5 +1,5 @@
 // FFmpeg command graphs. Curves use event-local seconds, never project positions.
-const {audioDefaults,validate,valueAt,creativeAudio}=require('../dist/assets/effects-model.js');
+const {audioDefaults,validate,valueAt,creativeAudio,eqBands,voiceAiModel}=require('../dist/assets/effects-model.js');
 const n=value=>Number(value).toFixed(9);
 function checkSegment(segment){if(!segment||!Number.isFinite(segment.offset)||segment.offset<0||!Number.isFinite(segment.duration)||segment.duration<=0||segment.duration>604800||!Number.isFinite(segment.rate)||segment.rate<.25||segment.rate>4)throw Error('Fragmento de audio animado no válido');}
 // Per-sample tremolo with animated speed/depth. The phase is the exact integral of the linear speed curve, so speed changes never jump;
@@ -27,11 +27,13 @@ function build(fx,segment,prefix,extra={}){
     const name=prefix+'-cmd'+files.length+'.txt';files.push({name,content:lines.join('\n')});return `asetnsamples=n=256:p=0,asendcmd=f='${name}',`;
   }
   function stage(filters){const next='stage'+serial++;graph.push(`[${current}]${filters}[${next}]`);current=next;}
+  if(f.declip)stage('adeclip');
   if(f.highpass)stage(controller('highpassHz','highpass@hp','frequency')+`highpass@hp=f=${n(initial('highpassHz'))}:poles=2`);
   if(f.lowpass)stage(controller('lowpassHz','lowpass@lp','frequency')+`lowpass@lp=f=${n(initial('lowpassHz'))}:poles=2`);
+  if(f.voiceAi)stage(`arnndn=m=${voiceAiModel}:mix=${n(f.voiceAiAmount)}`);
   if(f.gate)stage(controller('gateDb','agate@gate','threshold',x=>`pow(10,${x}/20)`)+`agate@gate=threshold=${n(10**(initial('gateDb')/20))}:range=0.01:ratio=4:attack=5:release=150`);
   if(f.denoise)stage(controller('denoiseDb','afftdn@noise','nr',x=>`max(0.01,${x})`)+`afftdn@noise=nr=${n(Math.max(.01,initial('denoiseDb')))}`);
-  for(const [key,hz] of [['bass',120],['mid',1000],['treble',8000]])if(f[key]||f.animation[key])stage(controller(key,'equalizer@'+key,'gain')+`equalizer@${key}=f=${hz}:t=q:w=1:g=${n(initial(key))}`);
+  for(const [key,hz] of eqBands)if(f[key]||f.animation[key])stage(controller(key,'equalizer@'+key,'gain')+`equalizer@${key}=f=${hz}:t=q:w=1:g=${n(initial(key))}`);
   if(f.deesser&&(f.deesserAmount||f.animation.deesserAmount)){
     // Dry / fully de-essed crossfade: the amount becomes a linear, animatable mix (FFmpeg's deesser has no runtime commands).
     const s=serial++;graph.push(`[${current}]asplit=2[dsd${s}][dsi${s}]`);

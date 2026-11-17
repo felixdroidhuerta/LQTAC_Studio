@@ -770,6 +770,7 @@ El selector Cargar imagen se abre siempre en la carpeta `Shapes` de la raíz del
 3. Elegir una imagen PNG, JPEG, WebP o BMP de hasta 20 MB. Se recomienda una imagen en blanco y negro con degradados.
 4. Seleccionar previamente el solapamiento entre dos vídeos y usar Aplicar al solapamiento. Si no hay un par seleccionado, se puede preparar la imagen pero Aplicar queda desactivado.
 5. Elegir Movimiento de la máscara: Estática, Zoom in, Zoom out, Travelling izquierda/derecha/arriba/abajo o Temblor. Intensidad controla la amplitud del movimiento. Estos movimientos se aplican a la máscara, no a los vídeos.
+   - **Giro durante la transición** (0.23.0; −720° a 720°, pasos de 15°; 0° por defecto) hace girar la máscara alrededor del centro mientras avanza la transición y se suma al movimiento elegido: por ejemplo, Zoom in + 360° hace que la forma crezca dando una vuelta completa. Los valores negativos giran en sentido contrario. El giro se calcula con la proporción de la imagen corregida, de modo que las formas no se deforman. Al girar, las esquinas que quedan fuera de la imagen toman el color de su borde (normalmente negro, que se revela al final). Se guarda en el LQTS como `mask.rotation`, en grados; los proyectos antiguos sin ese campo quedan en 0°.
 6. Ajustar Blur de la imagen entre 0 y 50 px para difuminar la máscara y generar zonas grises. El blur se calcula sobre una copia de trabajo de hasta 1024 píxeles y se conserva en caché para no recalcularlo en cada fotograma. El original no se modifica.
 7. Suavidad controla únicamente la mezcla del borde del revelado; empieza en 0 % para evitar una mezcla no solicitada. Invertir blanco y negro cambia el orden de aparición. Los ajustes de una máscara aplicada se actualizan inmediatamente; cerrar la ventana no revierte esos cambios.
 8. Posición de la muestra permite examinar cualquier momento de la transición entre los ejemplos A/B antes de aplicarla. La miniatura refleja el blur y la muestra refleja también movimiento, inversión y suavidad.
@@ -782,7 +783,7 @@ Cada solapamiento mantiene su propia imagen y sus ajustes. Los controles modific
 
 Se guarda una copia PNG independiente del original en `transition-masks`, dentro de los datos locales de la aplicación de Windows. Las imágenes grandes se reducen a un máximo de 2048 píxeles de lado para la vista previa. Esta copia no requiere Internet. El guardado y traslado de un proyecto completo con sus máscaras sigue pendiente del sistema de persistencia de proyectos; actualmente los ajustes de la timeline no se recuperan automáticamente al cerrar.
 
-Comprobaciones técnicas: carga de PNG y copia local, compilación del shader, extremos de transición exactos, orden de blanco/negro e inversión mediante lectura de píxeles y aplicación de máscara, suavidad e inversión sobre ambos MP4 de prueba. Pendiente de aceptación visual por el usuario.
+Comprobaciones técnicas: carga de PNG y copia local, compilación del shader, extremos de transición exactos, orden de blanco/negro e inversión mediante lectura de píxeles, giro (360° a mitad de transición intercambia las mitades blanca/negra; control de giro guardado en el estado de la máscara) y aplicación de máscara, suavidad e inversión sobre ambos MP4 de prueba. Pendiente de aceptación visual por el usuario.
 
 ## Monitor y reproducción del proyecto
 
@@ -1046,6 +1047,61 @@ La toma guardada se añade a la biblioteca y, por defecto, se inserta en una pis
 
 Cerrar o descartar libera las pistas del dispositivo y el contexto de audio. Se pide confirmación para descartar una toma en curso; al cerrar la aplicación con una toma pendiente se permite volver al grabador o descartarla. No se eliminan grabaciones que ya se hayan guardado. Los errores de permiso, ausencia de dispositivo o dispositivo ocupado se explican en el diálogo.
 
+### Voz de estudio (0.22.0)
+
+Analiza una grabación de voz y ajusta sola los efectos de audio del clip para que suene «de estudio».
+
+1. Clic derecho en un clip de audio → **Voz de estudio…**
+2. Elige el destino: **Podcast / locución** (−16 LUFS), **Vídeo / redes** (−14 LUFS) o **Canción** (−14 LUFS, compresión más suave y sin IA de ruido, que puede apagar el canto; solo usa la IA, suave, si hay mucho eco).
+3. **Analizar la voz.** Aparece la lista de lo que necesita la toma; cada punto dice qué ha medido y qué ajuste propone:
+   - **Saturación:** recortes de señal → *Reparar saturación*.
+   - **Retumbe y graves:** filtro de graves a 70–100 Hz y, si sobra 100–200 Hz, bajada de graves.
+   - **Ruido de fondo:** compara el ruido de las pausas con la voz → *Quitar ruido y eco con IA* (DeepFilterNet), con reducción completa si hay mucho ruido y limitada (24–40 dB) si hay poco. En Canción, la reducción clásica.
+   - **Eco de la sala:** mide lo rápido que se apaga la voz al acabar cada frase. Si la sala deja una cola de eco, activa *Quitar ruido y eco con IA*: completa en Podcast y Vídeo, y suave (hasta 18 dB) en Canción, con un aviso para que lo escuches. Solo se mide si la voz está 30 dB o más por encima del ruido, y detecta el eco fuerte (salas vacías, baños…); un eco leve no lo marca, pero puedes activar la IA a mano.
+   - **Silencios:** puerta de ruido cuando no se usa la IA.
+   - **Tono:** voz embarrada (200–450 Hz), falta o exceso de presencia (2,5–5 kHz) y brillo (por encima de 9 kHz). Se compara con el espectro medio de la voz humana. Si la grabación no tiene agudos, lo avisa y no los sube.
+   - **Eses que silban:** de-esser con la intensidad justa.
+   - **Dinámica:** compresor con el umbral calculado sobre tu nivel de voz.
+   - **Volumen final:** normalización al objetivo del destino y limitador a −1 dB.
+4. **▶ Original** y **▶ Voz de estudio** para comparar. **Aplicar al clip** lo guarda (un solo Ctrl+Z lo deshace).
+
+- Solo cambia los efectos de limpieza, tono, dinámica y volumen. Los creativos (reverb, eco, autotune, tono…) se conservan. Las curvas animadas de los ajustes que cambia se quitan.
+- Todo queda editable en **Efectos** del clip, donde hay controles nuevos: *Reparar saturación*, *Quitar ruido y eco con IA* (DeepFilterNet) con su **reducción máxima** en dB (100 = sin límite; 12–24 dB deja algo de ambiente y respeta más el canto), *Quitar ruido con IA* (RNNoise, más ligera) con su intensidad y dos bandas más en el ecualizador (medios-graves a 300 Hz y presencia a 4,5 kHz, también animables).
+- La IA DeepFilterNet procesa el archivo completo la primera vez (unos 8 s por minuto de audio) y guarda la copia limpia en caché: cambiar después el ecualizador u otros efectos ya no la repite. Quita el eco en las pausas y en las colas de las frases; el eco mezclado dentro de la voz solo lo reduce en parte.
+- Una voz muy saturada mejora, pero no queda perfecta.
+
+#### Encajar con la música, afinación y voz de referencia
+
+Opciones del mismo diálogo, antes de **Analizar la voz**. Si cambias alguna, vuelve a analizar.
+
+- **Encajar con la música:** marca las pistas de la base (batería, bajo, guitarras, teclados…). No marques otra voz principal. Solo cuentan los eventos que suenan bajo el clip de voz, con el volumen del clip y de la pista; los silenciados no cuentan. Se analiza el audio original de la base, sin sus efectos.
+  - **Voz en la mezcla:** **Delante** (balada, voz protagonista, +6 dB sobre la base), **Equilibrada** (como un disco pop, +4,5 dB) o **Integrada** (rock, +3 dB). El volumen final de la voz se calcula para quedar a esa distancia de la base, en lugar del objetivo fijo del destino. Cambiar este selector o el destino recalcula al momento.
+  - **La música tapa la voz:** si la base ocupa la zona de claridad de la voz (2,5–5 kHz), sube la presencia de la voz y ofrece la casilla **Recortar también … la zona 2,5–5 kHz en la base**. Si la marcas, se añade ese recorte al ecualizador de presencia de los eventos de la base que suenan bajo la voz; los que tienen una curva de presencia se dejan como están.
+  - También ajusta el **filtro de graves** si el bajo y el bombo llenan los graves, los **medios-graves** si la base los carga, los **agudos** si la base es mucho más brillante y el **compresor** si la música está muy comprimida.
+- **Afinar la voz según la música (autotune):** necesita al menos una pista de base.
+  - Detecta la **tonalidad** de la base (por ejemplo, «Do mayor») y si está afinada lejos de La 440.
+  - Mide cuánto se desvía cada nota cantada (en cents). Si la voz va afinada no toca nada. Si no, propone un autotune **suave** (por debajo de 20 cents), **medio** (20–35) o **firme**, a la escala de la tonalidad y moviendo como mucho 1 semitono.
+  - Si una pista de la base toca la misma melodía que la voz, la usa como **pista guía**.
+  - Si muchas notas cantadas están fuera de la escala, corrige a la nota más cercana para no cambiar la melodía.
+  - Si la base está afinada a más de 20 cents de La 440 y no hay pista guía, avisa y no activa el autotune.
+  - Sin esta casilla, el autotune del clip no se toca.
+- **Voz de referencia:** **Elegir archivo…** con una voz cuyo sonido te guste (podcast, voz sola…). Se iguala su tono (graves, cuerpo, presencia, brillo), el umbral del de-esser y su compresión. Sin base, también su volumen. Usa una voz sola: una canción completa no sirve como referencia de voz.
+- **Aplicar al clip** guarda la voz y, si marcaste el recorte, los eventos de la base, en un solo paso de Ctrl+Z.
+- Limitaciones: no baja la base automáticamente cuando entra la voz (ducking) y la afinación sigue la tonalidad, no los acordes compás a compás.
+
+### Copiar y pegar efectos entre clips (0.22.0)
+
+En el menú contextual de un clip (clic derecho) hay **Copiar efectos** y **Pegar efectos**:
+
+1. Clic derecho en el clip que tiene los efectos que te gustan → **Copiar efectos**.
+2. Selecciona uno o varios clips del mismo tipo (Ctrl+clic o arrastrando) y haz clic derecho sobre uno de ellos → **Pegar efectos en N clips**.
+
+- Solo se pega entre clips del mismo tipo: de audio a audio y de vídeo a vídeo. Un clip de vídeo copia sus efectos de imagen y también los del audio que lleva. Los subtítulos no tienen esta opción.
+- Pegar **sustituye** los efectos del clip de destino por los copiados (incluidos presets y ajustes). Si el clip copiado no tenía efectos activos, se avisa: al pegarlos se quitan los del destino.
+- Las animaciones se adaptan a la duración de cada clip: un fundido que ocupaba todo un clip de 4 s ocupa todo uno de 2 s.
+- No se copian los datos ligados a un clip concreto: estabilización, seguimiento de movimiento, máscara dibujada y análisis de IA precisa del croma. El clip de destino conserva los suyos. Si el croma copiado usaba IA precisa y el destino no tiene análisis, pasa a IA rápida hasta que lo analices.
+- Todo el pegado es un único paso de deshacer (Ctrl+Z), aunque afecte a varios clips. Lo copiado se mantiene mientras el programa esté abierto.
+
 ### Grabar sobre el proyecto (0.22.0)
 
 Además del destino (pista nueva o existente), el grabador tiene dos casillas que se recuerdan entre sesiones:
@@ -1194,3 +1250,40 @@ La barra inferior ya no muestra los valores de demostración fijos. **Posición*
 En la regla superior del timeline, un clic corto mueve el cabezal. Mantén pulsado y arrastra horizontalmente para crear directamente un tramo de selección; se ilumina en todas las pistas y limita el render. Los extremos del tramo siguen siendo ajustables. Arrastrar la flecha o el contador del cabezal mueve solo la posición, sin crear una selección. `Ctrl+Supr` elimina el tramo.
 
 El tramo incorpora un segundo cabezal ámbar que marca su final. Al crearlo, el cabezal principal se sitúa en el inicio. Reproducir o Reproducir desde el principio comienza dentro del tramo y se detiene en el cabezal ámbar; si el cabezal principal estaba fuera, vuelve al inicio seleccionado. El mismo inicio y final se utilizan al renderizar. Puedes arrastrar el cabezal ámbar para modificar el final sin mover la posición de reproducción.
+# Control MCP local · añadido a 0.22.0
+
+El panel MCP aplica estilos propios a «Copiar configuración» y «Cerrar», con contraste legible y estados de foco/hover acordes con la paleta del editor.
+
+Herramientas → Control MCP local permite activar o desactivar la edición desde un asistente compatible. El servidor stdio usa Electron incluido, procesa los medios localmente y trabaja sobre el montaje visible. Incluye biblioteca, pistas, clips agrupados, FX, envolventes, títulos/subtítulos, LQTS, vistas previas y render asíncrono. Los lotes son deshacibles y rechazan revisiones obsoletas. No precisa convertir el programa en web.
+
+Uso, contrato, límites y pruebas en [docs/MCP.md](docs/MCP.md). La suite `desktop/verify-mcp.cjs` verifica un montaje real hasta MP4 con vídeo y audio, además de tramo, cancelación, SRT y desactivación. Se ha verificado también `--speech` con Faster INT8 real e inserción posterior de los subtítulos dentro del portable. La precisión de Whisper no se vuelve a medir en esta suite. La conexión del asistente puede necesitar Internet aunque el editor y los motores sean offline.
+
+## Transparencia de capas en el monitor · 17/11/2026
+
+El monitor de edición compone los PNG con canal alfa y los clips con croma sobre las pistas inferiores. Se eliminó el fondo negro que la interfaz añadía a cada superficie de vista previa: ese fondo ocultaba V1 aunque el PNG de V2 fuese transparente. El fondo negro del monitor sigue apareciendo cuando no hay ninguna imagen debajo.
+
+Validación: en «Dulce Navidad», con el título PNG y el croma negro activado en V2, el monitor muestra la plaza de Aranjuez de V1 detrás del rótulo. La vista previa del montaje muestra la misma composición. Un PNG con alfa no necesita activar Croma para dejar ver la pista inferior.
+
+## Destello de lente con punto y haz · 17/11/2026
+
+Selecciona un clip de vídeo, abre **FX → Destello de lente** y haz clic o arrastra sobre su vista previa para situar el centro del destello. Una cruz marca el punto elegido. En ese mismo editor puedes ajustar la intensidad, el tamaño, el color, la intensidad y longitud del haz puntual, y los rayos de luz. El origen de los rayos se coloca junto al destello y puede ajustarse después por separado. Los valores admiten curvas de animación; el preset **Estrella con haz puntual** sirve como punto de partida.
+
+El punto se guarda en coordenadas de la imagen fuente y acompaña los movimientos de Pan/Crop. Si el objeto se desplaza *dentro* del vídeo fuente, anima X/Y mediante fotogramas clave; no hay seguimiento automático del objeto en este efecto.
+
+En «Dulce Navidad» se aplicó a la estrella del título PNG de V2, con una subida y retirada gradual de destello y rayos antes de la salida del título. Se comprobó en el monitor y en la vista previa del montaje, con la escena de V1 visible debajo.
+
+
+# Control MCP ampliado y grabación por zonas · 0.23.0
+
+**Grabar una zona de la pantalla (sin MCP):** Grabar pantalla → elegir pantalla o ventana → **Preparar captura** → **Seleccionar zona…**. Se muestra la imagen completa de la fuente: arrastra para dibujar la zona y arrastra dentro para moverla, o escribe X, Y, Ancho y Alto en píxeles de la fuente. La proporción puede ser libre, 16:9, 9:16, 1:1, 4:3 o 4:5. **Usar zona** la aplica a la vista previa, a la grabación y a los snapshots; **Fuente completa** la quita. Escape cierra solo el selector. La zona se elige antes de empezar a grabar (durante la toma está bloqueada) y se conserva si vuelves a preparar la captura. Ancho y alto se ajustan a números pares, con un mínimo de 16 px. La cámara integrada se coloca dentro de la zona.
+
+**Control MCP para Claude y Codex:** Herramientas → Control MCP local muestra la configuración lista para copiar para Claude Code (comando `claude mcp add`), Claude Desktop o `.mcp.json`, Codex (`config.toml`) y otros clientes. Además de las 16 herramientas de montaje, el MCP puede:
+
+- leer la interfaz (menús, diálogos abiertos y sus controles) y usar cualquier función del programa: comandos de menú, botones, campos, listas, casillas, deslizadores, menús contextuales de clips y pistas, teclas dentro de diálogos y cierre de diálogos;
+- contestar el selector nativo de archivos o un cuadro de mensaje que provoque esa misma acción, y las confirmaciones del editor;
+- capturar la ventana de Cinema Studio;
+- con el permiso **Permitir grabación de pantalla mediante MCP** (desactivado por defecto): listar pantallas y ventanas, ver una miniatura, grabar entera o por zona (en píxeles o fracciones), pausar, reanudar, detener (guarda e inserta en el proyecto), descartar y hacer snapshots.
+
+Límites: desde la interfaz, el MCP no puede abrir los grabadores ni el panel Control MCP (así no puede activarse el permiso a sí mismo). Los permisos de cámara y micrófono de Windows siempre los contesta la persona, y durante una grabación MCP aparece la Toolbox flotante para detenerla. Los gestos sobre lienzos (dibujar una máscara punto a punto, arrastrar clips) no se reproducen; el montaje se hace con `cinema_edit`.
+
+Validación: `desktop/verify-mcp.cjs` (23 herramientas; incluye una toma real de una zona de 640 × 360 px insertada en el proyecto y comprobada con FFmpeg) y `desktop/verify-screen-region.cjs` (selector visual). Siguen pasando `verify-screen`, `verify-capture-toolbox`, `verify-camera` y `verify-menus`.

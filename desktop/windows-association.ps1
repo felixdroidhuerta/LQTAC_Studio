@@ -50,14 +50,28 @@ if($executableName -in @('LQTAC Studio.exe','Cinema Studio.exe')){
   Put-Value ($application+'\DefaultIcon') '' ('"'+$config.icon+'",0')
   Put-Value ($application+'\shell\open\command') '' $command
   Put-Value ($application+'\SupportedTypes') '.lqts' ''
+  Put-Value ($application+'\SupportedTypes') '.lqpack' ''
 }
 Put-Value ($classes+'\.lqts\OpenWithProgids') $progid ''
 if($claimDefault){Put-Value ($classes+'\.lqts') '' $progid}
+# Content packs (.lqpack): double click opens Cinema Studio, which verifies the signature and asks before installing.
+$packProgid='LQTACStudio.Pack.1'
+$packChoice=if($testMode){$config.testRoot+'\UserChoicePack'}else{'Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.lqpack\UserChoice'}
+Put-Value ($classes+'\'+$packProgid) '' 'Paquete de Cinema Studio'
+Put-Value ($classes+'\'+$packProgid+'\DefaultIcon') '' ('"'+$config.icon+'",0')
+Put-Value ($classes+'\'+$packProgid) 'IconRevision' $iconRevision
+Put-Value ($classes+'\'+$packProgid+'\shell\open\command') '' $command
+Put-Value ($classes+'\'+$packProgid+'\shell\open') 'FriendlyAppName' 'Cinema Studio by LQTAC'
+Put-Value ($classes+'\.lqpack\OpenWithProgids') $packProgid ''
+$packUserChoice=Read-Value ([Microsoft.Win32.Registry]::CurrentUser) $packChoice 'ProgId'
+$packAssigned=if($packUserChoice){$packUserChoice}else{Effective-Value '.lqpack'}
+if(!$packUserChoice -and (!$packAssigned -or $packAssigned -eq $packProgid)){Put-Value ($classes+'\.lqpack') '' $packProgid}
 $capabilities=if($testMode){$config.testRoot+'\Capabilities'}else{'Software\LQTACStudio\Capabilities'}
 Put-Value $capabilities 'ApplicationName' 'Cinema Studio by LQTAC'
 Put-Value $capabilities 'ApplicationDescription' 'Editor local de video y audio Cinema Studio by LQTAC'
 Put-Value $capabilities 'ApplicationIcon' ('"'+$config.icon+'",0')
 Put-Value ($capabilities+'\FileAssociations') '.lqts' $progid
+Put-Value ($capabilities+'\FileAssociations') '.lqpack' $packProgid
 $registered=if($testMode){$config.testRoot+'\RegisteredApplications'}else{'Software\RegisteredApplications'}
 Put-Value $registered 'LQTAC Studio' $capabilities
 if($script:changed -and !$testMode){

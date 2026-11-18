@@ -102,12 +102,12 @@
     const q=s=>box.querySelector(s),select=q('.fxp-select'),statusLine=q('.fxp-status'),form=q('.fxp-form'),name=q('.fxp-name');
     const own=()=>userPresets.filter(p=>p.kind===kind&&p.key===key);
     function render(selected=''){
-      const groups=[['De fábrica',(factory[kind][key]||[]).map((p,i)=>['f:'+i,p.name])],['Mis presets',own().map(p=>['u:'+p.id,p.name+(p.animation?' · animado':'')])]];
+      const packed=window.LQTACPacks?.presets(kind,key)||[];const groups=[['De fábrica',(factory[kind][key]||[]).map((p,i)=>['f:'+i,p.name])],['Paquetes',packed.map((p,i)=>['p:'+i,p.name+' · '+p.packName])],['Mis presets',own().map(p=>['u:'+p.id,p.name+(p.animation?' · animado':'')])]];
       select.innerHTML='<option value="">— Elegir preset —</option>'+groups.filter(([,items])=>items.length).map(([label,items])=>`<optgroup label="${label}">${items.map(([v,n])=>`<option value="${v}"></option>`).join('')}</optgroup>`).join('');
       const options=[...select.querySelectorAll('option[value]:not([value=""])')],labels=groups.flatMap(([,items])=>items);options.forEach((o,i)=>o.textContent=labels[i][1]);
       select.value=selected;q('.fxp-delete').disabled=!select.value.startsWith('u:');q('.fxp-export').disabled=!userPresets.some(p=>p.kind===kind);
     }
-    function find(value){if(value.startsWith('f:'))return factory[kind][key][Number(value.slice(2))];if(value.startsWith('u:'))return userPresets.find(p=>p.id===value.slice(2));return null;}
+    function find(value){if(value.startsWith('f:'))return factory[kind][key][Number(value.slice(2))];if(value.startsWith('p:'))return (window.LQTACPacks?.presets(kind,key)||[])[Number(value.slice(2))]||null;if(value.startsWith('u:'))return userPresets.find(p=>p.id===value.slice(2));return null;}
     select.onchange=()=>{const preset=find(select.value);q('.fxp-delete').disabled=!select.value.startsWith('u:');if(!preset)return;
       try{applyTo(options.draft,preset,options);options.onApply?.();statusLine.textContent=`Aplicado «${preset.name}». Pulsa Aplicar al clip para confirmarlo o Cancelar para descartarlo.`;}catch(error){statusLine.textContent='No se pudo aplicar: '+error.message;}};
     q('.fxp-save').onclick=()=>{form.hidden=false;name.value='';q('.fxp-anim').checked=Object.keys(options.draft.animation||{}).some(p=>options.parameters.includes(p));name.focus();};

@@ -19,7 +19,7 @@ foreach ($name in @('branding.cjs','main.cjs','preload.cjs','veg-parser.cjs','ve
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot $name) -Destination $desktopTarget
 }
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'assets') -Destination $desktopTarget -Recurse
-foreach($name in @('mcp-tools.cjs','mcp-edit.cjs','mcp-bridge.cjs','mcp-server.cjs','mcp-clients.cjs')){Copy-Item -LiteralPath (Join-Path $PSScriptRoot $name) -Destination $desktopTarget}
+foreach($name in @('mcp-tools.cjs','mcp-edit.cjs','mcp-bridge.cjs','mcp-server.cjs','mcp-clients.cjs','pack-format.cjs','pack-keys.cjs','packs-store.cjs')){Copy-Item -LiteralPath (Join-Path $PSScriptRoot $name) -Destination $desktopTarget}
 Copy-Item -LiteralPath (Join-Path $projectRoot 'Cinema Studio MCP.bat') -Destination $OutputDirectory
 Copy-Item -LiteralPath (Join-Path $projectRoot 'docs\MCP.md') -Destination (Join-Path $OutputDirectory 'MCP.md')
 $codecTarget = Join-Path $desktopTarget 'codecs'

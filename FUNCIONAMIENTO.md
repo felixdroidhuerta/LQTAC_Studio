@@ -1287,3 +1287,64 @@ En «Dulce Navidad» se aplicó a la estrella del título PNG de V2, con una sub
 Límites: desde la interfaz, el MCP no puede abrir los grabadores ni el panel Control MCP (así no puede activarse el permiso a sí mismo). Los permisos de cámara y micrófono de Windows siempre los contesta la persona, y durante una grabación MCP aparece la Toolbox flotante para detenerla. Los gestos sobre lienzos (dibujar una máscara punto a punto, arrastrar clips) no se reproducen; el montaje se hace con `cinema_edit`.
 
 Validación: `desktop/verify-mcp.cjs` (23 herramientas; incluye una toma real de una zona de 640 × 360 px insertada en el proyecto y comprobada con FFmpeg) y `desktop/verify-screen-region.cjs` (selector visual). Siguen pasando `verify-screen`, `verify-capture-toolbox`, `verify-camera` y `verify-menus`.
+
+# Paquetes de contenido · 0.24.0
+
+**Instalar:** Herramientas → **Paquetes…** → **Instalar paquete…**, o doble clic en un archivo `.lqpack`. Antes de instalar se muestran el nombre, la versión, quién lo firma y qué contiene. Si ya tienes el paquete se ofrece **Actualizar**, y si el archivo es una versión más antigua se avisa antes. Los paquetes se guardan en la carpeta de datos del programa, así que siguen instalados al cambiar de versión de Cinema Studio.
+
+**Solo paquetes oficiales:** cada paquete va firmado digitalmente. Cinema Studio rechaza:
+
+- los que no están firmados por LQTAC («Paquete no oficial»);
+- los que se han modificado después de firmarlos («Paquete dañado o modificado»).
+
+Un paquete solo contiene imágenes PNG o JPEG y datos; nunca programas ni código.
+
+**Gestor de paquetes:** cada paquete muestra su portada, versión, autor, firma y contenido.
+
+- **Activado** oculta el paquete o lo vuelve a mostrar sin desinstalarlo.
+- **Desinstalar** lo borra.
+- Los proyectos que usan contenido de un paquete desactivado o desinstalado se abren igual: ese marco o esa imagen no se dibuja hasta que vuelvas a tener el paquete.
+
+**Qué aporta un paquete:**
+
+- **Marcos para subtítulos:** en el editor de un subtítulo, **Marco** lista los marcos instalados. Está junto a la vista previa y siempre visible, también en los subtítulos con karaoke (cuyo bloque «Tipografía, colores y posición» va plegado).
+  - Al elegir uno se aplica su estilo de letra sugerido (fuente, tamaño, colores y altura), que puedes cambiar después. **Opacidad del marco** lo suaviza.
+  - Según el diseño, el marco se adapta al ancho de la frase o es una franja de ancho fijo, y crece si hay dos líneas.
+  - Entra y sale con un fundido, y se ve igual en la vista previa y en el vídeo exportado. El karaoke sigue funcionando encima.
+- **Marco para toda la pista:** el botón de propiedades de la cabecera de una pista de subtítulos (FX/⚙) incluye **Marco de los subtítulos**, con opacidad y la opción de aplicar también la letra sugerida. Se aplica a todos los bloques de la pista sin cambiar su texto, sus tiempos ni su karaoke, y se deshace en un solo paso. **Sin marco** lo quita de toda la pista.
+- **Aplicar desde un subtítulo a toda la pista:** la casilla **Aplicar tipografía, colores, posición y marco a todos los subtítulos de esta pista** copia ese estilo a todos los bloques de la pista sin tocar su texto, sus tiempos ni su karaoke. Con la letra ya transcrita, basta editar un subtítulo para enmarcar la canción entera.
+- **Rótulos:** las plantillas del paquete aparecen en la lista Plantilla del editor de títulos, en grupos marcados con «· paquete». Pueden llevar imágenes.
+- **Imágenes:** el editor de títulos tiene **Imagen de paquete…** para añadir los adornos de los paquetes a tus propios diseños. Se mueven, escalan, giran y animan como el resto de objetos.
+- **Máscaras de transición:** en el diálogo de la máscara personalizada, **Máscara de un paquete** carga la imagen con sus ajustes (suavidad, movimiento, desenfoque y giro).
+- **Presets de efectos:** aparecen en el grupo **Paquetes** de la barra de presets de cada efecto.
+
+**Paquete Navidad (lqtac.navidad 1.0.0):**
+
+- **3 marcos de subtítulos:** Acebo dorado, Nieve suave y Franja roja con oro.
+- **5 imágenes:** acebo, estrella, copo, campanas y lazo.
+- **3 rótulos:** Feliz Navidad con estrella, Rótulo con acebo y Cartel de canción con campanas.
+- **5 máscaras de transición:** las de Dulce Navidad.
+- **2 presets:** Luces navideñas y Calidez de hogar.
+
+**Límites:**
+
+- Los paquetes los crea y firma LQTAC con una herramienta propia; el programa solo los instala.
+- Un marco o una imagen solo se ve si su paquete está instalado y activado en el equipo que exporta el vídeo.
+
+**Validación:**
+
+- `desktop/verify-pack-format.cjs`: firma, paquetes modificados o firmados con otra clave, reglas del contenido, instalar, actualizar, volver a una versión anterior, desactivar y desinstalar.
+- `desktop/verify-packs.cjs`, en la aplicación:
+  - instalación desde el gestor;
+  - marco en la vista previa y en la exportación;
+  - editor de subtítulos, con aplicación a toda la pista conservando el karaoke;
+  - plantilla de rótulo e imagen de paquete en el editor de títulos;
+  - máscara y presets;
+  - desactivar y desinstalar.
+- Siguen pasando `verify-subtitles`, `verify-karaoke`, `verify-karaoke-syllables`, `verify-track-karaoke`, `verify-track-karaoke-sync`, `verify-titles`, `verify-generator-layout`, `verify-generator-curves`, `verify-generators-live`, `verify-presets`, `verify-menus`, `verify-project`, `verify-system-fonts`, `verify-workspaces`, `verify-event-properties-menu` y `verify-mcp`.
+
+## Render MP4 con destino ocupado · 18/11/2026
+
+Al terminar la codificación, Cinema Studio intenta guardar el MP4 con el nombre elegido. Si Windows bloquea temporalmente un archivo anterior con ese nombre, el programa reintenta el renombrado durante unos segundos. Si el destino continúa ocupado, conserva el MP4 anterior y guarda el nuevo con un sufijo `- render <identificador>.mp4`; el diálogo final muestra la ruta real.
+
+Si tampoco puede guardar con otro nombre, muestra la ruta del archivo temporal terminado para recuperarlo manualmente. Un error de FFmpeg o una cancelación sí eliminan los archivos temporales incompletos. Validación: `desktop/verify-render-commit.cjs` cubre bloqueo transitorio, destino persistente ocupado y error de disco sin pérdida del MP4 terminado. La corrección entra en vigor al reiniciar Cinema Studio tras actualizar su copia local.

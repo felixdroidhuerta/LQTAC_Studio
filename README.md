@@ -1,13 +1,13 @@
 # Cinema Studio by LQTAC
 
-Cinema Studio by LQTAC es el nuevo nombre del editor local LQTAC Studio. La versión 0.23.0 permite que un asistente MCP (Claude o Codex) use todo el programa y grabe la pantalla entera o una zona, añade la selección de zona al grabador de pantalla y el giro en las máscaras de transición (ver más abajo). La 0.22.0 añadió títulos animados con plantillas, efectos especiales con estabilización, seguimiento de movimiento y rotoscopia, y grabación de voz sobre el proyecto (ver más abajo). La 0.21.0 añadió presets de efectos, un pack de audio y autotune con pista guía. La 0.20.0 añadió el croma por zonas con IA. La 0.19.2 incorporó la nueva identidad, Ayuda con manual local y Acerca de…, imágenes en pistas de vídeo, mejoras de envolventes y selección del timeline y un lanzador permanente para la barra de tareas.
+Cinema Studio by LQTAC es el nuevo nombre del editor local LQTAC Studio. La versión 0.24.0 añade los paquetes de contenido instalables (marcos para la letra de los subtítulos, rótulos con imágenes, máscaras de transición y presets) firmados por LQTAC. La 0.23.0 permite que un asistente MCP (Claude o Codex) use todo el programa y grabe la pantalla entera o una zona, añade la selección de zona al grabador de pantalla y el giro en las máscaras de transición (ver más abajo). La 0.22.0 añadió títulos animados con plantillas, efectos especiales con estabilización, seguimiento de movimiento y rotoscopia, y grabación de voz sobre el proyecto (ver más abajo). La 0.21.0 añadió presets de efectos, un pack de audio y autotune con pista guía. La 0.20.0 añadió el croma por zonas con IA. La 0.19.2 incorporó la nueva identidad, Ayuda con manual local y Acerca de…, imágenes en pistas de vídeo, mejoras de envolventes y selección del timeline y un lanzador permanente para la barra de tareas.
 
 
 Editor local de vídeo y audio para Windows. Incluye separación offline de canciones en Voz, Batería, Bajo y Otros, selector de pista/evento y resaltado del intervalo sobre las pistas, espacios de trabajo, mezclador, generadores, fuentes de Windows, FX, renderizado por tramos, captura y dos motores de subtítulos offline.
 
 ## Descargar el programa
 
-Para un equipo nuevo, abre [Releases](https://github.com/felixdroidhuerta/LQTAC_Studio/releases/tag/v0.23.0-portable) y descarga **Cinema_Studio_0.23.0_Windows_x64_Portable.zip** dentro de Assets.
+Para un equipo nuevo, abre [Releases](https://github.com/felixdroidhuerta/LQTAC_Studio/releases/tag/v0.24.0-portable) y descarga **Cinema_Studio_0.24.0_Windows_x64_Portable.zip** dentro de Assets.
 
 Extrae todo el ZIP y abre **Cinema Studio.exe**. El motor y sus bibliotecas están incluidos; no requiere Node, pnpm ni Internet en el equipo destino. La carpeta Shapes junto al ejecutable contiene la máscara LQTAC de ejemplo.
 
@@ -20,6 +20,8 @@ El portable incluye **Manual de usuario.pdf**. Las fuentes de la guía y sus cap
 La versión local añade pista de subtítulos editable, Whisper small multilingüe offline, importación/exportación SRT e incrustación en vídeo. Acceso desde la pestaña «Subtítulos». El modelo y runtime están instalados en este equipo; para preparar otro entorno de desarrollo ejecutar tools/setup-whisper.ps1. El empaquetado incluye ambos y sus licencias; no requiere descargas durante el uso.
 
 ## Funciones actuales
+
+**Novedad 0.24.0 · paquetes de contenido:** Herramientas → Paquetes… instala archivos `.lqpack` (también con doble clic). Cada paquete puede traer marcos para colocar la letra de los subtítulos, plantillas de rótulos con imágenes, imágenes sueltas para tus diseños, máscaras de transición y presets de efectos. Solo se instalan paquetes oficiales firmados por LQTAC; nunca contienen código y siguen instalados al actualizar el programa. Los subtítulos tienen la opción **Marco** y pueden aplicar su estilo a toda la pista. Ver FUNCIONAMIENTO.md.
 
 **Novedad 0.23.0 · MCP completo y grabación por zonas:** el control MCP local pasa de 16 a 23 herramientas. Lee la interfaz y usa cualquier menú, diálogo o control, y contesta los selectores nativos. Con un permiso propio (desactivado por defecto) graba pantallas o ventanas, enteras o por zonas. El panel genera la configuración para Claude Code, Claude Desktop y Codex. El grabador de pantalla permite elegir la zona arrastrando sobre la imagen, y las máscaras de transición pueden girar. Ver docs/MCP.md y FUNCIONAMIENTO.md.
 

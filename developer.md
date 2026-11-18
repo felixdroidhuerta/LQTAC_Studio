@@ -1148,3 +1148,57 @@ Validación manual con «Dulce Navidad» a 1,22 s: antes se veía el título sob
 - **Servidor stdio:** acepta llamadas tras `initialize` aunque aún no haya llegado `notifications/initialized`, y responde con listas vacías a `resources/list`, `resources/templates/list` y `prompts/list`. `serverInfo.version` 1.1.0.
 - **Clientes:** `desktop/mcp-clients.cjs` genera el comando de Claude Code, el JSON para Claude Desktop/.mcp.json (`type: stdio`) y el TOML de Codex (cadenas literales para rutas de Windows). `mcp-enable` escribe `mcp-client.json`, `codex-config.toml` y `claude-code.txt`. Añadido a la lista de `build-portable.ps1`.
 - Pruebas: `verify-mcp.cjs`, `verify-screen-region.cjs`. Ver `docs/MCP.md`.
+
+# Paquetes de contenido · 0.24.0
+
+- **Formato (`desktop/pack-format.cjs`):** un `.lqpack` es un JSON UTF-8:
+
+  ```
+  {format:'LQTAC Pack',formatVersion:1,manifest,files:{ruta:base64},signature:{key,algorithm:'ed25519',value}}
+  ```
+
+  - **Bytes firmados:** `'LQTAC Pack v1\n' + canonical(manifest) + '\n'`, seguido de una línea `ruta sha256` por archivo, ordenadas por ruta.
+  - **`verify()`:** comprueba la clave (`signature.key` son los 16 primeros caracteres hexadecimales del SHA-256 del SPKI DER), luego la firma Ed25519 y después llama a `validateManifest()`.
+- **Manifiesto:** `id` (por ejemplo `lqtac.navidad`), `name`, `version` (x.y.z), `author`, `description`, `minAppVersion`, `cover` y `content`, que contiene `subtitleFrames`, `titles`, `images`, `masks` y `presets`.
+  - **Archivos:** solo PNG o JPEG; se comprueban la cabecera y el tamaño (hasta 8192 px), y los marcos tienen que ser PNG. Las rutas no admiten `..` y todos los archivos tienen que estar referenciados.
+  - **Validación del contenido:** los rótulos se validan con `generator-model.js` y los estilos con `subtitle-model.js`; las máscaras y los presets, con sus rangos.
+  - **Límites:** 20 MB por archivo, 200 MB por paquete y 500 elementos por lista.
+- **Claves:** `desktop/pack-keys.cjs` contiene las claves públicas de confianza. La privada nunca está en el repositorio. En desarrollo (`!app.isPackaged`) se acepta además `LQTAC_PACK_TEST_PUBLIC_KEY` para las pruebas.
+- **Almacén (`desktop/packs-store.cjs`):**
+  - Estructura: `userData/packs/<id>/{manifest.json,install.json,files/…}`, más `packs/state.json` con la lista `disabled`.
+  - La instalación verifica antes de escribir, escribe en una carpeta temporal y la intercambia por la anterior.
+  - `asset(id,file)` devuelve una data URL, para que el lienzo de exportación no quede «tainted».
+- **IPC (`main.cjs`, `preload.cjs`):**
+  - `packs-list`.
+  - `packs-install`: con selector o con ruta. Pide confirmación nativa con un resumen y la versión; si falla, muestra el error y lo devuelve como `{error}`.
+  - `packs-remove` (con confirmación), `packs-enable` y `pack-asset`.
+  - Evento `packs-changed`.
+  - Apertura desde el shell: `windowsIntegration.packArgument` en el arranque y en `second-instance`, que llama a `queueShellPack`.
+  - `windows-association.ps1` registra `.lqpack` → `LQTACStudio.Pack.1`, sin pisar una elección del usuario.
+- **Editor (`dist/assets/packs.js`):**
+  - `window.LQTACPacks` expone `refresh`, `ready`, `list`, `frame`, `frameDefinition`, `frameOptions`, `templateOptions`, `imageOptions`, `buildTitle`, `imageSync`, `imageFor`, `preload`, `presets`, `masks`, `onChange` y `open`.
+  - Las imágenes de los marcos activos se decodifican al cargar, porque el dibujo de subtítulos es síncrono.
+  - Las máscaras de paquete se cargan inyectando el archivo en `#maskFileInput`, así siguen el camino normal (`save-transition-mask`).
+  - Menú: Herramientas → Paquetes… (`data-packs="open"`).
+- **Subtítulos:** `subtitleStyle.frame = {pack,id,opacity?}`, validado en `subtitle-model.js`. `draw()`:
+  1. resuelve el marco con `LQTACPacks.frame`;
+  2. calcula el bloque de texto: ancho máximo de línea y alto desde `y−(n−1)·1.2f−1.02f` hasta `y+0.06f` (`textBaseline` es bottom);
+  3. añade `padding` en em, o usa `width` si `fit` es `'wide'`;
+  4. pinta un nine-slice con esquinas de `slice·alto/1080·scale`, limitadas al tamaño del marco.
+
+  `fade` atenúa marco y texto al principio y al final del bloque. En `subtitles-controls.js`, `#subFrameRow` (con `#subFrame` y `#subFrameOpacity`) es una fila propia que se coloca tras `#subPreview` después de `installKaraokeEditor`, porque este pliega la rejilla de estilo en un `<details>`; `#subApplyAll` es la casilla de toda la pista. En `packs.js`, `openWorkControls` se envuelve para las pistas de subtítulos: añade `#trackFrameBox` (`#trackFrame`, `#trackFrameOpacity`, `#trackFrameStyle`) y, tras el submit original (mismo `historyCheckpoint`), aplica el marco a todos los bloques solo si se cambió algo; «Varios marcos · no cambiar» deja la pista como está; este último copia font, size, color, outline, stroke, x, y y frame, y conserva texto, tiempos y karaoke.
+- **Rótulos:** nuevo objeto `{type:'image',asset:'<pack>:<ruta>',left,top,width,height,…}` (patrón `ASSET` en `generator-model.js`).
+  - El Fabric incluido no trae clase de imagen. `imageObject()` es un `Rect` con `lq.asset` y un `_render` que pinta `LQTACPacks.imageSync(asset)`, o un rectángulo discontinuo si falta el paquete.
+  - `serialize()` lo vuelve a escribir como `image`.
+  - `scene()` y `edit()` precargan las imágenes. La plantilla solo espera si contiene imágenes, para que el resto se siga aplicando de forma síncrona.
+  - Selector `#genAddImage` en la barra de objetos.
+- **Presets:** `effect-presets.js` añade el grupo «Paquetes» (`p:<índice>`) con `LQTACPacks.presets(kind,key)`.
+- **Creación:** los paquetes se generan con una herramienta privada de LQTAC, fuera de este repositorio, que usa `pack-format.cjs#build` y los mismos validadores del código fuente.
+- **Pruebas:** `verify-pack-format.cjs` (Node) y `verify-packs.cjs` (Electron).
+- **Empaquetado:** `build-portable.ps1` copia `pack-format.cjs`, `pack-keys.cjs` y `packs-store.cjs`.
+
+## Cierre seguro del render ante EPERM · 18/11/2026
+
+`desktop/render-engine.cjs#commitOutput` reintenta cinco veces el `rename` del archivo `.lqtac-render-*` al destino ante `EPERM`, `EACCES` o `EBUSY` (esperas de 300, 600, 900 y 1200 ms). Si el destino aún existe y está bloqueado, mueve el render terminado a un nombre único `- render <uuid-corto>` en la misma carpeta y devuelve esa ruta a la interfaz. Si falla también esa operación, el temporal terminado no se borra y el error indica dónde está. La limpieza del temporal sigue aplicándose a cancelaciones y fallos de FFmpeg. El filtro temporal se retira en todos los casos.
+
+Origen del cambio: en «Dulce Navidad», `render-finish` falló al renombrar un MP4 temporal sobre un `Dulce Navidad.mp4` preexistente. En el diagnóstico posterior, el destino aceptó apertura exclusiva y la carpeta aceptó creación y renombrado, lo que indica un bloqueo transitorio o ya liberado; no se identificó el proceso que lo tuvo abierto. El código anterior borraba el temporal después del error. `desktop/verify-render-commit.cjs` prueba reintento, nombre alternativo y conservación del archivo al fallar el renombrado. La copia local del portable 0.24.0 se actualizó; el proceso abierto requiere reinicio para cargarla.

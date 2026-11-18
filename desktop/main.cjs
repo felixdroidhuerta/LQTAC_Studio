@@ -67,6 +67,7 @@ ipcMain.handle('reset-project-path',()=>{currentProjectPath=null;mainWindow.setT
 let exportJob = null;
 const startupVegas=process.argv.find(value=>/\.veg$/i.test(value));
 const startupProject=windowsIntegration.projectArgument(process.argv);
+const startupPack=windowsIntegration.packArgument(process.argv);
 if(process.argv.includes('--review-vegas'))app.setPath('userData',path.join(app.getPath('temp'),'lqtac-vegas-review-'+process.pid));
 
 ipcMain.handle('save-lqts', async (_event, data, saveAs) => {
@@ -123,7 +124,8 @@ async function openShellProject(filePath,confirmReplacement=true){
   if(loaded.missing.length)await dialog.showMessageBox(mainWindow,{type:'warning',message:'Proyecto abierto con medios no encontrados',detail:loaded.missing.join('\n')});return true;
 }
 function queueShellProject(filePath,confirmReplacement=true){shellOpenQueue=shellOpenQueue.then(()=>app.whenReady()).then(()=>openShellProject(filePath,confirmReplacement)).catch(error=>{dialog.showErrorBox('No se pudo abrir el proyecto LQTS',error.message);});return shellOpenQueue;}
-app.on('second-instance',(_event,argv)=>{if(mainWindow&&!mainWindow.isDestroyed()){if(mainWindow.isMinimized())mainWindow.restore();mainWindow.show();mainWindow.focus();}const file=windowsIntegration.projectArgument(argv);if(file)void queueShellProject(file,true);});
+app.on('second-instance',(_event,argv)=>{if(mainWindow&&!mainWindow.isDestroyed()){if(mainWindow.isMinimized())mainWindow.restore();mainWindow.show();mainWindow.focus();}const file=windowsIntegration.projectArgument(argv);if(file)void queueShellProject(file,true);const pack=windowsIntegration.packArgument(argv);if(pack)void queueShellPack(pack);});
+function queueShellPack(filePath){shellOpenQueue=shellOpenQueue.then(()=>app.whenReady()).then(async()=>{if(!mainWindow||mainWindow.isDestroyed())return;if(mainWindow.isMinimized())mainWindow.restore();mainWindow.show();mainWindow.focus();if(mainWindow.webContents.isLoading())await new Promise(resolve=>mainWindow.webContents.once('did-finish-load',resolve));await mainWindow.webContents.executeJavaScript('demoReady');await installPackWithConfirmation(filePath);}).catch(error=>{dialog.showErrorBox('No se pudo instalar el paquete',error.message);});return shellOpenQueue;}
 const audioRecording=require('./audio-recording.cjs');
 const cameraRecording=require('./capture-recording.cjs');
 const captureToolbox=require('./capture-toolbox.cjs').createCaptureToolbox(()=>mainWindow);
@@ -362,6 +364,7 @@ app.whenReady().then(async () => {
   else await automationBridge.initialize();
   mainWindow.webContents.once('did-finish-load',()=>void ensureWindowsIntegration());
   if(startupProject)void queueShellProject(startupProject,false);
+  if(startupPack)void queueShellPack(startupPack);
   else if(startupVegas){
     try{
       const loaded=await require('./vegas-automation.cjs').openVegas(startupVegas);
@@ -390,6 +393,28 @@ ipcMain.handle('presets-load',event=>{recordingSender(event);return presetsStore
 ipcMain.handle('presets-save',(event,list)=>{recordingSender(event);return presetsStore.save(list);});
 ipcMain.handle('presets-export',(event,list,name)=>{recordingSender(event);return presetsStore.exportPresets(list,name);});
 ipcMain.handle('presets-import',event=>{recordingSender(event);return presetsStore.importPresets();});
+// Content packs (.lqpack): signed, data-only bundles installed in userData/packs (see packs-store.cjs).
+const packTrustedKeys=[...require('./pack-keys.cjs').keys];
+if(!app.isPackaged&&process.env.LQTAC_PACK_TEST_PUBLIC_KEY){const pem=process.env.LQTAC_PACK_TEST_PUBLIC_KEY;packTrustedKeys.push({id:require('./pack-format.cjs').keyId(pem),name:'Clave de pruebas',publicKey:pem});}
+const packsStore=require('./packs-store.cjs').createPacksStore({directory:path.join(app.getPath('userData'),'packs'),appVersion:branding.version(),trustedKeys:packTrustedKeys});
+const packsChanged=()=>{if(mainWindow&&!mainWindow.isDestroyed())mainWindow.webContents.send('packs-changed');};
+async function installPackWithConfirmation(filePath){
+  if(!filePath){const r=await dialog.showOpenDialog(mainWindow,{title:'Instalar paquete de Cinema Studio',properties:['openFile'],filters:[{name:'Paquete de Cinema Studio',extensions:['lqpack']}]});if(r.canceled||!r.filePaths[0])return null;filePath=r.filePaths[0];}
+  let info;try{info=await packsStore.inspect(filePath);}catch(error){await dialog.showMessageBox(mainWindow,{type:'error',title:'Paquete no instalado',message:'No se puede instalar este paquete',detail:error.message,noLink:true});return {error:error.message};}
+  const {manifest,signer,summary}=info.verified,c=summary.counts,parts=[[c.subtitleFrames,'marco de subtítulos','marcos de subtítulos'],[c.titles,'rótulo','rótulos'],[c.images,'imagen','imágenes'],[c.masks,'máscara de transición','máscaras de transición'],[c.presets,'preset de efectos','presets de efectos']].filter(([n])=>n).map(([n,a,b])=>n+' '+(n===1?a:b));
+  const verb=!info.current?'Instalar':info.comparison>0?'Actualizar':info.comparison===0?'Reinstalar':'Volver a la versión';
+  const detail=[manifest.description||'','Versión '+manifest.version+' · '+manifest.author,'Firmado por: '+signer.name,'Contenido: '+parts.join(', '),info.current?'Instalada ahora: '+info.current.version:''].filter(Boolean).join(String.fromCharCode(10));
+  const answer=await dialog.showMessageBox(mainWindow,{type:info.comparison<0?'warning':'question',title:'Paquete de Cinema Studio',message:verb+' «'+manifest.name+'»?',detail,buttons:[verb,'Cancelar'],defaultId:0,cancelId:1,noLink:true});
+  if(answer.response!==0)return null;
+  const result=await packsStore.install(filePath,{allowDowngrade:info.comparison<0});packsChanged();return result;
+}
+ipcMain.handle('packs-list',event=>{recordingSender(event);return packsStore.list();});
+ipcMain.handle('packs-install',(event,filePath)=>{recordingSender(event);return installPackWithConfirmation(typeof filePath==='string'?filePath:null);});
+ipcMain.handle('packs-remove',async(event,id)=>{recordingSender(event);const pack=(await packsStore.list()).find(p=>p.id===id);if(!pack)throw Error('Paquete no instalado');
+  const answer=await dialog.showMessageBox(mainWindow,{type:'warning',title:'Desinstalar paquete',message:'¿Desinstalar «'+pack.name+'»?',detail:'Los proyectos que usen su contenido se abrirán igualmente: los marcos y las imágenes de este paquete no se mostrarán hasta que lo vuelvas a instalar.',buttons:['Desinstalar','Cancelar'],defaultId:1,cancelId:1,noLink:true});
+  if(answer.response!==0)return false;await packsStore.remove(id);packsChanged();return true;});
+ipcMain.handle('packs-enable',async(event,id,enabled)=>{recordingSender(event);await packsStore.setEnabled(id,!!enabled);packsChanged();return true;});
+ipcMain.handle('pack-asset',(event,id,file)=>{recordingSender(event);return packsStore.asset(id,file);});
 // Optional IA pro module: installed next to the executable (portable) or the repository root (development).
 const aiProService=require('./ai-pro-service.cjs').createAiProService({root:app.isPackaged?path.dirname(process.execPath):path.join(__dirname,'..'),appVersion:branding.version(),cacheDirectory:path.join(app.getPath('userData'),'ai-pro-cache')});
 app.on('before-quit',()=>{aiProService.cancel();aiProService.cancelAnalysis();});

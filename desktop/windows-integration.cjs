@@ -2,6 +2,7 @@ const path=require('node:path'),fs=require('node:fs'),{execFile}=require('node:c
 const run=promisify(execFile);
 const APP_ID='LQTAC.CinemaStudio';
 function projectArgument(argv){return argv.find(value=>typeof value==='string'&&path.isAbsolute(value)&&/\.lqts$/i.test(value));}
+function packArgument(argv){return argv.find(value=>typeof value==='string'&&path.isAbsolute(value)&&/\.lqpack$/i.test(value));}
 function applicationDirectory(){
   const parent=path.resolve(__dirname,'..');
   try{if(JSON.parse(fs.readFileSync(path.join(parent,'package.json'),'utf8')).main==='desktop/main.cjs')return parent;}catch{}
@@ -39,4 +40,4 @@ function ensureStableLauncher(config){
   fs.writeFileSync(pointer,path.resolve(config.executable),'utf8');
   return target;
 }
-module.exports={projectArgument,applicationDirectory,integrationConfig,ensureAssociation,ensureStableLauncher,taskbarDetails,APP_ID};
+module.exports={projectArgument,packArgument,applicationDirectory,integrationConfig,ensureAssociation,ensureStableLauncher,taskbarDetails,APP_ID};

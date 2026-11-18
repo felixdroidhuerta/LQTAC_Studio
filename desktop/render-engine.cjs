@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const {spawn,execFile} = require('node:child_process');
 const {promisify} = require('node:util');
+const {randomUUID} = require('node:crypto');
 const {validateProject} = require('./project-io.cjs');
 const {enabled,balance,calibrated} = require('../dist/assets/work-model.js');
 const presets = {
@@ -19,6 +20,23 @@ function ffmpegPath() {
   try {return require('ffmpeg-static');} catch {throw new Error('Falta el motor de exportación local. Utiliza el paquete portable completo.');}
 }
 const number = n => Number(n).toFixed(6);
+const renameBlocked = error => ['EPERM','EACCES','EBUSY'].includes(error?.code);
+async function commitOutput(temporary,output) {
+  for(let attempt=0;attempt<5;attempt++) {
+    try {await fs.promises.rename(temporary,output);return output;}
+    catch(error) {
+      if(!renameBlocked(error))throw error;
+      if(attempt<4)await new Promise(resolve=>setTimeout(resolve,300*(attempt+1)));
+    }
+  }
+  // Windows may keep an existing MP4 open in a player or another editor.
+  // Keep that file untouched and give the completed render a unique name.
+  if(!fs.existsSync(output))throw new Error(`No se pudo guardar el render en ${output}. El vídeo terminado se conserva en ${temporary}.`);
+  const parsed=path.parse(output);
+  const alternative=path.join(parsed.dir,`${parsed.name} - render ${randomUUID().slice(0,8)}${parsed.ext}`);
+  try {await fs.promises.rename(temporary,alternative);return alternative;}
+  catch(error){throw new Error(`El destino está bloqueado y tampoco se pudo guardar una copia. El vídeo terminado se conserva en ${temporary}.`,{cause:error});}
+}
 function envelopeExpression(points) {
   if (!points.length) return '1';
   let expression=number(points.at(-1).value);
@@ -104,8 +122,12 @@ async function startRender({project,profile,width=1280,height=720,fps=24,output,
       try {
         if(cancelled)throw new Error('Exportación cancelada.');
         if(code!==0)throw new Error('No se pudo exportar: '+stderr);
-        await fs.promises.rename(temporary,output);resolve({output,duration,frames});
-      }catch(error){await fs.promises.rm(temporary,{force:true}).catch(()=>{});reject(error);}finally{await fs.promises.rm(filterFile,{force:true}).catch(()=>{});}
+        const saved=await commitOutput(temporary,output);resolve({output:saved,duration,frames});
+      }catch(error){
+        if(cancelled||code!==0)await fs.promises.rm(temporary,{force:true}).catch(()=>{});
+        else if(fs.existsSync(temporary)&&!String(error.message).includes(temporary))error=new Error(`${error.message} El vídeo terminado se conserva en ${temporary}.`,{cause:error});
+        reject(error);
+      }finally{await fs.promises.rm(filterFile,{force:true}).catch(()=>{});}
     });
   });
   done.catch(()=>{});
@@ -115,4 +137,4 @@ async function startRender({project,profile,width=1280,height=720,fps=24,output,
     cancel(){cancelled=true;child.kill();}
   };
 }
-module.exports={presets,ffmpegPath,startRender,envelopeExpression};
+module.exports={presets,ffmpegPath,startRender,envelopeExpression,commitOutput};

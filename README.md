@@ -7,7 +7,7 @@ Editor local de vídeo y audio para Windows. Incluye separación offline de canc
 
 ## Descargar el programa
 
-Para un equipo nuevo, abre [Releases](https://github.com/felixdroidhuerta/LQTAC_Studio/releases/tag/v0.24.1-portable) y descarga **Cinema_Studio_0.24.1_Windows_x64_Portable.zip** dentro de Assets.
+Para un equipo nuevo, abre [Releases](https://github.com/felixdroidhuerta/LQTAC_Studio/releases/tag/v0.24.1-playback-fix) y descarga **Cinema_Studio_0.24.1_Windows_x64_Portable.zip** dentro de Assets. Esta revisión corrige el bloqueo de reproducción de las portadas y los cortes sin cambiar el número de versión del portable.
 
 Extrae todo el ZIP y abre **Cinema Studio.exe**. El motor y sus bibliotecas están incluidos; no requiere Node, pnpm ni Internet en el equipo destino. La carpeta Shapes junto al ejecutable contiene la máscara LQTAC de ejemplo.
 

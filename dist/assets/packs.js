@@ -18,7 +18,9 @@
  function frame(packId,id){const definition=frameDefinition(packId,id);if(!definition)return null;const e=images.get(packId+':'+definition.image);if(!e){void load(packId,definition.image);return null;}return e.image?{definition,image:e.image}:null;}
  const group=(items,label)=>{const by=new Map();for(const i of items){const k=label(i);if(!by.has(k))by.set(k,[]);by.get(k).push(i);}return by;};
  function frameOptions(){return [...group(active().flatMap(p=>content(p,'subtitleFrames').map(f=>({p,f}))),x=>x.p.name)].map(([name,list])=>'<optgroup label="'+esc(name)+'">'+list.map(({p,f})=>'<option value="'+esc(p.id+'|'+f.id)+'">'+esc(f.name)+'</option>').join('')+'</optgroup>').join('');}
- function templateOptions(){return [...group(active().flatMap(p=>content(p,'titles').map(t=>({p,t}))),x=>x.t.category||x.p.name)].map(([name,list])=>'<optgroup label="'+esc(name+' · paquete')+'">'+list.map(({p,t})=>'<option value="'+esc('pack:'+p.id+':'+t.id)+'">'+esc(t.name)+'</option>').join('')+'</optgroup>').join('');}
+ function templateOptions(accept=()=>true){return [...group(active().flatMap(p=>content(p,'titles').filter(t=>accept(t.generator?.type)).map(t=>({p,t}))),x=>x.t.category||x.p.name)].map(([name,list])=>'<optgroup label="'+esc(name+' · paquete')+'">'+list.map(({p,t})=>'<option value="'+esc('pack:'+p.id+':'+t.id)+'">'+esc(t.name)+'</option>').join('')+'</optgroup>').join('');}
+ // Display name of a pack image, for the title editor layers.
+ function imageName(asset){const [packId,file]=String(asset).split(/:(.*)/);const p=active().find(x=>x.id===packId);return p?content(p,'images').find(i=>i.file===file)?.name||null:null;}
  function imageOptions(){return [...group(active().flatMap(p=>content(p,'images').map(i=>({p,i}))),x=>x.p.name)].map(([name,list])=>'<optgroup label="'+esc(name)+'">'+list.map(({p,i})=>'<option value="'+esc(p.id+':'+i.file)+'">'+esc(i.name)+'</option>').join('')+'</optgroup>').join('');}
  function buildTitle(key){const [,packId,id]=key.split(':');const t=enabledPack(packId)&&content(enabledPack(packId),'titles').find(x=>x.id===id);if(!t)throw Error('Plantilla de paquete no disponible');return LQTACGeneratorModel.validate(structuredClone(t.generator));}
  function presets(kind,key){return active().flatMap(p=>content(p,'presets').filter(x=>x.kind===kind&&x.key===key).map(x=>({...structuredClone(x),packName:p.name})));}
@@ -42,7 +44,7 @@
    await Promise.all(active().flatMap(p=>content(p,'subtitleFrames').map(f=>load(p.id,f.image))));
    refreshMaskPicker();for(const fn of listeners)try{fn();}catch{}scheduleRender();})();return loading;}
  window.LQTACPacks={refresh,ready:()=>loading,list:()=>packs.map(p=>({id:p.id,name:p.name,version:p.version,author:p.author,enabled:p.enabled,signer:p.signer?.name||null})),
-  frame,frameDefinition,frameOptions,templateOptions,imageOptions,buildTitle,imageSync,imageFor,preload,presets,masks,onChange:fn=>{listeners.add(fn);return ()=>listeners.delete(fn);}};
+  frame,frameDefinition,frameOptions,templateOptions,imageOptions,imageName,buildTitle,imageSync,imageFor,preload,presets,masks,onChange:fn=>{listeners.add(fn);return ()=>listeners.delete(fn);}};
 
  // Transition masks from packs: loaded through the dialog's own file input so they follow the normal mask path.
  function refreshMaskPicker(){

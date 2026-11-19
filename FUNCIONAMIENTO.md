@@ -1348,3 +1348,16 @@ Un paquete solo contiene imágenes PNG o JPEG y datos; nunca programas ni códig
 Al terminar la codificación, Cinema Studio intenta guardar el MP4 con el nombre elegido. Si Windows bloquea temporalmente un archivo anterior con ese nombre, el programa reintenta el renombrado durante unos segundos. Si el destino continúa ocupado, conserva el MP4 anterior y guarda el nuevo con un sufijo `- render <identificador>.mp4`; el diálogo final muestra la ruta real.
 
 Si tampoco puede guardar con otro nombre, muestra la ruta del archivo temporal terminado para recuperarlo manualmente. Un error de FFmpeg o una cancelación sí eliminan los archivos temporales incompletos. Validación: `desktop/verify-render-commit.cjs` cubre bloqueo transitorio, destino persistente ocupado y error de disco sin pérdida del MP4 terminado. La corrección entra en vigor al reiniciar Cinema Studio tras actualizar su copia local.
+
+
+# Capas en el editor de títulos · 0.24.1
+
+El editor de títulos y gráficos tiene la pestaña **Capas**, junto a Texto.
+
+- **Lista:** muestra los objetos del título de arriba abajo; la capa de arriba se ve delante. Cada fila indica el tipo (Texto, Imagen, Forma o Línea) y el nombre: el texto que contiene, el nombre de la imagen del paquete o el tipo de forma.
+- **Seleccionar:** al pulsar una capa (o Intro sobre ella) se selecciona en el lienzo y las demás pestañas muestran sus propiedades.
+- **Ordenar:** **Al frente**, **Subir**, **Bajar** y **Al fondo** mueven la capa seleccionada. Con el lienzo enfocado: Ctrl+] sube, Ctrl+[ baja, Ctrl+Mayús+] trae al frente y Ctrl+Mayús+[ envía al fondo. Mientras se escribe dentro de un texto los atajos no actúan. Los botones que no se pueden usar se muestran atenuados.
+- **Imágenes de paquete:** se añaden encima del resto y el editor avisa de que se pueden enviar al fondo, por ejemplo para usarlas como placa detrás del nombre de un rótulo.
+- El orden se guarda en el título del timeline, en Project Media y en el proyecto, y es el mismo en la vista previa y en el render.
+
+**Plantillas según lo que editas:** la lista **Plantilla** solo muestra las del mismo tipo que el gráfico abierto: rótulos al editar un rótulo; títulos al editar un título, un texto o un cartel; créditos al editar unos créditos. Primero aparecen las de los paquetes instalados, agrupadas por categoría con la marca «· paquete», y después las de serie con la marca «· de serie».

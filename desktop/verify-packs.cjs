@@ -77,8 +77,9 @@ app.whenReady().then(async()=>{
   // Title editor: apply the pack template, add a pack image, save to the timeline; serialized objects keep the asset.
   const edited=await js(`(async()=>{await restoreProject({format:'LQTAC Studio',version:1,name:'Packs',library:[],tracks:[{id:'V1',kind:'video',envelope:[],clips:[]}]});
     const done=LQTACGenerators.edit('lower-third');for(let i=0;i<50&&!document.querySelector('#generatorEditor[open]');i++)await new Promise(r=>setTimeout(r,50));const d=document.querySelector('#generatorEditor'),q=id=>d.querySelector('#'+id);
-    if(![...q('genTemplate').options].some(o=>o.value==='pack:lqtac.prueba:cartel'))throw Error('pack template not listed');
+    if(![...q('genTemplate').options].some(o=>o.value==='pack:lqtac.prueba:cartel'))throw Error('pack template not listed');if(q('genTemplate').options[1].value!=='pack:lqtac.prueba:cartel')throw Error('pack templates must come first');
     q('genTemplate').value='pack:lqtac.prueba:cartel';await q('genTemplate').onchange();q('genAddImage').value='lqtac.prueba:images/estrella.png';await q('genAddImage').onchange();
+    const layer=d.querySelector('#genLayers .gen-layer');if(layer?.querySelector('.gen-layer-name').textContent!=='Estrella dorada'||layer.querySelector('.gen-layer-kind').textContent!=='Imagen')throw Error('pack image layer name: '+layer?.textContent);
     const buttons=[...d.querySelectorAll('footer button')].map(b=>b.textContent);const insert=d.querySelector('#genApply');insert.click();await done;await new Promise(r=>setTimeout(r,300));
     const clip=$$('.clip').find(c=>c.dataset.generator);return {buttons,objects:clip?JSON.parse(clip.dataset.generator).objects:null};})()`);
   assert(edited.objects,'generator inserted: '+edited.buttons);assert.equal(edited.objects.filter(o=>o.type==='image').length,2);assert(edited.objects.every(o=>o.type!=='image'||o.asset==='lqtac.prueba:images/estrella.png'));

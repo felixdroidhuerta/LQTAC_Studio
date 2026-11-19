@@ -8,8 +8,8 @@ window.LQTACGeneratorLayout={mount(dialog){
  const stage=document.createElement('div');stage.className='gen-stage';const designPane=document.createElement('div'),animatedPane=document.createElement('div');designPane.id='genDesignPane';animatedPane.id='genAnimatedPane';for(const p of [designPane,animatedPane]){p.className='gen-view-pane';p.setAttribute('role','tabpanel');stage.append(p);}designPane.append(q('genDesign'));animatedPane.append(q('genPreview'));
  const hint=document.createElement('p');hint.className='gen-stage-hint';hint.textContent='Arrastra para colocar · esquinas para tamaño · doble clic para escribir';workspace.append(toolbar,stage,hint);
  const inspector=document.createElement('aside');inspector.className='gen-inspector';const tabs=document.createElement('div');tabs.className='gen-inspector-tabs';tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','Herramientas del título');inspector.append(tabs);const panels=new Map();
- for(const [key,name,ids]of [['text','Texto',['genText','genFont','genSize','genBold','genAlign']],['style','Estilo',['genColor','genNoFill','genStroke','genStrokeWidth','genShadow','genShadowBlur','genGradient','genGradient2','genGradientAngle','genGlow','genGlowColor','genGlowSize','genGlowStrength']],['anim','Efectos',['genInEffect','genInBy','genInDur','genInStagger','genInDelay','genInEase','genOutEffect','genOutBy','genOutDur','genOutStagger','genOutEase','genOutEnd','genLoop','genLoopAmount','genLoopSpeed','genFixed']],['motion','Animación',['genPreset','genCrawlTilt','genCrawlHorizon','genCrawlFade','genCrawlDelay','genCrawlStars','genIn','genOut','genEase','genX','genY','genScale','genOpacity']],['canvas','Lienzo',['genTransparent','genBackground','genDuration']]]){
-  const b=document.createElement('button');b.type='button';b.id='genTab-'+key;b.textContent=name;b.setAttribute('role','tab');b.setAttribute('aria-controls','genPane-'+key);b.dataset.genTab=key;tabs.append(b);const pane=document.createElement('section');pane.id='genPane-'+key;pane.className='gen-inspector-pane';pane.setAttribute('role','tabpanel');pane.setAttribute('aria-labelledby',b.id);panels.set(key,pane);for(const id of ids)pane.append(q(id).closest('label'));inspector.append(pane);
+ for(const [key,name,ids]of [['text','Texto',['genText','genFont','genSize','genBold','genAlign']],['layers','Capas',['genLayersBox']],['style','Estilo',['genColor','genNoFill','genStroke','genStrokeWidth','genShadow','genShadowBlur','genGradient','genGradient2','genGradientAngle','genGlow','genGlowColor','genGlowSize','genGlowStrength']],['anim','Efectos',['genInEffect','genInBy','genInDur','genInStagger','genInDelay','genInEase','genOutEffect','genOutBy','genOutDur','genOutStagger','genOutEase','genOutEnd','genLoop','genLoopAmount','genLoopSpeed','genFixed']],['motion','Animación',['genPreset','genCrawlTilt','genCrawlHorizon','genCrawlFade','genCrawlDelay','genCrawlStars','genIn','genOut','genEase','genX','genY','genScale','genOpacity']],['canvas','Lienzo',['genTransparent','genBackground','genDuration']]]){
+  const b=document.createElement('button');b.type='button';b.id='genTab-'+key;b.textContent=name;b.setAttribute('role','tab');b.setAttribute('aria-controls','genPane-'+key);b.dataset.genTab=key;tabs.append(b);const pane=document.createElement('section');pane.id='genPane-'+key;pane.className='gen-inspector-pane';pane.setAttribute('role','tabpanel');pane.setAttribute('aria-labelledby',b.id);panels.set(key,pane);for(const id of ids)pane.append(q(id).closest('label')||q(id));inspector.append(pane);
  }
  const transformGrid=document.createElement('div');transformGrid.className='gen-transform-grid';for(const id of ['genX','genY','genScale','genOpacity'])transformGrid.append(panels.get('motion').querySelector('#'+id).closest('label'));panels.get('motion').append(transformGrid);
  body.append(workspace,inspector);
@@ -44,7 +44,7 @@ const generatorCompactStyle=document.createElement('style');generatorCompactStyl
 #generatorEditor.generator-compact #genPreview{max-width:none}
 #generatorEditor.generator-compact .gen-stage-hint{margin:0;color:var(--muted);font-size:10px}
 #generatorEditor.generator-compact .gen-inspector{display:grid;grid-template-rows:auto minmax(0,1fr);min-width:0;min-height:0;border:1px solid var(--line);border-radius:7px;background:#0b1e39;overflow:hidden}
-#generatorEditor.generator-compact .gen-inspector-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;padding:5px;background:#0a1a31;border-bottom:1px solid var(--line)}
+#generatorEditor.generator-compact .gen-inspector-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px;padding:5px;background:#0a1a31;border-bottom:1px solid var(--line)}
 #generatorEditor.generator-compact .gen-inspector-tabs button{padding:7px 3px}
 #generatorEditor.generator-compact [role=tab][aria-selected=true]{background:#285588;color:#fff;border-color:var(--accent-2)}
 #generatorEditor.generator-compact .gen-inspector-pane{overflow:auto;min-width:0;min-height:0;padding:8px 10px;scrollbar-gutter:stable}
@@ -55,6 +55,17 @@ const generatorCompactStyle=document.createElement('style');generatorCompactStyl
 #generatorEditor.generator-compact button{font:inherit;font-size:11px;padding:6px 8px;white-space:nowrap}
 #generatorEditor.generator-compact .system-font-picker{margin:5px 0 7px}
 #generatorEditor.generator-compact .system-font-picker p{margin:4px 0;line-height:1.3}
+#generatorEditor.generator-compact .gen-layers-help{font-size:11px;color:var(--muted);margin:0 0 6px;line-height:1.35}
+#generatorEditor.generator-compact #genLayers{list-style:none;margin:0 0 8px;padding:0;display:grid;gap:3px}
+#generatorEditor.generator-compact .gen-layer{display:grid;grid-template-columns:52px minmax(0,1fr);align-items:center;gap:6px;padding:6px 7px;border:1px solid var(--line);border-radius:6px;background:#0d2443;cursor:pointer;font-size:11px}
+#generatorEditor.generator-compact .gen-layer:hover{border-color:var(--accent-2)}
+#generatorEditor.generator-compact .gen-layer.selected{background:#285588;border-color:var(--accent-2);color:#fff}
+#generatorEditor.generator-compact .gen-layer:focus-visible{outline:2px solid #9bdcff;outline-offset:1px}
+#generatorEditor.generator-compact .gen-layer-kind{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.04em}
+#generatorEditor.generator-compact .gen-layer.selected .gen-layer-kind{color:#cfe3ff}
+#generatorEditor.generator-compact .gen-layer-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#generatorEditor.generator-compact .gen-layer-tools button:disabled{opacity:.4;cursor:default}
+#generatorEditor.generator-compact .gen-layer-tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
 #generatorEditor.generator-compact .gen-transform-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 8px}
 #generatorEditor.generator-compact .gen-point-help{font-size:11px;color:var(--muted);margin-top:10px}
 #generatorEditor.generator-compact #genTimeline{display:grid;grid-template-rows:auto minmax(0,1fr);gap:6px;min-height:0;border:1px solid var(--line);border-radius:7px;padding:7px;background:#091b34;box-sizing:border-box}

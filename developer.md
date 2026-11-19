@@ -1211,3 +1211,6 @@ Origen del cambio: en «Dulce Navidad», `render-finish` falló al renombrar un 
 - `dist/assets/packs.js`: `LQTACPacks.imageName(asset)` para el nombre de la imagen en Capas. `templateOptions(accept)` filtra por `generator.type` y se inserta justo después de «— Aplicar una plantilla —».
 - Filtro de plantillas en `edit`: `family(type)` agrupa `title`, `text` y `poster` como «title»; `lower-third` y `credits` van aparte. Las de serie se clasifican por `LQTACTitleTemplates.build(id).type` y sus grupos llevan «· de serie».
 - Pruebas: `desktop/verify-title-layers.cjs`; `verify-packs.cjs` comprueba el orden de la lista de plantillas y el nombre de capa de una imagen de paquete.
+# Corrección de reproducción del timeline · 0.24.1
+
+En `dist/index.html`, `advanceTimeline` deja de esperar indefinidamente a que todos los medios activos estén simultáneamente listos, sin búsqueda y reproduciéndose. Reintenta `play()` de los medios listos y mantiene el avance del reloj. Validado en el portable 0.24.1 con un título generado en V3 (0–8 s), captura webm en V1 desde 8 s y audio en A1; el cabezal superó 10 s.

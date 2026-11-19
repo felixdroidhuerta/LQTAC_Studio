@@ -946,8 +946,12 @@
       const elapsed = lastPlaybackTick ? (now - lastPlaybackTick) / 1000 : 0;
       lastPlaybackTick = now;
       const activeMedia = [...videoPool, ...timelineAudioPool].filter(([clip]) => clip.isConnected && clip.dataset.mute!=='true' && trackIsEnabled(clip.parentElement) && clipIsActiveAt(clip, timelineTime));
-      const ready = activeMedia.every(([, media]) => media.readyState >= 2 && !media.seeking && !media.paused);
-      if (ready) timelineTime += Math.min(elapsed, .1);
+      // Keep the project clock moving while a generated title or a newly activated
+      // media element is loading. Otherwise playback can wait forever at a cut.
+      for (const [, media] of activeMedia) {
+        if (media.paused && media.readyState >= 2 && !media.seeking) media.play().catch(error => console.warn('No se pudo reanudar un medio de timeline', error));
+      }
+      timelineTime += Math.min(elapsed, .1);
       const playbackEnd = activePlaybackRange()?.end ?? timelineDurationSeconds;
       if (timelineTime >= playbackEnd) { stopTimelinePlayback(); timelineTime = playbackEnd; }
       await renderTimelineAt(timelineTime);

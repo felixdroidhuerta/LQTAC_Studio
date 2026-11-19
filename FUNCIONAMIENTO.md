@@ -1361,3 +1361,6 @@ El editor de títulos y gráficos tiene la pestaña **Capas**, junto a Texto.
 - El orden se guarda en el título del timeline, en Project Media y en el proyecto, y es el mismo en la vista previa y en el render.
 
 **Plantillas según lo que editas:** la lista **Plantilla** solo muestra las del mismo tipo que el gráfico abierto: rótulos al editar un rótulo; títulos al editar un título, un texto o un cartel; créditos al editar unos créditos. Primero aparecen las de los paquetes instalados, agrupadas por categoría con la marca «· paquete», y después las de serie con la marca «· de serie».
+# Corrección de reproducción del timeline · 0.24.1
+
+El reloj de reproducción continúa mientras una portada generada o un medio recién activado termina de cargarse. El monitor reanuda los medios listos y evita el bloqueo del cabezal en la portada o en el paso entre clips. Comprobado con una portada del Pack Octopus seguida de grabación de pantalla en un proyecto multipista.

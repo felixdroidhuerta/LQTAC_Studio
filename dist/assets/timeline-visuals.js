@@ -11,7 +11,7 @@ window.LQTACTimelineVisuals=(()=>{
   `;document.head.append(style);
   const states=new WeakMap(),dataCache=new Map(),imageCache=new Map(),jobs=[];
   const requestPrefix=Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);
-  let visible=new Set(),workers=0,painting=0,timer=0,serial=0;
+  let visible=new Set(),workers=0,painting=0,timer=0,serial=0,enabled=true;
   const cancelled=()=>Object.assign(Error('Vista sustituida'),{obsolete:true});
   const current=(state,token)=>state.token===token&&state.clip.isConnected;
   function cancelState(state){if(state.requestId){void window.lqtacDesktop.cancelTimelineVisual(state.requestId).catch(()=>{});state.requestId=null;}}
@@ -59,7 +59,7 @@ window.LQTACTimelineVisuals=(()=>{
     const body=document.querySelector('.timeline-body'),labels=document.querySelector('#trackLabels');if(!body||!labels)return;
     const view=body.getBoundingClientRect(),viewLeft=Math.max(view.left,labels.getBoundingClientRect().right),viewRight=view.left+body.clientWidth,next=new Set();
     for(const clip of timelineClips()){
-      if(!clip.dataset.filePath||!['video','audio'].includes(clip.dataset.kind)){clip.classList.remove('media-visual');continue;}
+      if(!enabled||!clip.dataset.filePath||!['video','audio'].includes(clip.dataset.kind)){clip.classList.remove('media-visual');clip.querySelector('.clip-visual-status')?.remove();states.delete(clip);continue;}
       clip.classList.add('media-visual');const r=clip.getBoundingClientRect();
       if(r.width<1||r.right<=viewLeft||r.left>=viewRight||r.bottom<=view.top||r.top>=view.bottom)continue;
       let state=states.get(clip);if(!state){let label=clip.querySelector('.clip-visual-status');if(!label){label=document.createElement('span');label.className='clip-visual-status';clip.append(label);}state={clip,label,token:0,id:++serial};states.set(clip,state);}
@@ -77,5 +77,6 @@ window.LQTACTimelineVisuals=(()=>{
   function invalidate(){dataCache.clear();imageCache.clear();for(const state of visible){cancelState(state);state.key='';state.token++;}refresh();}
   window.addEventListener('focus',invalidate);refresh();
   async function whenIdle(timeout=45000){const start=performance.now();let stable=0;while(performance.now()-start<timeout){await new Promise(r=>setTimeout(r,50));if(!timer&&!workers&&!jobs.length&&!painting){if(++stable>=2)return;}else stable=0;}throw Error('Las vistas del timeline no han terminado');}
-  return {refresh,invalidate,whenIdle,state:clip=>states.get(clip)};
+  function setEnabled(value){enabled=!!value;for(const state of visible){cancelState(state);state.token++;state.key='';state.canvas?.remove();state.canvas=null;}visible=new Set();refresh();}
+  return {refresh,invalidate,whenIdle,state:clip=>states.get(clip),setEnabled,get enabled(){return enabled;}};
 })();

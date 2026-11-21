@@ -4,7 +4,7 @@ const {tools,validate}=require('./mcp-tools.cjs');
 const directory=process.env.CINEMA_MCP_DIR||path.join(process.env.APPDATA||require('node:os').homedir(),'LQTAC Studio','mcp');
 const versions=['2025-11-25','2025-06-18','2025-03-26','2024-11-05'];let initialized=false,ready=false;
 async function bridge(name,args){
- let c;try{c=JSON.parse(await fs.readFile(path.join(directory,'connection.json'),'utf8'));}catch{throw Error('Abre Cinema Studio y activa Herramientas → Control MCP local.');}
+ let c;try{c=JSON.parse(await fs.readFile(path.join(directory,'connection.json'),'utf8'));}catch{throw Error('Abre Cinema Studio y activa Opciones → Control MCP local.');}
  if(!Number.isInteger(c.port)||c.port<1||c.port>65535||!/^[a-f0-9]{64}$/.test(c.token))throw Error('Conexión MCP local no válida');
  const body=JSON.stringify({name,arguments:args});
  return new Promise((resolve,reject)=>{

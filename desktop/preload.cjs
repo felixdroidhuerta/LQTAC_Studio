@@ -80,6 +80,8 @@ contextBridge.exposeInMainWorld('lqtacDesktop', {
   openProject: () => ipcRenderer.invoke('open-lqts'),
   confirmNewProject: () => ipcRenderer.invoke('confirm-new-project'),
   resetProjectPath: () => ipcRenderer.invoke('reset-project-path'),
+  projectPath: () => ipcRenderer.invoke('project-path'),
+  setLanguage: (code) => ipcRenderer.invoke('set-language', code),
   renderStart: options => ipcRenderer.invoke('render-start',options),
   renderFrame: base64 => ipcRenderer.invoke('render-frame',base64),
   renderFinish: () => ipcRenderer.invoke('render-finish'),

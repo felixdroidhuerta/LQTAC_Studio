@@ -54,5 +54,5 @@
  dialog.querySelector('#mcpCopy').onclick=async()=>{try{await navigator.clipboard.writeText(config.value);status.textContent='Configuración copiada';}catch{config.select();document.execCommand('copy');}};
  dialog.querySelector('#mcpClose').onclick=()=>dialog.close();
  async function open(){const s=await window.lqtacDesktop.mcpStatus();clientConfig=await window.lqtacDesktop.mcpConfig();checkbox.checked=s.enabled;recording.checked=!!s.recordingAllowed;status.textContent=describe(s);showClient();dialog.showModal();}
- toolsMenu.append(studioCommand('Control MCP local…',open,()=>!exporting&&!historyBusy,'',{'data-mcp-control':'open'}));
+ optionsMenu.append(studioCommand('Control MCP local…',open,()=>!exporting&&!historyBusy,'',{'data-mcp-control':'open'}));
 })();

@@ -47,7 +47,7 @@ function createBridge({directory,getWindow,isBusy=()=>false,setProjectPath=()=>{
    try{const {files,dialogButton,...rest}=a;return await evaluate('uiAction',rest);}finally{clearDialogs();}
   }
   if(name.startsWith('cinema_record_')){
-   if(!recordingAllowed)throw Error('La grabación mediante MCP está desactivada. En Cinema Studio: Herramientas → Control MCP local → Permitir grabación de pantalla');
+   if(!recordingAllowed)throw Error('La grabación mediante MCP está desactivada. En Cinema Studio: Opciones → Control MCP local → Permitir grabación de pantalla');
    if(name==='cinema_record_sources')return {sources:await captureSources(),devices:await evaluate('devices'),note:'region en píxeles se mide sobre pixelWidth × pixelHeight de la pantalla; en ventanas, sobre el tamaño capturado.'};
    if(name==='cinema_record_thumbnail'){const t=await captureThumbnail(a.sourceId,a.width||1280);return {content:[{type:'image',data:t.data,mimeType:'image/png'},{type:'text',text:JSON.stringify({sourceId:a.sourceId,width:t.width,height:t.height})}]};}
    if(name==='cinema_record_control'){

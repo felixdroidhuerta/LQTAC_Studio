@@ -19,7 +19,7 @@ app.whenReady().then(async()=>{
     if(win.webContents.isLoading())await new Promise(resolve=>win.webContents.once('did-finish-load',resolve));
     const js=code=>win.webContents.executeJavaScript(code);
     await js(`(async()=>{
-      await demoReady;
+      await demoReady;LQTACAppOptions.set('snap',false);// exact trim math; the magnet is tested in verify-app-options
       const mask=document.createElement('canvas');mask.width=mask.height=32;const ctx=mask.getContext('2d');ctx.fillStyle='black';ctx.fillRect(0,0,32,32);ctx.fillStyle='white';ctx.fillRect(0,0,16,32);
       const clip={name:'Real source',kind:'video',filePath:${JSON.stringify(media)},startSeconds:0,durationSeconds:1,groupId:'sync',groupType:'media',transition:'fade'};
       const project={format:'LQTAC Studio',version:1,name:'Prueba LQTS',time:0,zoom:2,zoomStart:0,library:[{name:'Source.mp4',kind:'video',filePath:clip.filePath}],tracks:[

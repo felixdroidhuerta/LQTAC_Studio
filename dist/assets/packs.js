@@ -1,4 +1,4 @@
-// Content packs in the editor (Herramientas → Paquetes…): installed, signed .lqpack bundles add subtitle frames,
+// Content packs in the editor (Opciones → Paquetes…): installed, signed .lqpack bundles add subtitle frames,
 // title templates and images, transition masks and effect presets. Images are fetched once as data: URLs and kept
 // decoded, so subtitle and title drawing stay synchronous and the export canvas is never tainted.
 (()=>{
@@ -28,7 +28,7 @@
  // Subtitle track properties (track FX/⚙ button): one frame for every block of the track.
  if(typeof openWorkControls==='function'){const base=openWorkControls;openWorkControls=function(track,clip=null){base(track,clip);if(clip||track?.dataset.kind!=='subtitle'||!workDialog.open)return;
   const clips=[...track.querySelectorAll('.clip')].filter(c=>c.dataset.kind==='subtitle'),styles=clips.map(c=>JSON.parse(c.dataset.subtitleStyle||'{}')),keys=new Set(styles.map(s=>s.frame?s.frame.pack+'|'+s.frame.id:'')),current=keys.size===1?[...keys][0]:'*';
-  const box=document.createElement('fieldset');box.id='trackFrameBox';box.innerHTML='<legend>Marco de los subtítulos · '+clips.length+' bloques</legend><label>Marco<select id="trackFrame">'+(current==='*'?'<option value="*">Varios marcos · no cambiar</option>':'')+'<option value="">Sin marco</option>'+frameOptions()+'</select></label><label>Opacidad del marco <output id="trackFrameOpacityValue"></output><input id="trackFrameOpacity" type="range" min="0" max="1" step="0.05"></label><label><input type="checkbox" id="trackFrameStyle"> Aplicar también la letra sugerida por el marco (fuente, tamaño, colores y altura)</label><p class="transition-help">Se aplica a todos los subtítulos de esta pista. El texto, los tiempos y el karaoke de cada bloque no cambian.'+(frameOptions()?'':' No hay marcos instalados: Herramientas → Paquetes… para instalar uno.')+'</p>';
+  const box=document.createElement('fieldset');box.id='trackFrameBox';box.innerHTML='<legend>Marco de los subtítulos · '+clips.length+' bloques</legend><label>Marco<select id="trackFrame">'+(current==='*'?'<option value="*">Varios marcos · no cambiar</option>':'')+'<option value="">Sin marco</option>'+frameOptions()+'</select></label><label>Opacidad del marco <output id="trackFrameOpacityValue"></output><input id="trackFrameOpacity" type="range" min="0" max="1" step="0.05"></label><label><input type="checkbox" id="trackFrameStyle"> Aplicar también la letra sugerida por el marco (fuente, tamaño, colores y altura)</label><p class="transition-help">Se aplica a todos los subtítulos de esta pista. El texto, los tiempos y el karaoke de cada bloque no cambian.'+(frameOptions()?'':' No hay marcos instalados: Opciones → Paquetes… para instalar uno.')+'</p>';
   workDialog.querySelector('#workError').before(box);const select=box.querySelector('#trackFrame'),opacity=box.querySelector('#trackFrameOpacity'),out=box.querySelector('#trackFrameOpacityValue'),suggested=box.querySelector('#trackFrameStyle');
   if(current&&current!=='*'&&![...select.options].some(o=>o.value===current))select.add(new Option('No instalado · '+current.split('|')[1],current));select.value=current;
   opacity.value=String(styles.find(s=>s.frame)?.frame.opacity??1);let dirty=false;const show=()=>{out.textContent=Math.round(Number(opacity.value)*100)+' %';opacity.disabled=!select.value||select.value==='*';};show();
@@ -90,6 +90,6 @@
  dialog.querySelector('#packsClose').onclick=()=>dialog.close();
  async function open(){status('');await refresh();await renderList();dialog.showModal();}
  window.LQTACPacks.open=open;
- if(typeof toolsMenu!=='undefined')toolsMenu.append(studioCommand('Paquetes…',()=>void open(),()=>!exporting&&!historyBusy,'',{'data-packs':'open'}));
+ if(typeof toolsMenu!=='undefined')optionsMenu.append(studioCommand('Paquetes…',()=>void open(),()=>!exporting&&!historyBusy,'',{'data-packs':'open'}));
  void refresh();
 })();

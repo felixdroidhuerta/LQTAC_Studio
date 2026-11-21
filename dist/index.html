@@ -280,6 +280,13 @@
     @media (max-width: 1280px) { .workspace { grid-template-columns:58px 190px minmax(0,1fr) minmax(0,1fr); } .dock-panel { grid-column:2; } .side-panel { grid-column:3; } .monitor, .center-head, .edit-toolbar { grid-column:4; } .timeline, .statusbar, .workspace-splitter { grid-column:2 / 5; } .inspector { display:none; } }
     @media (max-width: 840px) { .topbar { padding:0 14px; } .brand { min-width:0; } .crumb, .project-pill { display:none; } .workspace { grid-template-columns:58px 1fr; } .dock-panel, .side-panel { display:none; } .monitor, .center-head, .edit-toolbar { grid-column:2; } .timeline, .statusbar, .workspace-splitter { grid-column:2 / 3; } .center { padding:14px; } .center-head h1 { font-size:19px; } .monitor-screen { min-height:190px; } .top-actions .solid-btn { display:none; } }
   </style>
+  <script src="assets/theme.js"></script>
+  <script src="assets/i18n-core.js"></script>
+  <script src="assets/i18n.js"></script>
+  <script src="assets/i18n/en.js"></script>
+  <script src="assets/i18n/fr.js"></script>
+  <script src="assets/i18n/zh.js"></script>
+  <script src="assets/i18n/ja.js"></script>
 </head>
 <body>
   <div class="app-shell">
@@ -290,8 +297,8 @@
       </div>
       <div class="top-actions">
         <button class="project-pill" id="projectButton" type="button"><span>Proyecto</span><strong id="projectName">Demo reel · 01</strong><span>⌄</span></button>
-        <button class="icon-btn" type="button" aria-label="Deshacer">↶</button>
-        <button class="icon-btn" type="button" aria-label="Rehacer">↷</button>
+        <button class="icon-btn" type="button" id="undoButton" aria-label="Deshacer">↶</button>
+        <button class="icon-btn" type="button" id="redoButton" aria-label="Rehacer">↷</button>
         <button class="solid-btn" id="exportButton" type="button">Exportar <span>↗</span></button>
         <button class="icon-btn" type="button" aria-label="Cuenta">FH</button>
       </div>
@@ -342,10 +349,10 @@
         <div class="edit-toolbar" aria-label="Barra de edición"><button class="edit-tool active" type="button" title="Herramienta de selección">↖</button><button class="edit-tool" type="button" title="Cortar evento">✂</button><button class="edit-tool" type="button" title="Envelope tool">⌁</button><button class="edit-tool" type="button" title="Desplazamiento">⇆</button><span class="edit-divider"></span><button class="edit-tool active" type="button" title="Snap">⊙</button><button class="edit-tool" type="button" title="Auto ripple">⇥</button><button class="edit-tool" type="button" title="Lock events">▣</button><span class="edit-divider"></span><span class="menu-status">Herramienta: Selección</span></div>
         <div class="center-head">
           <div><div class="eyebrow">02 / monitor</div><h1>Vista previa</h1><p>Proyecto · edición multipista</p></div>
-          <div class="head-meta"><span class="live-dot"></span><span>Guardado hace 12 s</span></div>
+          <div class="head-meta"><span class="live-dot"></span><span id="saveStatus">Sin guardar</span></div>
         </div>
         <section class="monitor" aria-label="Monitor de previsualización">
-          <div class="monitor-head"><strong>Video Preview</strong><div class="monitor-head-actions"><button type="button">Safe Areas</button><button type="button">Calidad ▾</button><button type="button">▣</button></div></div>
+          <div class="monitor-head"><strong>Video Preview</strong><div class="monitor-head-actions"><button type="button" id="monitorSafe" aria-pressed="false" title="Zonas seguras para títulos (16:9)">Safe Areas</button><button type="button" id="monitorQuality" aria-haspopup="menu" title="Calidad de la vista previa (no afecta a la exportación)">Calidad ▾</button><button type="button" id="monitorFull" title="Monitor a pantalla completa (Esc para salir)">▣</button></div></div>
           <div class="monitor-screen"><video id="previewVideo" class="preview-media" playsinline preload="metadata"></video><audio id="previewAudio" preload="metadata"></audio><div class="audio-preview-state" id="audioPreviewState">AUDIO PREVIEW</div><span class="frame-label">PREVIEW · 01:03:14:08</span><div class="frame-title" id="frameTitle">Tecnología<br/>con imaginación.</div></div>
           <div class="monitor-controls">
             <div class="transport"><button id="prevButton" type="button" aria-label="Retroceder un segundo" title="Retroceder un segundo"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 3h2v14H3zM16 3v14L6 10z"/></svg></button><button id="playFromStartButton" type="button" aria-label="Reproducir desde el inicio" title="Reproducir desde el inicio"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2 3h2v14H2zM7 3l11 7-11 7z"/></svg></button><button id="playButton" type="button" aria-label="Reproducir" title="Reproducir / Pausar">▶</button><button id="nextButton" type="button" aria-label="Avanzar un segundo" title="Avanzar un segundo"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M15 3h2v14h-2zM4 3l10 7-10 7z"/></svg></button></div>
@@ -353,7 +360,7 @@
           </div>
         </section>
         <section class="timeline" aria-label="Timeline multipista">
-          <div class="timeline-top"><div class="timeline-tabs"><button class="timeline-tab active" type="button">Timeline</button><button class="timeline-tab" type="button">Storyboard</button><button class="timeline-tab" type="button">Texto</button></div><div class="timeline-actions"><button class="timeline-tool" id="addTrackButton" type="button">＋ Pista</button><button class="timeline-tool" id="transitionButton" type="button">✧ Transición</button><button class="icon-btn" type="button" aria-label="Ajustar timeline">⌗</button><button class="icon-btn" type="button" aria-label="Ajustes de timeline">⚙</button></div></div>
+          <div class="timeline-top"><div class="timeline-tabs"><button class="timeline-tab active" type="button">Timeline</button><button class="timeline-tab" type="button">Storyboard</button><button class="timeline-tab" type="button">Texto</button></div><div class="timeline-actions"><button class="timeline-tool" id="addTrackButton" type="button">＋ Pista</button><button class="timeline-tool" id="transitionButton" type="button">✧ Transición</button><button class="icon-btn" type="button" id="snapButton" aria-label="Imán: pegar clips a bordes, cabezal y marcas" aria-pressed="true" title="Imán (Alt al arrastrar lo desactiva un momento)">⌗</button><button class="icon-btn" type="button" id="timelineSettingsButton" aria-label="Ajustes de timeline" title="Ajustes de la línea de tiempo">⚙</button></div></div>
           <div class="timeline-body"><div class="track-labels" id="trackLabels"><div class="track-label"><div class="track-label-title"><b></b><strong>V1 · Vídeo</strong></div><div class="track-header-buttons"><button type="button">M</button><button type="button">S</button><button type="button">FX</button></div><div class="track-meter"></div></div><div class="track-label audio"><div class="track-label-title"><b></b><strong>A1 · Audio de vídeo</strong></div><div class="track-header-buttons"><button type="button">M</button><button type="button">S</button><button type="button">FX</button></div><div class="track-meter"></div></div><div class="track-label music"><div class="track-label-title"><b></b><strong>M1 · Música</strong></div><div class="track-header-buttons"><button type="button">M</button><button type="button">S</button><button type="button">FX</button></div><div class="track-meter"></div></div></div><div class="tracks" id="tracks"><div class="ruler"><span>00:00</span><span>00:15</span><span>00:30</span><span>00:45</span><span>01:00</span><span>01:15</span></div><div class="track" data-track="V1" data-kind="video" data-role="video"><div class="playhead"></div><div class="clip video selected" style="width:28%;">intro-nocturna</div><button class="transition-zone" type="button" data-transition="crossfade" aria-label="Crear transición entre clips">+ transición</button><div class="clip video alt" style="width:24%;">b-roll-costa</div><div class="clip video" style="width:19%;">cierre</div><div class="envelope-layer" data-envelope="opacity"><span class="envelope-label">opacidad</span><svg viewBox="0 0 640 46" preserveAspectRatio="none" role="img" aria-label="Envolvente de opacidad"><polygon class="envelope-fill" points="0,40 0,25 130,20 260,30 390,16 520,25 640,18 640,40"></polygon><polyline class="envelope-line opacity" points="0,25 130,20 260,30 390,16 520,25 640,18"></polyline><circle class="envelope-handle opacity" data-index="0" cx="0" cy="25" r="4"></circle><circle class="envelope-handle opacity" data-index="1" cx="130" cy="20" r="4"></circle><circle class="envelope-handle opacity" data-index="2" cx="260" cy="30" r="4"></circle><circle class="envelope-handle opacity" data-index="3" cx="390" cy="16" r="4"></circle><circle class="envelope-handle opacity" data-index="4" cx="520" cy="25" r="4"></circle><circle class="envelope-handle opacity" data-index="5" cx="640" cy="18" r="4"></circle></svg></div></div><div class="track" data-track="A1" data-kind="audio" data-role="video-audio"><div class="clip audio wave" style="width:28%;">intro-nocturna · audio</div><div class="clip audio wave" style="width:24%;">b-roll-costa · audio</div><div class="clip audio wave" style="width:19%;">cierre · audio</div><div class="envelope-layer" data-envelope="volume"><span class="envelope-label">volumen</span><svg viewBox="0 0 640 46" preserveAspectRatio="none" role="img" aria-label="Envolvente de volumen"><polygon class="envelope-fill" points="0,40 0,27 130,16 260,23 390,11 520,28 640,19 640,40"></polygon><polyline class="envelope-line" points="0,27 130,16 260,23 390,11 520,28 640,19"></polyline><circle class="envelope-handle" data-index="0" cx="0" cy="27" r="4"></circle><circle class="envelope-handle" data-index="1" cx="130" cy="16" r="4"></circle><circle class="envelope-handle" data-index="2" cx="260" cy="23" r="4"></circle><circle class="envelope-handle" data-index="3" cx="390" cy="11" r="4"></circle><circle class="envelope-handle" data-index="4" cx="520" cy="28" r="4"></circle><circle class="envelope-handle" data-index="5" cx="640" cy="19" r="4"></circle></svg></div></div><div class="track" data-track="M1" data-kind="audio" data-role="music"><div class="clip music" style="width:57%;">pulse-ambient · beat map</div><div class="envelope-layer" data-envelope="volume"><span class="envelope-label">volumen</span><svg viewBox="0 0 640 46" preserveAspectRatio="none" role="img" aria-label="Envolvente de volumen"><polyline class="envelope-line" points="0,22 160,25 320,18 480,31 640,24"></polyline><circle class="envelope-handle" data-index="0" cx="0" cy="22" r="4"></circle><circle class="envelope-handle" data-index="1" cx="160" cy="25" r="4"></circle><circle class="envelope-handle" data-index="2" cx="320" cy="18" r="4"></circle><circle class="envelope-handle" data-index="3" cx="480" cy="31" r="4"></circle><circle class="envelope-handle" data-index="4" cx="640" cy="24" r="4"></circle></svg></div></div></div></div>
         </section>
         <div class="statusbar"><div><span id="timelineStatusSnap">Snap: activado</span><span id="timelineStatusTime">Posición: 00:00:00:00</span><span id="timelineStatusSelection">Selección: —</span><span id="timelineStatusZoom">Zoom: 100%</span></div><div><span>GPU: lista</span><span>24 fps</span></div></div>
@@ -574,7 +581,7 @@
       frame = Math.max(0, Math.round(timelineTime * 24));
       const minutes = String(Math.floor(timelineTime / 60)).padStart(2, '0');
       const seconds = String(Math.floor(timelineTime % 60)).padStart(2, '0');
-      const timecode = `00:${minutes}:${seconds}:${String(frame % 24).padStart(2, '0')}`;
+      const timecode = window.LQTACTimeFormat==='seconds'?`${minutes}:${(timelineTime%60).toFixed(2).padStart(5,'0')}`:`00:${minutes}:${seconds}:${String(frame % 24).padStart(2, '0')}`;
       $('#timecode').textContent = timecode;
       $('#timelineStatusTime').textContent = `Posición: ${timecode}`;
       $('#scrubDot').style.left = `${Math.max(0, Math.min(100, (timelineTime / timelineDurationSeconds) * 100))}%`;
@@ -872,7 +879,7 @@
           if(!media.workCanvas){media.workCanvas=document.createElement('canvas');media.workCanvas.className='preview-media';$('.monitor-screen').append(media.workCanvas);}
           const surface=media.workCanvas,rect=$('.monitor-screen').getBoundingClientRect(),w=exportSize?.width||Math.max(2,Math.round(rect.width)),h=exportSize?.height||Math.max(2,Math.round(rect.height));
           if(surface.width!==w||surface.height!==h){surface.width=w;surface.height=h;}
-          const ctx=surface.getContext('2d');ctx.clearRect(0,0,w,h);if(media.readyState>=2)LQTACWork.drawCrop(ctx,LQTACVideoEffects.draw(media,clipEffectsState(clip,'video'),timelineTime-clipTiming(clip).startSeconds),w,h,LQTACWork.cropAt(clipCropFrames(clip),timelineTime-clipTiming(clip).startSeconds));
+          const ctx=surface.getContext('2d');ctx.clearRect(0,0,w,h);if(media.readyState>=2)LQTACWork.drawCrop(ctx,LQTACVideoEffects.draw(media,clipEffectsState(clip,'video'),timelineTime-clipTiming(clip).startSeconds,exportSize?1:(window.LQTACPreviewScale||1)),w,h,LQTACWork.cropAt(clipCropFrames(clip),timelineTime-clipTiming(clip).startSeconds));
           surface.style.display='block';surface.style.opacity=String(Number(media.style.opacity)*Number(clip.parentElement.dataset.gain??1)*Number(clip.dataset.gain??1));surface.style.zIndex=media.style.zIndex;media.style.display='none';
         } else applyAudioWork(media,clip.parentElement,eventGain(clip, timelineTime)*envelopeValue(clip.parentElement,timelineTime)*Number(clip.parentElement.dataset.gain??1)*Number(clip.dataset.gain??1));
         if (playing && media.paused) media.play().catch(error => reportPlaybackError(media, error));
@@ -1438,7 +1445,8 @@
               updateTrackTransitions(currentTrack);
             }
             const requestedDelta = ((moveEvent.clientX - startX) / trackWidth) * 100;
-            const delta = Math.max(-Math.min(...originalPositions.map(entry => entry.state.start)), requestedDelta);
+            let delta = Math.max(-Math.min(...originalPositions.map(entry => entry.state.start)), requestedDelta);
+            if(window.LQTACSnap){const edges=originalPositions.flatMap(entry=>[entry.state.start,entry.state.start+entry.state.duration].map(p=>p/100*timelineDurationSeconds));const snapped=LQTACSnap.adjust(edges,delta/100*timelineDurationSeconds,movingClips,trackWidth/timelineDurationSeconds,moveEvent.altKey);delta=Math.max(-Math.min(...originalPositions.map(entry => entry.state.start)),snapped/timelineDurationSeconds*100);}
             movingClips.forEach(item => {
               const position = originalPositions.find(entry => entry.clip === item);
               if (!position) return;
@@ -1449,7 +1457,7 @@
             });
             new Set(movingClips.map(item => item.closest('.track')).filter(Boolean)).forEach(updateTrackTransitions);
           };
-          const stop = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', stop); currentTrack.classList.remove('drop-target'); toast(movingClips.length > 1 ? `Grupo recolocado · ${movingClips.length} eventos sincronizados` : currentTrack === originTrack ? 'Evento recolocado · Fade calculado por solapamiento' : `Evento movido a ${currentTrack.dataset.track} · Fade recalculado`); };
+          const stop = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', stop); currentTrack.classList.remove('drop-target');window.LQTACSnap?.clear(); toast(movingClips.length > 1 ? `Grupo recolocado · ${movingClips.length} eventos sincronizados` : currentTrack === originTrack ? 'Evento recolocado · Fade calculado por solapamiento' : `Evento movido a ${currentTrack.dataset.track} · Fade recalculado`); };
           window.addEventListener('pointermove', move); window.addEventListener('pointerup', stop);
         });
       });
@@ -1560,12 +1568,13 @@
         }
         bindClips();redraw();
       };
-      const move=e=>{const requested=(e.clientX-originX)*secondsPerPixel;
+      const move=e=>{let requested=(e.clientX-originX)*secondsPerPixel;
+        if(window.LQTACSnap)requested=LQTACSnap.adjust(states.map(s=>edge==='start'?s.startSeconds:s.startSeconds+s.durationSeconds),requested,targets.concat(states.flatMap(s=>s.copies)),1/secondsPerPixel,e.altKey);
         const low=Math.max(...states.map(s=>edge==='start'?Math.max(-s.startSeconds,-s.offset/s.rate-(maxParts-1)*s.source/s.rate):minimum-s.durationSeconds));
         const high=Math.min(...states.map(s=>edge==='start'?s.durationSeconds-minimum:Math.min(604800-s.startSeconds-s.durationSeconds,(s.source-s.offset)/s.rate+(maxParts-1)*s.source/s.rate-s.durationSeconds)));
         apply(Math.max(low,Math.min(high,requested)));
       };
-      const finish=()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',finish);window.removeEventListener('pointercancel',cancel);window.removeEventListener('keydown',escape,true);window.removeEventListener('blur',cancel);try{clip.releasePointerCapture(event.pointerId);}catch{}applyTimelineSelection(targets);void renderTimelineAt(timelineTime);toast(states.some(s=>s.copies.length)?'Repeticiones creadas · cada unión marcada · velocidad intacta':'Recorte aplicado · medios originales intactos');};
+      const finish=()=>{window.LQTACSnap?.clear();window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',finish);window.removeEventListener('pointercancel',cancel);window.removeEventListener('keydown',escape,true);window.removeEventListener('blur',cancel);try{clip.releasePointerCapture(event.pointerId);}catch{}applyTimelineSelection(targets);void renderTimelineAt(timelineTime);toast(states.some(s=>s.copies.length)?'Repeticiones creadas · cada unión marcada · velocidad intacta':'Recorte aplicado · medios originales intactos');};
       const cancel=()=>{for(const s of states){s.copies.forEach(c=>{transitionMasks.delete(c);c.remove();});s.copies=[];restoreData(s.clip,s.data);}if(trimRecorded){undoHistory.splice(0,undoHistory.length,...oldUndo);redoHistory.splice(0,redoHistory.length,...oldRedo);updateHistoryButtons();}redraw();finish();};
       const escape=e=>{if(e.key==='Escape'||((e.ctrlKey||e.metaKey)&&['z','y'].includes(e.key.toLowerCase()))){e.preventDefault();e.stopImmediatePropagation();cancel();}};
       window.addEventListener('pointermove',move);window.addEventListener('pointerup',finish);window.addEventListener('pointercancel',cancel);window.addEventListener('keydown',escape,true);window.addEventListener('blur',cancel);
@@ -2023,7 +2032,7 @@
       return {project,signature,selection:selectedTimelineClips.map(c=>all.indexOf(c)).filter(i=>i>=0)};
     };
     const limitHistory=stack=>{let bytes=stack.reduce((sum,e)=>sum+e.signature.length*2,0);while(stack.length>50 || (bytes>32*1024*1024&&stack.length>1))bytes-=stack.shift().signature.length*2;};
-    const updateHistoryButtons=()=>{const undo=$('[aria-label="Deshacer"]'),redo=$('[aria-label="Rehacer"]');undo.disabled=historyBusy||!undoHistory.length;redo.disabled=historyBusy||!redoHistory.length;undo.title='Deshacer · Ctrl+Z';redo.title='Rehacer · Ctrl+Y';};
+    const updateHistoryButtons=()=>{const undo=$('#undoButton'),redo=$('#redoButton');undo.disabled=historyBusy||!undoHistory.length;redo.disabled=historyBusy||!redoHistory.length;undo.title='Deshacer · Ctrl+Z';redo.title='Rehacer · Ctrl+Y';};
     function historyCheckpoint(){
       if(!historyReady||historyMuted||historyBusy||exporting)return;
       const entry=historyEntry();if(undoHistory.at(-1)?.signature!==entry.signature)undoHistory.push(entry);
@@ -2073,8 +2082,8 @@
       }catch(error){alert('No se pudieron pegar los clips: '+error.message);}
       finally{historyBusy=false;$('.workspace').inert=false;updateHistoryButtons();}
     };
-    $('[aria-label="Deshacer"]').addEventListener('click',()=>void navigateHistory(false));
-    $('[aria-label="Rehacer"]').addEventListener('click',()=>void navigateHistory(true));
+    $('#undoButton').addEventListener('click',()=>void navigateHistory(false));
+    $('#redoButton').addEventListener('click',()=>void navigateHistory(true));
     demoReady.then(()=>{historyReady=true;resetEditHistory();});
     const projectSnapshot = () => ({
       format:'LQTAC Studio',version:1,name:$('#projectName').textContent,fps:24,
@@ -2133,11 +2142,12 @@
       applyTimelineSelection([]);updateTimelineViewport(Number(project.zoom)||1,Number(project.zoomStart)||0);
       timelineBody.scrollTop=0;
       $('#mediaCount').textContent=`${project.library.length} elementos`;await renderTimelineAt(Number(project.time)||0);
+      setTimeout(()=>window.dispatchEvent(new Event('lqtac-project-restored')),0);
       } finally {historyMuted--;}
     };
     const saveLqts=async(saveAs=false)=>{
       if(exporting||historyBusy)return false;
-      try {await demoReady;const result=await window.lqtacDesktop.saveProject(projectSnapshot(),saveAs);if(!result.canceled)toast('Proyecto guardado · '+result.filePath);return !result.canceled;}
+      try {await demoReady;const result=await window.lqtacDesktop.saveProject(projectSnapshot(),saveAs);if(!result.canceled){toast('Proyecto guardado · '+result.filePath);window.dispatchEvent(new CustomEvent('lqtac-project-saved',{detail:{filePath:result.filePath}}));}return !result.canceled;}
       catch(error){alert('No se pudo guardar el proyecto:\n'+error.message);return false;}
     };
     let newProjectBusy=false;
@@ -2289,4 +2299,5 @@
 <script src="assets/mcp-controls.js"></script>
 <script src="assets/automation-ui.js"></script>
 <script src="assets/packs.js"></script>
+<script src="assets/app-options.js"></script>
 </html>

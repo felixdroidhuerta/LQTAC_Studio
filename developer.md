@@ -1179,7 +1179,7 @@ Validación manual con «Dulce Navidad» a 1,22 s: antes se veía el título sob
   - `window.LQTACPacks` expone `refresh`, `ready`, `list`, `frame`, `frameDefinition`, `frameOptions`, `templateOptions`, `imageOptions`, `buildTitle`, `imageSync`, `imageFor`, `preload`, `presets`, `masks`, `onChange` y `open`.
   - Las imágenes de los marcos activos se decodifican al cargar, porque el dibujo de subtítulos es síncrono.
   - Las máscaras de paquete se cargan inyectando el archivo en `#maskFileInput`, así siguen el camino normal (`save-transition-mask`).
-  - Menú: Herramientas → Paquetes… (`data-packs="open"`).
+  - Menú: Opciones → Paquetes… (`data-packs="open"`).
 - **Subtítulos:** `subtitleStyle.frame = {pack,id,opacity?}`, validado en `subtitle-model.js`. `draw()`:
   1. resuelve el marco con `LQTACPacks.frame`;
   2. calcula el bloque de texto: ancho máximo de línea y alto desde `y−(n−1)·1.2f−1.02f` hasta `y+0.06f` (`textBaseline` es bottom);
@@ -1211,6 +1211,66 @@ Origen del cambio: en «Dulce Navidad», `render-finish` falló al renombrar un 
 - `dist/assets/packs.js`: `LQTACPacks.imageName(asset)` para el nombre de la imagen en Capas. `templateOptions(accept)` filtra por `generator.type` y se inserta justo después de «— Aplicar una plantilla —».
 - Filtro de plantillas en `edit`: `family(type)` agrupa `title`, `text` y `poster` como «title»; `lower-third` y `credits` van aparte. Las de serie se clasifican por `LQTACTitleTemplates.build(id).type` y sus grupos llevan «· de serie».
 - Pruebas: `desktop/verify-title-layers.cjs`; `verify-packs.cjs` comprueba el orden de la lista de plantillas y el nombre de capa de una imagen de paquete.
+# Reproducción de timeline (20/11/2026)
+
+`dist/index.html` ya no condiciona el avance de `timelineTime` a que todos los elementos activos tengan `readyState >= 2`, no estén buscando y no estén pausados. Se intenta reanudar cada elemento listo, mientras el reloj sigue avanzando. Se aplicó el mismo cambio al portable 0.24.1 en uso y se verificó con una portada generada seguida por una captura webm.
+
+Menús Ver/Opciones y preferencias (0.25.0, 20/11/2026):
+- **dist/assets/app-options.js** (se carga el último, tras packs.js) monta:
+  - Los menús Ver y Opciones. viewMenu y optionsMenu se crean en menu-controls.js y se registran en studioMenus y topMenus, así que heredan teclado, cierre y studioRefresh.
+  - Los botones del monitor (#monitorSafe, #monitorQuality, #monitorFull), ⚙ (#timelineSettingsButton), ⚙ y ? de la barra lateral, #prefsDialog, #cacheDialog y el estado de guardado (#saveStatus).
+- **Preferencias:** localStorage 'lqtac.prefs', validadas contra listas cerradas: autosave, previewScale, safeAreas, trackSize, visuals, timeFormat, follow. Las casillas con ✓ se rotulan en enabled() de studioCommand, que studioRefresh llama al abrir el menú.
+- **Calidad:** LQTACVideoEffects.draw(source,fx,time,scale). Con scale < 1 dibuja la fuente en un canvas reducido y escala blur, glowRadius y bloomRadius. Solo la llamada del monitor en index.html pasa window.LQTACPreviewScale, y nunca cuando hay exportSize (PNG/GIF). Los editores llaman sin escala.
+- **Miniaturas:** LQTACTimelineVisuals.setEnabled(bool); con false, scan quita la clase media-visual y los lienzos.
+- **Formato del tiempo:** renderTimelineTime lee window.LQTACTimeFormat ('timecode' o 'seconds'). Altura de pistas: body[data-track-size=compact|large]; grande usa los mismos valores que el espacio Audio.
+- **Pantalla completa:** monitor.requestFullscreen(). main.cjs concede el permiso 'fullscreen' solo a la página propia; los manejadores de permisos lo negaban.
+- **Estado de guardado:**
+  - restoreProject emite 'lqtac-project-restored' y saveLqts 'lqtac-project-saved'.
+  - IPC project-path devuelve currentProjectPath.
+  - La firma es JSON de projectSnapshot sin time, zoom ni zoomStart.
+  - El autoguardado llama a saveProject(snapshot,false) solo si hay ruta, para que nunca abra el diálogo.
+- **Caché:** audio-cache-info devuelve también directory, y audioCacheFiles cuenta los <hash>-dfn.wav.
+- **Menús movidos:**
+  - Separar clip pasa a Editar; Importar SRT, a Archivo; Voz de estudio se añade a Herramientas con data-tool=voice-studio, y stems-controls inserta Separar instrumentos justo detrás.
+  - Control MCP y Paquetes pasan a optionsMenu, y los mensajes dicen ahora Opciones →.
+- **Pruebas:** verify-app-options.cjs (Electron); verify-menus.cjs prueba Separar clip desde Editar.
+- **Imán:** LQTACSnap.adjust(edges,delta,exclude,pxPerSecond,bypass) en app-options.js devuelve el delta corregido y muestra .snap-guide dentro de #tracks.
+  - Se reengancha si restoreProject vacía #tracks.
+  - Objetivos: inicios y finales de clips no excluidos, timelineTime, 0 y lqtacRenderRange.start/end. Umbral de 8 px.
+  - index.html lo llama al mover un evento o un grupo (con los bordes de todos los clips que se mueven, en segundos) y en beginClipTrim (con el borde que se recorta; excluye el grupo y sus repeticiones). Alt lo salta, y stop/finish llaman a LQTACSnap.clear().
+  - prefs.snap viene activado por defecto; el texto #timelineStatusSnap ya refleja el estado real.
+
+Tema claro (0.25.0): dist/assets/theme.js se carga en <head>, justo después de la hoja principal, y aplica el tema antes del primer pintado. Lee prefs.theme de localStorage 'lqtac.prefs'.
+- No hay una segunda hoja de estilos: en claro recorre document.styleSheets y reescribe cada color de cada declaración, incluidas las variables de :root.
+  - Pasa el color a HSL e invierte la luminosidad.
+  - Superficies oscuras → L 0,83–0,99 con poca saturación. Textos y acentos claros → L 0,12–0,36, conservando la saturación de los acentos.
+  - Los negros de sombras (box-shadow, text-shadow, filter) no cambian.
+- Los estilos en línea con color (renderDialog.style.cssText…) se reescriben igual. Un MutationObserver (style añadidos o cambiados y atributo style) cubre lo que crean los módulos después.
+- Guarda los valores originales y, al volver a oscuro, los restaura exactamente.
+- No toca los selectores de contenido (KEEP: monitor-screen, preview-media, ::backdrop, overlays del monitor, .clip y clip-visual, stage, swatch, scope) ni los elementos dentro de .monitor-screen, .clip, canvas, video o img, ni los marcados con [data-theme-keep].
+- Los colores que se dibujan en canvas no cambian.
+- API: LQTACTheme.set('light'|'dark'), current y el evento 'lqtac-theme'. app-options.js añade la preferencia theme (Apariencia en Preferencias y en el menú Ver).
+- Prueba en verify-app-options.cjs: luminancia de fondo y texto, monitor y clips intactos, diálogo en línea, vuelta exacta a oscuro y recarga.
+
+Idioma (0.25.0, primera tanda): dist/assets/i18n.js se carga en <head>, después de theme.js, junto con los diccionarios dist/assets/i18n/{en,fr,zh,ja}.js, que llaman a LQTACI18n.add(lang,{español:traducción}).
+- **El español sigue siendo el texto del código.** Al terminar DOMContentLoaded (cuando todos los módulos ya han buscado sus elementos), se traducen los nodos de texto y title, aria-label y placeholder. Un MutationObserver traduce lo que se escriba después: toasts, menús rotulados, estados.
+- **Plantillas con números:** si no hay coincidencia exacta, los números pasan a {0}, {1}…, se busca la plantilla y se reponen los números. Las entradas marcadas con «✓ » se traducen sin la marca y la conservan.
+- **Lo que no se traduce:** script, style, textarea, contenteditable, .clip, #projectName y [data-i18n-skip].
+- **El código sigue leyendo español:** con un idioma distinto del español se sobrescriben los getters de CharacterData.data, Node.nodeValue y Node.textContent, Element.getAttribute y las propiedades title, ariaLabel y placeholder. Devuelven el texto español de origen (guardado en WeakMaps), así que comparaciones como textContent==='Herramientas' o el atributo title siguen funcionando. Las escrituras no cambian.
+  - Los selectores por atributo traducido no funcionan después de traducir. Por eso Deshacer y Rehacer usan #undoButton y #redoButton.
+  - Las pruebas que quieran ver el texto en pantalla deben leer innerText o Attr.value.
+- **Cambio en vivo:** se recorre de nuevo el documento desde el origen recordado; el español restaura exactamente el texto original.
+- **Avisos y fuentes:** alert, confirm y prompt traducen su mensaje. En zh y ja se usan Microsoft YaHei UI y Yu Gothic UI/Meiryo UI sin espaciado de letras.
+- LQTACI18n.missing recoge las cadenas sin traducción vistas, con los números como #, para preparar las tandas siguientes. Las claves de esta tanda (516) se extrajeron del DOM de la ventana principal al cargar.
+- **Prueba:** verify-i18n.cjs (Electron).
+  - Diccionarios con las mismas claves y los mismos marcadores.
+  - Cambio en vivo a los cuatro idiomas: menús, tooltip, encabezados y plantilla «{0} elementos».
+  - Los nombres de clips y del proyecto no se tocan, y el código sigue leyendo en español.
+  - Toast y entradas marcadas con ✓.
+  - Vuelta exacta al español y francés después de recargar.
+- Segunda tanda: las claves (356) se obtuvieron abriendo cada editor en inglés con desktop scratch i18n-extract2 y leyendo LQTACI18n.missing, que guarda las cadenas como plantillas {0}. Se quitaron los nombres de fuentes; .system-font-picker, #genFont y #subFont están en SKIP. Las claves con {*} (texto libre: nombres de archivo, clip o carpeta) se convierten en expresiones regulares en LQTACI18n.add, y el texto libre se traduce a su vez si tiene clave. Ejemplos: «Evento seleccionado · {*}», «Guardado también en {*}», «{*} · {0} s · inicio {1} s». Diccionarios: 876 claves por idioma.
+- Tercera tanda: dist/assets/i18n-core.js reúne las reglas de búsqueda (exacta, ✓, plantillas {0}, {*} con varios huecos, que pueden estar vacíos y se traducen a su vez, "Prefijo: detalle" y quitar el prefijo "Error invoking remote method"). Lo usan i18n.js en la ventana y desktop/i18n-main.cjs en el proceso principal. i18n-main carga los diccionarios con vm.runInNewContext, recibe el idioma por IPC set-language (lqtacDesktop.setLanguage, que llama i18n.js al arrancar y al cambiar) y envuelve los dialog.show* y showErrorBox: title, message, detail, buttons, buttonLabel, checkboxLabel, nameFieldLabel y filters[].name. build-portable.ps1 copia i18n-main.cjs. Las claves de la tercera tanda se extrajeron de los literales del código (también las plantillas anidadas; las interpolaciones pasan a {*}), sin incluir los mcp-*.cjs, que lee el asistente.
+
 # Corrección de reproducción del timeline · 0.24.1
 
 En `dist/index.html`, `advanceTimeline` deja de esperar indefinidamente a que todos los medios activos estén simultáneamente listos, sin búsqueda y reproduciéndose. Reintenta `play()` de los medios listos y mantiene el avance del reloj. Validado en el portable 0.24.1 con un título generado en V3 (0–8 s), captura webm en V1 desde 8 s y audio en A1; el cabezal superó 10 s.

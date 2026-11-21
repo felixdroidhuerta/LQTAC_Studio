@@ -5,7 +5,7 @@ Implementación local añadida a 0.22.0 y ampliada en 0.23.0. Permite que un cli
 ## Activación
 
 1. Abre `Cinema Studio.exe`.
-2. Ve a **Herramientas → Control MCP local…**.
+2. Ve a **Opciones → Control MCP local…**.
 3. Activa **Permitir control mediante MCP** y cierra el diálogo.
 4. Opcional: activa **Permitir grabación de pantalla mediante MCP** si quieres que el asistente vea pantallas o ventanas y grabe (desactivado por defecto).
 5. En **Configuración para** elige el cliente y copia el texto:

@@ -508,7 +508,7 @@ Validado en este equipo: registro real por usuario para .LQTS, icono extraído p
 - Crear pistas: pista de audio, de vídeo o de subtítulos, siempre vacías.
 - Generar medios: Grabar audio, Grabar vídeo con cámara y Capturar pantalla/ventana. Estos accesos se retiran de Archivo y del lateral para despejar la navegación. Sus diálogos y comportamiento siguen siendo los ya implementados.
 
-**Herramientas:** Separar clip (S), Efectos de vídeo con listado desplegable (incluye Pan/Crop y filtros creativos), Efectos de audio con listado desplegable y Subtítulos (generar, editar selección, añadir bloque manual, importar SRT y abrir panel). Cada filtro abre su editor individual actual. Los filtros aparecen deshabilitados si no hay un evento seleccionado del tipo correspondiente. Los accesos laterales FX/Subtítulos se conservan como atajos.
+**Herramientas** (desde 0.25.0, agrupada con separadores): **Efectos** (Efectos de vídeo, con Pan/Crop y filtros creativos, y Efectos de audio, cada uno con su listado desplegable), **Voz y audio** (Voz de estudio… para el clip de audio seleccionado y Separar instrumentos…) y **Subtítulos** (Generar automáticos, Añadir subtítulo, Editar el seleccionado). Separar clip (S) está ahora en **Editar**; Importar subtítulos SRT, en **Archivo**; el panel de subtítulos, en **Ver**; Paquetes y Control MCP local, en **Opciones**. Cada filtro abre su editor individual y aparece desactivado si no hay un evento del tipo correspondiente seleccionado.
 
 Los desplegables respetan colores y tipografías existentes, separan grupos y ajustan su posición al área visible. Se abren con clic o teclado; flechas arriba/abajo, Inicio/Fin, derecha/izquierda para submenús y Escape para volver/cerrar. Clic exterior y cambio de tamaño cierran los menús. Editar conserva Copiar/Pegar y Deshacer/Rehacer.
 
@@ -1254,7 +1254,7 @@ El tramo incorpora un segundo cabezal ámbar que marca su final. Al crearlo, el 
 
 El panel MCP aplica estilos propios a «Copiar configuración» y «Cerrar», con contraste legible y estados de foco/hover acordes con la paleta del editor.
 
-Herramientas → Control MCP local permite activar o desactivar la edición desde un asistente compatible. El servidor stdio usa Electron incluido, procesa los medios localmente y trabaja sobre el montaje visible. Incluye biblioteca, pistas, clips agrupados, FX, envolventes, títulos/subtítulos, LQTS, vistas previas y render asíncrono. Los lotes son deshacibles y rechazan revisiones obsoletas. No precisa convertir el programa en web.
+Opciones → Control MCP local permite activar o desactivar la edición desde un asistente compatible. El servidor stdio usa Electron incluido, procesa los medios localmente y trabaja sobre el montaje visible. Incluye biblioteca, pistas, clips agrupados, FX, envolventes, títulos/subtítulos, LQTS, vistas previas y render asíncrono. Los lotes son deshacibles y rechazan revisiones obsoletas. No precisa convertir el programa en web.
 
 Uso, contrato, límites y pruebas en [docs/MCP.md](docs/MCP.md). La suite `desktop/verify-mcp.cjs` verifica un montaje real hasta MP4 con vídeo y audio, además de tramo, cancelación, SRT y desactivación. Se ha verificado también `--speech` con Faster INT8 real e inserción posterior de los subtítulos dentro del portable. La precisión de Whisper no se vuelve a medir en esta suite. La conexión del asistente puede necesitar Internet aunque el editor y los motores sean offline.
 
@@ -1277,7 +1277,7 @@ En «Dulce Navidad» se aplicó a la estrella del título PNG de V2, con una sub
 
 **Grabar una zona de la pantalla (sin MCP):** Grabar pantalla → elegir pantalla o ventana → **Preparar captura** → **Seleccionar zona…**. Se muestra la imagen completa de la fuente: arrastra para dibujar la zona y arrastra dentro para moverla, o escribe X, Y, Ancho y Alto en píxeles de la fuente. La proporción puede ser libre, 16:9, 9:16, 1:1, 4:3 o 4:5. **Usar zona** la aplica a la vista previa, a la grabación y a los snapshots; **Fuente completa** la quita. Escape cierra solo el selector. La zona se elige antes de empezar a grabar (durante la toma está bloqueada) y se conserva si vuelves a preparar la captura. Ancho y alto se ajustan a números pares, con un mínimo de 16 px. La cámara integrada se coloca dentro de la zona.
 
-**Control MCP para Claude y Codex:** Herramientas → Control MCP local muestra la configuración lista para copiar para Claude Code (comando `claude mcp add`), Claude Desktop o `.mcp.json`, Codex (`config.toml`) y otros clientes. Además de las 16 herramientas de montaje, el MCP puede:
+**Control MCP para Claude y Codex:** Opciones → Control MCP local muestra la configuración lista para copiar para Claude Code (comando `claude mcp add`), Claude Desktop o `.mcp.json`, Codex (`config.toml`) y otros clientes. Además de las 16 herramientas de montaje, el MCP puede:
 
 - leer la interfaz (menús, diálogos abiertos y sus controles) y usar cualquier función del programa: comandos de menú, botones, campos, listas, casillas, deslizadores, menús contextuales de clips y pistas, teclas dentro de diálogos y cierre de diálogos;
 - contestar el selector nativo de archivos o un cuadro de mensaje que provoque esa misma acción, y las confirmaciones del editor;
@@ -1290,7 +1290,7 @@ Validación: `desktop/verify-mcp.cjs` (23 herramientas; incluye una toma real de
 
 # Paquetes de contenido · 0.24.0
 
-**Instalar:** Herramientas → **Paquetes…** → **Instalar paquete…**, o doble clic en un archivo `.lqpack`. Antes de instalar se muestran el nombre, la versión, quién lo firma y qué contiene. Si ya tienes el paquete se ofrece **Actualizar**, y si el archivo es una versión más antigua se avisa antes. Los paquetes se guardan en la carpeta de datos del programa, así que siguen instalados al cambiar de versión de Cinema Studio.
+**Instalar:** Opciones → **Paquetes…** → **Instalar paquete…**, o doble clic en un archivo `.lqpack`. Antes de instalar se muestran el nombre, la versión, quién lo firma y qué contiene. Si ya tienes el paquete se ofrece **Actualizar**, y si el archivo es una versión más antigua se avisa antes. Los paquetes se guardan en la carpeta de datos del programa, así que siguen instalados al cambiar de versión de Cinema Studio.
 
 **Solo paquetes oficiales:** cada paquete va firmado digitalmente. Cinema Studio rechaza:
 
@@ -1361,6 +1361,69 @@ El editor de títulos y gráficos tiene la pestaña **Capas**, junto a Texto.
 - El orden se guarda en el título del timeline, en Project Media y en el proyecto, y es el mismo en la vista previa y en el render.
 
 **Plantillas según lo que editas:** la lista **Plantilla** solo muestra las del mismo tipo que el gráfico abierto: rótulos al editar un rótulo; títulos al editar un título, un texto o un cartel; créditos al editar unos créditos. Primero aparecen las de los paquetes instalados, agrupadas por categoría con la marca «· paquete», y después las de serie con la marca «· de serie».
-# Corrección de reproducción del timeline · 0.24.1
+# Corrección de reproducción de timeline (20/11/2026)
 
-El reloj de reproducción continúa mientras una portada generada o un medio recién activado termina de cargarse. El monitor reanuda los medios listos y evita el bloqueo del cabezal en la portada o en el paso entre clips. Comprobado con una portada del Pack Octopus seguida de grabación de pantalla en un proyecto multipista.
+El reloj de reproducción avanza aunque un medio recién activado aún esté cargando o pausado. El monitor intenta reanudarlo cuando está listo. Esto evita que una portada generada o un corte deje el cabezal detenido indefinidamente. Validado con el montaje por pistas de `D:\PruebaCompleta`: la portada generada se reproduce y el cabezal cruza al vídeo de pantalla después de 8 segundos.
+
+## Menús Ver y Opciones, monitor y preferencias · 20/11/2026
+
+Botones y menús que antes no hacían nada:
+
+- **Ver:**
+  - Espacio de trabajo (Montaje, Audio, Color, Texto, con ✓ en el actual) y Restablecer la distribución.
+  - Monitor: Zonas seguras, calidad de la vista previa y pantalla completa.
+  - Línea de tiempo: Ajustar el zoom a todo el proyecto, Miniaturas y formas de onda, Seguir el cabezal al reproducir y Ajustes de la línea de tiempo…
+  - Paneles: Panel de subtítulos.
+- **Opciones:** Preferencias…, Caché de audio procesado… y, en Ampliaciones, Paquetes… y Control MCP local…
+- **Monitor:**
+  - **Safe Areas** muestra las zonas seguras de un fotograma 16:9: acción al 90 % (blanco) y títulos al 80 % (amarillo), con una cruz en el centro.
+  - **Calidad ▾**: Completa, Media (½) o Borrador (¼). Los efectos de vídeo del monitor se calculan sobre una copia más pequeña del fotograma, y los radios de desenfoque, glow y bloom se escalan para que el aspecto sea el mismo. No afecta a la exportación, a los PNG/GIF ni a los editores de efectos, máscaras o Pan/Crop.
+  - **▣** pone el monitor a pantalla completa; Esc vuelve.
+- **⚙ de la línea de tiempo** abre sus ajustes:
+  - Altura de las pistas: compacta, normal o grande.
+  - Formato del tiempo: timecode hh:mm:ss:ff o minutos y segundos mm:ss.cc.
+  - Miniaturas de vídeo y formas de onda: desactivarlas aligera los proyectos largos.
+  - Seguir el cabezal al reproducir: la vista salta una página cuando el cabezal sale de la zona visible.
+- **⚙ de la barra lateral** abre Preferencias, y **?** abre el manual de usuario.
+- **Preferencias** reúne lo anterior y el **autoguardado** (desactivado por defecto; cada 1, 2, 5, 10 o 15 minutos).
+  - Guarda en el mismo .LQTS cuando el proyecto ya tiene archivo, es decir, después del primer Guardar.
+  - Espera si estás reproduciendo, exportando o con una ventana abierta.
+  - **Restablecer valores** devuelve a los valores iniciales la sección mostrada.
+  - Las preferencias son de este equipo y no se guardan en el proyecto.
+- **Estado de guardado** (encima del monitor), real en lugar del texto fijo anterior:
+  - «Proyecto sin guardar», «Cambios sin guardar» (con los minutos que faltan para el autoguardado), «Guardado hace…» o «Guardado automáticamente hace…».
+  - El punto se vuelve naranja si hay cambios sin guardar.
+  - Mover el cabezal o el zoom no cuenta como cambio.
+- **Caché de audio procesado** muestra cuánto ocupa y en qué carpeta, y permite vaciarla. Ahora incluye también las copias de DeepFilterNet.
+- **Imán (botón ⌗, activado por defecto):** al mover o recortar un clip, su borde se pega a lo que tenga a menos de 8 píxeles:
+  - el inicio o el final de otro clip, en cualquier pista;
+  - el cabezal;
+  - el inicio del proyecto;
+  - las marcas Inicio/Fin del tramo de render.
+  - Una línea amarilla marca dónde se pega.
+  - Mantén **Alt** mientras arrastras para colocarlo libre ese momento.
+  - Se activa y desactiva con ⌗, Ver › Imán o en los ajustes de la línea de tiempo. La barra de estado indica «Imán: activado/desactivado».
+  - Sirve para dejar los clips uno detrás de otro sin huecos de fotogramas negros ni solapes accidentales.
+
+## Tema claro / oscuro · 20/11/2026
+
+**Opciones › Preferencias › Apariencia › Tema**, o **Ver › Apariencia**: Oscuro (el de siempre, por defecto) o Claro (grises y azul claro).
+- El cambio es inmediato, se recuerda en este equipo y no se guarda en el proyecto.
+- En el tema claro, los fondos, paneles, menús y diálogos pasan a grises y azules claros, el texto a gris antracita y los acentos a azules más intensos para que se lean bien.
+- Siguen igual en los dos temas, porque son contenido: el monitor de vídeo (negro, para juzgar bien la imagen), sus guías, los clips de la línea de tiempo con sus miniaturas y formas de onda, y las vistas previas de los editores.
+
+## Idioma de la aplicación · 20/11/2026 (primera tanda)
+
+**Opciones › Preferencias › Apariencia › Idioma**: Español (por defecto), English, Français, 中文（简体） o 日本語. En los otros idiomas la etiqueta también dice «Language», para encontrarla aunque no se lea el idioma elegido.
+- El cambio es inmediato y **no cierra el proyecto**. Se recuerda en este equipo.
+- **Traducido en esta primera tanda:** todo lo que hay en la ventana principal al abrirla:
+  - menús Archivo, Editar, Ver, Insertar, Herramientas, Opciones y Ayuda;
+  - paneles laterales (Medios, Transiciones, FX, Generadores, Notas, Subtítulos, Separar instrumentos);
+  - monitor, línea de tiempo, barra de estado y Preferencias;
+  - los diálogos Renderizar, Exportar fotograma y GIF, y la caché;
+  - avisos que ya existían con el mismo texto.
+- **Sin traducir:** los nombres de clips, pistas, archivos y proyecto, los textos de los subtítulos y las notas se quedan como los escribiste.
+- **Segunda tanda (21/11/2026):** traducidos los editores: efectos de vídeo y audio con sus curvas y presets, ecualizador, efectos del clip, Pan/Crop, estabilizar, seguimiento, máscaras, Voz de estudio, Separar instrumentos, subtítulos y karaoke, generadores y títulos, exportar fotograma o GIF, Control MCP, Acerca de, menús contextuales de clips y pistas, y los espacios de trabajo. Los mensajes que llevan un nombre («Evento seleccionado · voz.wav») se traducen y conservan el nombre. Los nombres de las fuentes instaladas no se traducen.
+- **Tercera tanda (21/11/2026):** traducidos también los mensajes que genera el programa por dentro: el informe de Voz de estudio, los errores de exportación, proyecto, paquetes, grabación e IA, los avisos de progreso y los nombres de los presets. Las ventanas nativas de Windows (abrir, guardar y avisos) salen en el idioma elegido: título, mensaje, botones y tipos de archivo.
+- **Quedan en español:** el manual PDF y los textos que lee un asistente por MCP. Algún mensaje poco habitual puede seguir en español; si ves alguno, avisa y se añade.
+- Las traducciones al chino y al japonés conviene que las revise un hablante nativo antes de publicarlas.

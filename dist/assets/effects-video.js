@@ -111,5 +111,10 @@
       gl.drawArrays(gl.TRIANGLE_STRIP,0,4);if(echo){gl.bindFramebuffer(gl.FRAMEBUFFER,null);this.echo(source,f,time,w,h);}if(gl.getError()!==gl.NO_ERROR)throw Error('Error de GPU al aplicar efectos');return this.canvas;
     }
   }
-  window.LQTACVideoEffects={get matteUsed(){return !!instance?.matteUsed;},draw(source,fx,time=0){if(!fx?.enabled)return source;if(!validated.has(fx)){LQTACEffects.validate(fx,'video');validated.add(fx);}if(!instance)instance=new VideoEffects();return instance.draw(source,LQTACEffects.at(fx,time),time);}};
+  let small=null;window.LQTACVideoEffects={get matteUsed(){return !!instance?.matteUsed;},draw(source,fx,time=0,scale=1){if(!fx?.enabled)return source;if(!validated.has(fx)){LQTACEffects.validate(fx,'video');validated.add(fx);}if(!instance)instance=new VideoEffects();let f=LQTACEffects.at(fx,time);
+    const w=source.videoWidth||source.width,h=source.videoHeight||source.height;
+    if(scale<1&&w&&h){const sw=Math.max(2,Math.round(w*scale)),sh=Math.max(2,Math.round(h*scale));if(!small)small=document.createElement('canvas');if(small.width!==sw||small.height!==sh){small.width=sw;small.height=sh;}small.getContext('2d').drawImage(source,0,0,sw,sh);source=small;
+      // Radii are in source pixels: scale them with the frame so the look stays the same.
+      f={...f,blur:(f.blur??0)*scale,glowRadius:(f.glowRadius??12)*scale,bloomRadius:(f.bloomRadius??25)*scale};}
+    return instance.draw(source,f,time);}};
 })();

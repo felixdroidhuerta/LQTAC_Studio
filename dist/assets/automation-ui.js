@@ -53,8 +53,8 @@
   const result=[];
   for(const button of document.querySelectorAll('[data-command]')){
    const entry=studioCommands.get(button.dataset.command);if(!entry)continue;
-   const menu=button.closest('[role=menu],.studio-menu,#fileMenu,#editMenu,#insertMenu,#toolsMenu,#helpMenu');
-   const path=[];let m=menu;while(m){const opener=m.id&&document.querySelector('[aria-controls="'+CSS.escape(m.id)+'"]');path.unshift(opener?short(opener.textContent,60).replace(/›$/,'').trim():({fileMenu:'Archivo',editMenu:'Edición',insertMenu:'Insertar',toolsMenu:'Herramientas',helpMenu:'Ayuda'}[m.id]||m.getAttribute('aria-label')||m.id||''));m=opener?opener.closest('[role=menu],.studio-menu'):null;}
+   const menu=button.closest('[role=menu],.studio-menu,#fileMenu,#editMenu,#viewMenu,#insertMenu,#toolsMenu,#optionsMenu,#helpMenu');
+   const path=[];let m=menu;while(m){const opener=m.id&&document.querySelector('[aria-controls="'+CSS.escape(m.id)+'"]');path.unshift(opener?short(opener.textContent,60).replace(/›$/,'').trim():({fileMenu:'Archivo',editMenu:'Edición',viewMenu:'Ver',insertMenu:'Insertar',toolsMenu:'Herramientas',optionsMenu:'Opciones',helpMenu:'Ayuda'}[m.id]||m.getAttribute('aria-label')||m.id||''));m=opener?opener.closest('[role=menu],.studio-menu'):null;}
    let enabled=false;try{enabled=!!entry.enabled();}catch{}
    result.push({ref:'command:'+button.dataset.command,menu:path.filter(Boolean).join(' › '),label:short(button.firstChild?.textContent||button.textContent,120),shortcut:button.querySelector('kbd')?.textContent||undefined,enabled,blocked:blocked(button)||undefined});
   }

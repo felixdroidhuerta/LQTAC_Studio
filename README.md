@@ -1,13 +1,13 @@
 # Cinema Studio by LQTAC
 
-Cinema Studio by LQTAC es el nuevo nombre del editor local LQTAC Studio. La versión 0.25.0 traduce el programa al inglés, francés, chino y japonés, añade un tema claro, un imán para encajar los clips y los menús Ver y Opciones. La 0.24.1 añadió capas al editor de títulos y ordenó las plantillas por tipo, con las de los paquetes primero. La 0.24.0 añadió los paquetes de contenido instalables (marcos para la letra de los subtítulos, rótulos con imágenes, máscaras de transición y presets) firmados por LQTAC. La 0.23.0 permite que un asistente MCP (Claude o Codex) use todo el programa y grabe la pantalla entera o una zona, añade la selección de zona al grabador de pantalla y el giro en las máscaras de transición (ver más abajo). La 0.22.0 añadió títulos animados con plantillas, efectos especiales con estabilización, seguimiento de movimiento y rotoscopia, y grabación de voz sobre el proyecto (ver más abajo). La 0.21.0 añadió presets de efectos, un pack de audio y autotune con pista guía. La 0.20.0 añadió el croma por zonas con IA. La 0.19.2 incorporó la nueva identidad, Ayuda con manual local y Acerca de…, imágenes en pistas de vídeo, mejoras de envolventes y selección del timeline y un lanzador permanente para la barra de tareas.
+Cinema Studio by LQTAC es el nuevo nombre del editor local LQTAC Studio. La versión 0.26.0 añade Qbit, un asistente opcional con IA local que pone transiciones, efectos y fundidos cuando se lo pides. La 0.25.0 tradujo el programa al inglés, francés, chino y japonés, añadió un tema claro, un imán para encajar los clips y los menús Ver y Opciones. La 0.24.1 añadió capas al editor de títulos y ordenó las plantillas por tipo, con las de los paquetes primero. La 0.24.0 añadió los paquetes de contenido instalables (marcos para la letra de los subtítulos, rótulos con imágenes, máscaras de transición y presets) firmados por LQTAC. La 0.23.0 permite que un asistente MCP (Claude o Codex) use todo el programa y grabe la pantalla entera o una zona, añade la selección de zona al grabador de pantalla y el giro en las máscaras de transición (ver más abajo). La 0.22.0 añadió títulos animados con plantillas, efectos especiales con estabilización, seguimiento de movimiento y rotoscopia, y grabación de voz sobre el proyecto (ver más abajo). La 0.21.0 añadió presets de efectos, un pack de audio y autotune con pista guía. La 0.20.0 añadió el croma por zonas con IA. La 0.19.2 incorporó la nueva identidad, Ayuda con manual local y Acerca de…, imágenes en pistas de vídeo, mejoras de envolventes y selección del timeline y un lanzador permanente para la barra de tareas.
 
 
 Editor local de vídeo y audio para Windows. Incluye separación offline de canciones en Voz, Batería, Bajo y Otros, selector de pista/evento y resaltado del intervalo sobre las pistas, espacios de trabajo, mezclador, generadores, fuentes de Windows, FX, renderizado por tramos, captura y dos motores de subtítulos offline.
 
 ## Descargar el programa
 
-Para un equipo nuevo, abre [Releases](https://github.com/felixdroidhuerta/LQTAC_Studio/releases/tag/v0.25.0-portable) y descarga **Cinema_Studio_0.25.0_Windows_x64_Portable.zip** dentro de Assets.
+Para un equipo nuevo, abre [Releases](https://github.com/felixdroidhuerta/LQTAC_Studio/releases/tag/v0.26.0-portable) y descarga **Cinema_Studio_0.26.0_Windows_x64_Portable.zip** dentro de Assets.
 
 Extrae todo el ZIP y abre **Cinema Studio.exe**. El motor y sus bibliotecas están incluidos; no requiere Node, pnpm ni Internet en el equipo destino. La carpeta Shapes junto al ejecutable contiene la máscara LQTAC de ejemplo.
 
@@ -20,6 +20,11 @@ El portable incluye **Manual de usuario.pdf**. Las fuentes de la guía y sus cap
 La versión local añade pista de subtítulos editable, Whisper small multilingüe offline, importación/exportación SRT e incrustación en vídeo. Acceso desde la pestaña «Subtítulos». El modelo y runtime están instalados en este equipo; para preparar otro entorno de desarrollo ejecutar tools/setup-whisper.ps1. El empaquetado incluye ambos y sus licencias; no requiere descargas durante el uso.
 
 ## Funciones actuales
+
+**Novedad 0.26.0 · asistente Qbit (opcional):**
+- **Ayuda › Asistente Qbit…** o el botón Q de la barra lateral abren un panel flotante con Qbit. Le pides en español cosas como «fundido de 1 s entre el clip 1 y el 2», «dale aire de película antigua al seleccionado» o «quita el ruido del audio del clip 3» y te enseña lo que va a cambiar. No toca nada hasta que pulsas **Aplicar**, y Ctrl+Z lo deshace.
+- Solo hace cosas del programa: transiciones, efectos de vídeo y audio, fundidos, quitar efectos y deshacer/rehacer. Si le preguntas otra cosa, responde que solo ayuda con Cinema Studio.
+- Funciona en tu equipo, sin conexión y sin enviar nada fuera (llama.cpp en CPU con el modelo Qwen3-4B, licencia Apache 2.0). No viene en el ZIP: la primera vez el panel ofrece descargarlo (unos 2,5 GB) desde las Releases de este repositorio (etiqueta qbit-vX.Y.Z), con comprobación SHA-256. Se instala en la carpeta qbit junto al ejecutable, así que viaja con el portable si lo copias.
 
 **Novedad 0.25.0 · idiomas, tema claro, imán y menús:**
 - **Idioma:** Opciones › Preferencias › Apariencia › Idioma cambia al momento entre español, inglés, francés, chino y japonés, sin cerrar el proyecto. Se traducen los menús, los editores, los mensajes y las ventanas de abrir y guardar de Windows. Los nombres de clips, pistas y archivos no se tocan, y el manual PDF sigue en español.

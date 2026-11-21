@@ -7,6 +7,8 @@
   assertIdle,
   status:()=>({exporting,historyBusy,time:timelineTime,undo:undoHistory.length,redo:redoHistory.length,renderProgress:Number($('#renderProgress').value)}),
   transitions:()=>LQTACTransitions.catalog.map(({id,name})=>({id,name})),
+  // Selected clips as cinema_edit refs (trackId:index, same order as projectSnapshot).
+  selection:()=>$$('.track').flatMap(track=>timelineClips().filter(c=>c.parentElement===track).map((c,i)=>c.classList.contains('selected')?track.dataset.track+':'+i:null)).filter(Boolean),
   async apply({project,expected}){
    await demoReady;assertIdle();const previous=projectSnapshot();if(canonical(previous)!==expected)throw Error('El proyecto cambió durante la operación. Lee cinema_project y vuelve a intentarlo');
    const undo=[...undoHistory],redo=[...redoHistory];stopTimelinePlayback();historyCheckpoint();historyBusy=true;$('.workspace').inert=true;

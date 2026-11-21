@@ -1274,3 +1274,15 @@ Idioma (0.25.0, primera tanda): dist/assets/i18n.js se carga en <head>, después
 # Corrección de reproducción del timeline · 0.24.1
 
 En `dist/index.html`, `advanceTimeline` deja de esperar indefinidamente a que todos los medios activos estén simultáneamente listos, sin búsqueda y reproduciéndose. Reintenta `play()` de los medios listos y mantiene el avance del reloj. Validado en el portable 0.24.1 con un título generado en V3 (0–8 s), captura webm en V1 desde 8 s y audio en A1; el cabezal superó 10 s.
+
+
+# Asistente Qbit · 0.26.0
+
+Módulo opcional con IA local (Ayuda › Asistente Qbit…).
+- **desktop/qbit-actions.cjs:** el vocabulario cerrado. Contiene las instrucciones del modelo con ejemplos, un esquema JSON (gramática de llama.cpp) cuyos enums son las refs reales, los efectos de effects-model.js y las transiciones del catálogo, y el campo obligatorio intent (editar/pregunta/aclarar/fuera_de_tema). interpret() fuerza la respuesta fuera de tema y solo deja acciones con intent «editar». normalize() resuelve en código «entre X y Y» (el clip que entra) y el nombre de la transición, y descarta acciones ajenas. plan() convierte las acciones en operaciones de cinema_edit validadas (rangos, duración de fundidos y transiciones, desplazamiento de lo posterior con includeGroup y audio agrupado).
+- **desktop/qbit-service.cjs:** arranca llama-server (127.0.0.1, puerto libre, -c 8192 -np 1) desde <raíz>/qbit (la carpeta del ejecutable en el portable y la del repo en desarrollo), precalienta la caché del prompt antes de habilitar el panel y aplica las propuestas con cinema_edit/cinema_history del puente MCP; funciona aunque el MCP esté desactivado, porque enabled solo controla el HTTP. Guarda el PID en %TEMP% para cerrar un motor huérfano en el siguiente arranque. El instalador usa publicaciones qbit-vX.Y.Z con qbit-manifest.json y el ZIP en partes (GitHub limita cada archivo a 2 GiB); solo descarga de github.com/githubusercontent.com y comprueba el SHA-256 de cada parte y del total.
+- **dist/assets/qbit-assistant.js:** el panel. El avatar es dist/assets/qbit-spritesheet.webp (8×11 poses de 192×208). CinemaAutomation.selection() da las refs seleccionadas.
+- **tools/build-qbit.ps1 -Version X.Y.Z:** genera las partes y el manifiesto desde <repo>/qbit (gitignored). La carpeta licenses del módulo debe contener la licencia del motor y la del modelo.
+- **Modelo:** Qwen3-4B Q4_K_M (Apache 2.0, uso comercial permitido), del repositorio oficial Qwen/Qwen3-4B-GGUF. Se piden las respuestas con chat_template_kwargs.enable_thinking=false: con razonamiento tardaba unos 80 s y fallaba más. Qwen2.5-3B, el de las primeras pruebas, se descartó por su licencia de investigación (solo uso no comercial).
+- **Botón de la barra lateral:** qbit-assistant.js lo inserta antes de #railManual (el «?», que app-options.js renombra a Manual de usuario). Usa dist/assets/qbit-button.png (112 px, mostrado a 28) y se marca .active mientras el panel está abierto.
+- **Pruebas:** verify-qbit.cjs [--model], verify-qbit-installer.cjs (Node simple) y verify-qbit-ui.cjs (Electron; necesita el módulo en <repo>/qbit).

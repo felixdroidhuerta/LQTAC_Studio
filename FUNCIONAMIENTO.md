@@ -1,6 +1,19 @@
 # LQTAC Studio — Funcionamiento y validación
 
-Última actualización: 12 de noviembre de 2026.
+Última actualización: 21 de noviembre de 2026.
+
+## Asistente Qbit · 21/11/2026 (0.26.0, módulo opcional)
+
+**Ayuda › Asistente Qbit…**, o el botón Q de la barra lateral (encima de «?»), abre un panel flotante, que no bloquea el editor y se puede arrastrar por la cabecera. Qbit entiende peticiones en español sobre el proyecto abierto y propone los cambios antes de hacerlos.
+
+- **Qué puede hacer:** transiciones entre dos clips seguidos de la misma pista de vídeo (fundido, barridos, apertura circular, pixelado, zoom deformado), efectos de vídeo y de audio del catálogo FX con sus rangos, fundidos de entrada y salida de un clip, quitar los efectos y deshacer o rehacer. Los efectos de audio de un clip de vídeo se aplican a su audio agrupado.
+- **Cómo lo hace:** enseña «Te propongo:» con la lista exacta de cambios, que genera el programa y no el modelo. Nada cambia hasta pulsar **Aplicar**. El cambio entra en el historial normal: Ctrl+Z lo deshace, también con el cursor en la caja de texto de Qbit si está vacía. Para una transición, el clip que entra se adelanta y lo que viene después en esa pista se mueve con su audio, para no tapar nada.
+- **Límites:** solo trabaja con lo que hay en el proyecto y no inventa clips ni efectos. Si la petición no es del programa, responde que solo ayuda con Cinema Studio. Si falta información (por ejemplo, qué clip), la pide. Las preguntas de uso las contesta de forma breve; la referencia completa sigue siendo el manual.
+- **Instalación:** no viene en el ZIP. La primera vez el panel ofrece descargarlo desde las Releases del repositorio (etiqueta qbit-vX.Y.Z, unos 2 GB en partes, cada una comprobada con SHA-256, y con versión mínima del programa). Se instala en la carpeta qbit junto al ejecutable, así que copiar el portable lo conserva. Funciona sin conexión: llama.cpp en CPU con Qwen3-4B (licencia Apache 2.0) y un servidor solo en 127.0.0.1.
+- **Tiempos en un portátil sin GPU:** al abrirlo, «Despertando…» dura alrededor de un minuto; después, cada respuesta tarda unos 6–10 s. El motor se cierra al salir del programa.
+- **Avatar:** Qbit se queda quieto casi siempre y solo se mueve, despacio, al saludar, pensar o aplicar un cambio.
+
+Validación: verify-qbit.cjs (vocabulario de acciones; con --model, 15 peticiones contra el modelo real: 15/15 con Qwen3-4B), verify-qbit-installer.cjs (instalación por partes simulada, SHA-256, origen y versión) y verify-qbit-ui.cjs (panel en el editor real: menú, avatar, propuesta, Aplicar, Ctrl+Z y rechazo fuera de tema).
 
 ## Efectos especiales · 12/11/2026 (local, 0.22.0)
 

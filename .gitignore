@@ -27,3 +27,6 @@ ai-pro/
 ai-pro.old/
 ai-pro.download/
 ai-pro.download.zip
+
+# Optional Qbit assistant module (runtime + model, distributed separately)
+/qbit/

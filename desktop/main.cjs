@@ -493,3 +493,16 @@ ipcMain.handle('mcp-enable',async(event,value)=>{recordingSender(event);const st
 ipcMain.handle('mcp-recording',async(event,value)=>{recordingSender(event);return automationBridge.setRecordingAllowed(value);});
 ipcMain.handle('mcp-config',event=>{recordingSender(event);const c=automationClients();return {configuration:automationConfig(),filePath:path.join(automationDirectory,'mcp-client.json'),codex:c.codex,codexFilePath:path.join(automationDirectory,'codex-config.toml'),claudeCommand:c.claudeCommand,claudeJson:c.claudeJson};});
 app.on('before-quit',()=>automationBridge.close());
+// Optional Qbit assistant (local model) in <root>/qbit; proposals are applied through the automation bridge after confirmation.
+const qbitService=require('./qbit-service.cjs').createQbitService({root:app.isPackaged?path.dirname(process.execPath):path.join(__dirname,'..'),bridge:automationBridge,appVersion:branding.version()});
+app.on('before-quit',()=>{qbitService.cancel();qbitService.stop();});
+ipcMain.handle('qbit-status',event=>{recordingSender(event);return qbitService.status();});
+ipcMain.handle('qbit-start',async event=>{recordingSender(event);const s=await qbitService.start();await qbitService.warmUp();return s;});
+ipcMain.handle('qbit-ask',(event,options)=>{recordingSender(event);return qbitService.ask(options||{});});
+ipcMain.handle('qbit-apply',(event,id)=>{recordingSender(event);return qbitService.apply(id);});
+ipcMain.handle('qbit-reset',event=>{recordingSender(event);qbitService.reset();return true;});
+ipcMain.handle('qbit-check',event=>{recordingSender(event);return qbitService.check();});
+ipcMain.handle('qbit-install',event=>{recordingSender(event);if(exportJob)throw Error('Finaliza la exportación antes de instalar Qbit');return qbitService.install(p=>{if(!event.sender.isDestroyed())event.sender.send('qbit-progress',p);});});
+ipcMain.handle('qbit-cancel',event=>{recordingSender(event);qbitService.cancel();});
+ipcMain.handle('qbit-uninstall',event=>{recordingSender(event);return qbitService.uninstall();});
+ipcMain.handle('qbit-stop',event=>{recordingSender(event);qbitService.stop();return qbitService.status();});

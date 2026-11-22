@@ -36,6 +36,7 @@ ipcMain.handle('timeline-waveform',(event,options)=>{recordingSender(event);retu
 ipcMain.handle('cancel-timeline-visual',(event,id)=>{recordingSender(event);mediaVisuals.cancelRequest(id);});
 app.on('before-quit',()=>mediaVisuals.cancel());
 const reverseDirectory=()=>path.join(app.getPath('userData'),'reverse-cache');
+const gifMedia=require('./gif-media.cjs'),gifDirectory=()=>path.join(app.getPath('userData'),'gif-cache');
 ipcMain.handle('prepare-reverse',(event,options)=>{recordingSender(event);return reverseMedia.prepare(options,reverseDirectory(),progress=>{if(!event.sender.isDestroyed())event.sender.send('reverse-progress',progress);});});
 ipcMain.handle('cancel-reverse',event=>{recordingSender(event);reverseMedia.cancel();});
 // Stabilized copies and motion tracking (local analysis; the project keeps the original media).
@@ -157,7 +158,7 @@ ipcMain.handle('camera-recording-abort',async(event,id)=>{recordingSender(event)
 
 const mediaExtensions = [
   'mp4', 'mov', 'mxf', 'avi', 'wmv', 'm4v', 'webm', 'mp3', 'wav', 'aiff',
-  'aif', 'flac', 'm4a', 'aac', 'ogg', 'png', 'jpg', 'jpeg', 'tif', 'tiff', 'bmp', 'webp'
+  'aif', 'flac', 'm4a', 'aac', 'ogg', 'png', 'jpg', 'jpeg', 'tif', 'tiff', 'bmp', 'webp', 'gif'
 ];
 
 // Material de demostración real para que el monitor pueda probar reproducción
@@ -270,7 +271,7 @@ ipcMain.handle('browse-media-folder',async(event,folder)=>{
 
 ipcMain.handle('open-media', async (event,kind) => {
   recordingSender(event);
-  const groups={video:['mp4','mov','mxf','avi','wmv','m4v','webm'],audio:['mp3','wav','aiff','aif','flac','m4a','aac','ogg'],image:['png','jpg','jpeg','tif','tiff','bmp','webp']};
+  const groups={video:['mp4','mov','mxf','avi','wmv','m4v','webm','gif'],audio:['mp3','wav','aiff','aif','flac','m4a','aac','ogg'],image:['png','jpg','jpeg','tif','tiff','bmp','webp']};
   if(kind!==undefined&&!groups[kind])throw Error('Tipo de medio no válido');
   const extensions=groups[kind]||mediaExtensions;
   const result = await dialog.showOpenDialog(mainWindow, {
@@ -318,6 +319,7 @@ ipcMain.handle('read-file-text', async (_event, filePath) => {
 ipcMain.handle('get-demo-media', async () => demoMedia.filter(item => fs.existsSync(item.filePath)));
 
 ipcMain.handle('media-file-url', async (_event, filePath) => {
+  if (gifMedia.isGif(filePath)) return pathToFileURL(await gifMedia.prepare(filePath, gifDirectory())).toString();
   if (!/\.tiff?$/i.test(filePath)) return pathToFileURL(filePath).toString();
   const {stdout}=await execFileAsync(renderEngine.ffmpegPath(),['-v','error','-i',filePath,'-frames:v','1','-f','image2pipe','-c:v','png','pipe:1'],{encoding:'buffer',windowsHide:true,maxBuffer:64*1024*1024,timeout:30000});
   return 'data:image/png;base64,'+stdout.toString('base64');
@@ -336,6 +338,7 @@ ipcMain.handle('save-transition-mask', async (_event, dataUrl) => {
 });
 
 ipcMain.handle('media-duration', async (_event, filePath) => {
+  if (gifMedia.isGif(filePath)) return gifMedia.duration(filePath, gifDirectory());
   if (!filePath || !fs.existsSync(filePath) || process.platform !== 'win32') return 0;
   const script = `
     $FilePath = $env:LQTAC_MEDIA_PATH

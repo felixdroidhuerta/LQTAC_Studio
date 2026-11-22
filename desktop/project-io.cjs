@@ -31,13 +31,16 @@ function validateProject(data) {
       if(clip.gain!==undefined&&(!Number.isFinite(clip.gain)||clip.gain<0||clip.gain>4))throw new Error('Ganancia de evento no válida.');
       if(clip.playbackRate!==undefined&&(!Number.isFinite(clip.playbackRate)||clip.playbackRate<.25||clip.playbackRate>4))throw new Error('Velocidad fuera del rango 0.25–4.');
       if(clip.repeatIndex!==undefined&&(!Number.isSafeInteger(clip.repeatIndex)||clip.repeatIndex<1))throw Error('Índice de repetición no válido.');
+      if(clip.motionPath!==undefined&&clip.motionPath!==null){if(clip.kind!=='video')throw new Error('La trayectoria solo se aplica a clips de vídeo o imagen.');require('../dist/assets/motion-path.js').validate(clip.motionPath);}
       if(clip.panCrop!==undefined){
         if(!Array.isArray(clip.panCrop)||clip.panCrop.length>1000)throw new Error('Pan/Crop no válido.');
         let previous=-1;for(const f of clip.panCrop){if(!Number.isFinite(f.time)||f.time<0||f.time<=previous||f.time>clip.durationSeconds+.002||!Number.isFinite(f.x)||Math.abs(f.x)>10||!Number.isFinite(f.y)||Math.abs(f.y)>10||!Number.isFinite(f.width)||f.width<.01||f.width>10||!Number.isFinite(f.height)||f.height<.01||f.height>10||!Number.isFinite(f.rotation)||Math.abs(f.rotation)>3600)throw new Error('Fotograma clave Pan/Crop no válido.');previous=f.time;}
       }
       for(const key of ['fadeInSeconds','fadeOutSeconds'])if(clip[key]!==undefined&&(!Number.isFinite(clip[key])||clip[key]<0||clip[key]>clip.durationSeconds+.002))throw new Error('Duración de fade no válida.');
       if(clip.sourceOffsetSeconds!==undefined&&(!Number.isFinite(clip.sourceOffsetSeconds)||clip.sourceOffsetSeconds<0))throw new Error('Inicio del medio no válido.');
-      if(clip.sourceDurationSeconds!==undefined&&(!Number.isFinite(clip.sourceDurationSeconds)||clip.sourceDurationSeconds<=0||(clip.sourceOffsetSeconds||0)+clip.durationSeconds*(clip.playbackRate??1)>clip.sourceDurationSeconds+.002))throw new Error('Recorte fuera de los límites del medio.');
+      // Bucle: a looped video clip may outlast its media (it repeats); it needs a known media length and forward playback.
+      if(clip.loop!==undefined&&(typeof clip.loop!=='boolean'||clip.loop&&(clip.kind!=='video'||clip.reverse||clip.generator||!(clip.sourceDurationSeconds>0)||(clip.sourceOffsetSeconds||0)>=clip.sourceDurationSeconds)))throw Error('Bucle no válido: solo clips de vídeo hacia delante con duración de medio conocida.');
+      if(clip.sourceDurationSeconds!==undefined&&(!Number.isFinite(clip.sourceDurationSeconds)||clip.sourceDurationSeconds<=0||!clip.loop&&(clip.sourceOffsetSeconds||0)+clip.durationSeconds*(clip.playbackRate??1)>clip.sourceDurationSeconds+.002))throw new Error('Recorte fuera de los límites del medio.');
       if (++count > 10000 || !['video','audio','subtitle'].includes(clip.kind) || typeof clip.filePath !== 'string' || !Number.isFinite(clip.startSeconds) || clip.startSeconds < 0 || !Number.isFinite(clip.durationSeconds) || clip.durationSeconds <= 0 || clip.startSeconds + clip.durationSeconds > 604800) throw new Error('Evento LQTS no válido.');
       if (clip.mask && (!/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(clip.mask.dataUrl || '') || clip.mask.dataUrl.length > 24*1024*1024)) throw new Error('Máscara LQTS no válida.');
     }

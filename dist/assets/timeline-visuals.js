@@ -25,7 +25,7 @@ window.LQTACTimelineVisuals=(()=>{
     const ratio=Math.min(2,window.devicePixelRatio||1);canvas.width=Math.max(1,Math.ceil(width*ratio));canvas.height=Math.max(1,Math.ceil(height*ratio));canvas.style.cssText=`left:${left}px;width:${width}px;height:${height}px`;
     const ctx=canvas.getContext('2d');ctx.setTransform(ratio,0,0,ratio,0,0);ctx.fillStyle='#061329';ctx.fillRect(0,0,width,height);state.canvas=canvas;return ctx;
   }
-  function model(clip){return {filePath:clip.dataset.filePath,kind:clip.dataset.kind,durationSeconds:clipTiming(clip).durationSeconds,sourceOffsetSeconds:Number(clip.dataset.sourceOffsetSeconds)||0,playbackRate:Number(clip.dataset.playbackRate)||1,reverse:clip.dataset.reverse==='true'};}
+  function model(clip){return {filePath:clip.dataset.filePath,kind:clip.dataset.kind,durationSeconds:clipTiming(clip).durationSeconds,sourceOffsetSeconds:Number(clip.dataset.sourceOffsetSeconds)||0,playbackRate:Number(clip.dataset.playbackRate)||1,reverse:clip.dataset.reverse==='true',loop:clip.dataset.loop==='true',sourceDurationSeconds:Number(clip.dataset.sourceDurationSeconds)||0};}
   async function draw(state,geometry){
     const {clip}=state,m=model(clip),{left,width,fullWidth,height}=geometry;
     const key=JSON.stringify([m,Math.round(left*10),Math.round(width*10),Math.round(fullWidth*10),height]);

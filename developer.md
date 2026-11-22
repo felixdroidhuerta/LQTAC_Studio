@@ -1286,3 +1286,27 @@ Módulo opcional con IA local (Ayuda › Asistente Qbit…).
 - **Modelo:** Qwen3-4B Q4_K_M (Apache 2.0, uso comercial permitido), del repositorio oficial Qwen/Qwen3-4B-GGUF. Se piden las respuestas con chat_template_kwargs.enable_thinking=false: con razonamiento tardaba unos 80 s y fallaba más. Qwen2.5-3B, el de las primeras pruebas, se descartó por su licencia de investigación (solo uso no comercial).
 - **Botón de la barra lateral:** qbit-assistant.js lo inserta antes de #railManual (el «?», que app-options.js renombra a Manual de usuario). Usa dist/assets/qbit-button.png (112 px, mostrado a 28) y se marca .active mientras el panel está abierto.
 - **Pruebas:** verify-qbit.cjs [--model], verify-qbit-installer.cjs (Node simple) y verify-qbit-ui.cjs (Electron; necesita el módulo en <repo>/qbit).
+
+## Trayectoria (motion path)
+
+- **dist/assets/motion-path.js** (`LQTACMotion`, UMD, también se usa desde Node):
+  - `validate`, `at(motion,t,w,h)` → `{x,y,rotation,flipX,scale,anchor}`, `draw(ctx,layer,w,h,motion,t)`, `shift` y `stretch`.
+  - Usa una tabla de longitud de arco (64 muestras por tramo) cacheada por ruta y tamaño. La orientación flip usa una banda muerta de ±8° precalculada a lo largo de la ruta.
+- **index.html:**
+  - `clipMotionPath(clip)` y `drawClipLayer(ctx,source,w,h,clip,local)` sustituyen a `drawCrop` en el compositor de clips, en el fundido VEGAS y en `generators.js`. Con trayectoria, la capa recortada se pinta en un lienzo intermedio por clip (`motionLayers`).
+  - Persistencia: `dataset.motionPath`, en `restoreProject` y en el snapshot.
+  - Edición: dividir, recortar y repetir llaman a `LQTACMotion.shift`; estirar usa `work-model.stretchClips`.
+- **desktop:** `project-io.cjs` valida `clip.motionPath` (solo en clips de vídeo); `mcp-edit.cjs` admite la clave; `mcp-tools.cjs` documenta el formato.
+- **dist/assets/motion-path-editor.js** (`openMotionPathEditor(clip)`, `motionPathSession` para pruebas): el fondo es `captureProjectFrame` a 960×540 con `window.motionPathDraft={clip,motion}`, que `drawClipLayer` usa en lugar de `dataset.motionPath` mientras el diálogo está abierto (`motion:null` = objeto en reposo para marcar la zona de peso). Las capturas se encadenan (una en curso, se repite si hubo cambios). Menú en `menu-controls.js`; textos en los cuatro diccionarios i18n.
+- **GIF animado:** `desktop/gif-media.cjs` (`isGif`, `prepare`, `duration`) convierte con FFmpeg a WebM VP9 `yuva420p` en `userData/gif-cache` (clave sha256 de ruta, tamaño y mtime). `main.cjs` lo usa en `media-file-url` (devuelve la URL del WebM) y `media-duration`; `gif` está en `mediaExtensions`, el filtro de vídeo de `open-media` y `mediaFormats` de `index.html`. El renderer no cambia: todo pasa por `mediaUrlForTimeline`. Prueba: `electron desktop\verify-gif-media.cjs [carpetaSalida]`.
+- **Prueba del editor:** `electron desktop\verify-motion-editor.cjs [carpetaSalida]`.
+- **Prueba:** `electron desktop\verify-motion-path.cjs [carpetaSalida]`. Usa `Documents\LQTAC Pack Studio\paquetes\colegio-litterator\images\pose-vuelo.png` si existe.
+- **Diseño completo y fases siguientes:** `docs/DISENO-TRAYECTORIA.md`.
+
+## Bucle de clip (loop)
+
+- Modelo: `clip.loop:true` (LQTS) ↔ `dataset.loop='true'`. Solo vídeo hacia delante con `sourceDurationSeconds` conocido; `project-io.cjs` lo valida y, con bucle, omite la comprobación `offset + duración·rate ≤ sourceDuration`.
+- Reloj: `clipLoopSource(clip)` devuelve la duración del medio si el bucle está activo; `clipLocalTime` aplica `loopPhase` (módulo). El `<video>` del pool lleva `media.loop=true` y la deriva se mide de forma circular para no re-buscar en cada vuelta. `timeline-visual-model.sourceTime` aplica el mismo módulo a las miniaturas.
+- Estirado (`beginClipTrim`): con `s.loop` se usa un único rango (sin `LQTACWork.repeatRanges`) y sin límite de material; el borde izquierdo recalcula `sourceOffsetSeconds` con `loopPhase`. `splitSelectedClips` conserva `loop` y fase.
+- Menú: `data-action="loop-clip"` → `toggleClipLoop` (`window.LQTACLoop`). Al desactivar, `splitLoopIntoRepeats` materializa repeticiones (`repeatIndex`, fx/panCrop/trayectoria troceados). `LQTACReverse.invert` rechaza clips en bucle.
+- El render de vídeo usa los fotogramas del renderer (`captureProjectFrame`), así que hereda el bucle sin cambios en `render-engine.cjs`. El audio no admite bucle.

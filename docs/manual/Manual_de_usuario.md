@@ -1,6 +1,6 @@
-# Cinema Studio by LQTAC 0.19.0 - Manual de usuario
+# Cinema Studio by LQTAC 0.27.0 - Manual de usuario
 
-Actualizado: 31 de octubre de 2026.
+Actualizado: 22 de noviembre de 2026.
 Capturas reales con medios de demostración.
 
 ## Instalar y empezar
@@ -45,7 +45,7 @@ Abre Ayuda > Acerca de… para ver el nombre, el símbolo de las pistas de edici
 
 ### Anclar en Windows
 
-Abre Cinema Studio.exe y usa Anclar a la barra de tareas. La aplicación conserva su identidad interna y comunica el nuevo nombre, icono y lanzador. Si Windows sigue mostrando un icono almacenado en un acceso antiguo, desancla ese acceso y vuelve a anclar la aplicación abierta. Algunas capturas de editores de esta guía conservan la marca anterior; sus controles siguen vigentes.
+Abre Cinema Studio.exe y usa Anclar a la barra de tareas. La aplicación conserva su identidad interna y comunica el nuevo nombre, icono y lanzador. Si Windows sigue mostrando un icono almacenado en un acceso antiguo, desancla ese acceso y vuelve a anclar la aplicación abierta.
 
 ## Conocer el espacio de trabajo
 
@@ -299,6 +299,102 @@ Activa la animación y añade puntos. Por ejemplo, aumenta los agudos solo duran
 
 La escucha en tiempo real facilita el ajuste, pero ciertos procesamientos son aproximaciones. Usa Preparar escucha exacta para comprobar el resultado procesado por el motor de audio. Tras cambiar parámetros, prepara de nuevo esa escucha. Compara también con el original sin filtros.
 
+## Presets de efectos
+
+Cada editor de efectos tiene arriba una barra Preset con ajustes listos para usar y los tuyos propios. Hay 125 de fábrica: 61 de vídeo y 64 de audio.
+
+### Probar un preset
+
+Abre un efecto desde FX o Herramientas > Efectos de vídeo o de audio y elige un preset en la lista. Se aplica al borrador al momento, así que lo ves y lo escuchas en la vista previa. Aplicar al clip lo confirma; Cancelar lo descarta. Cada preset solo cambia los parámetros de su efecto: un preset de saturación no toca el brillo.
+
+### Guardar los tuyos
+
+Ajusta el efecto y pulsa Guardar como preset…. Ponle un nombre y marca si quieres guardar también la animación. Las curvas se guardan en proporción a la duración del clip, de modo que se adaptan a clips más largos o más cortos.
+
+### Compartir y borrar
+
+Exportar mis presets… crea un archivo .lqfx con todos tus presets de vídeo o de audio; Importar… los añade y renombra los nombres repetidos. Eliminar borra un preset propio. Los presets de los paquetes instalados aparecen en el grupo Paquetes.
+
+### Ejemplos
+
+Vídeo: blanco y negro, colores vivos, «Color → blanco y negro» animado, nieve, lluvia, confeti, destello que cruza, rayos de sol, onda expansiva o estela fantasma. Audio: voz de radio, sala de conciertos, ardilla, corrección natural de afinación o efecto robótico.
+
+## Efectos especiales de vídeo
+
+El catálogo FX > Vídeo incluye efectos de luz, partículas y deformación, además de estabilizar, seguir objetos y dibujar máscaras animadas.
+
+![Captura de Efectos especiales de vídeo](assets/31-estabilizar.png)
+
+Estabilizar imagen prepara una copia local estabilizada; el archivo original no cambia.
+
+### Luz, partículas y deformación
+
+Partículas (nieve, lluvia, chispas, polvo, confeti, burbujas o bokeh), destello de lente, rayos de luz, fugas de luz, parpadeo, ondas de agua, remolino, ojo de pez, onda de calor, espejo o caleidoscopio y estela. Se animan con curvas como el resto de FX. En el destello, haz clic sobre la vista previa para situar su centro.
+
+### Estabilizar imagen
+
+Suaviza el temblor de la cámara. Elige el suavizado (1–100 fotogramas) y qué hacer con los bordes: ampliar para ocultarlos o mantener el encuadre con bordes negros. Se procesa el archivo completo, una vez y media su duración aproximadamente, y la copia se reutiliza. Quitar estabilización vuelve al original.
+
+### Antes de estabilizar
+
+No se puede estabilizar un clip invertido: restaura primero su dirección. Los recortes, divisiones y cambios de velocidad del clip se conservan.
+
+## Seguimiento y máscaras dibujadas
+
+El seguimiento de movimiento registra el recorrido de un objeto y lo aplica a un efecto, a una máscara o a un título. La rotoscopia recorta o limita los efectos a una forma que tú dibujas.
+
+### 1. Tramo y zona
+
+Abre Herramientas > Efectos de vídeo > Seguimiento de movimiento. Marca el inicio y el fin con Marcar inicio aquí y Marcar fin aquí, o deja todo el clip. En el instante de inicio, arrastra un rectángulo sobre algo con detalle y contraste.
+
+### 2. Analizar y aplicar
+
+Analizar el tramo sigue la zona 15 veces por segundo y guarda el resultado en el clip. Después elige el destino y pulsa Aplicar: la posición del destello, de los rayos, de las ondas o del remolino; la máscara dibujada del clip; o un título de otra pista que coincida en el tiempo. Cada destino tiene su botón Quitar.
+
+### 3. Máscara dibujada
+
+En Máscara dibujada (rotoscopia) haz clic alrededor de la zona y pulsa el primer punto para cerrarla (de 3 a 64 puntos). En otro instante, arrastra los puntos para crear un fotograma clave; Mayús + arrastrar mueve toda la máscara. Úsala para recortar el clip o para aplicar efectos solo dentro, por ejemplo para desenfocar una matrícula.
+
+### Límites
+
+El seguimiento sigue la posición, no la rotación ni la escala. Si el objeto queda tapado o cambia mucho, puede perderse.
+
+## Croma por zonas
+
+En FX > Croma / fondo transparente, «Zona donde actúa el croma» decide dónde se elimina el color de fondo.
+
+### Todo el fotograma
+
+El croma clásico: elimina el color elegido en toda la imagen.
+
+### IA rápida · proteger personas
+
+Incluida y en directo. Detecta a las personas en cada fotograma y solo quita el color fuera de ellas. Sirve cuando el color del fondo también aparece en la ropa. Funciona sin conexión y usa la gráfica si está disponible.
+
+### IA precisa · cualquier objeto
+
+Módulo opcional que se descarga desde la propia ventana. Pulsa Marcar y analizar…, haz clic izquierdo sobre lo que se conserva y clic derecho sobre el fondo; puedes marcar en varios instantes y hasta 4 objetos. Necesita un análisis previo y consume mucha CPU: en un portátil, unos 5 minutos de vídeo a 12 fps tardan alrededor de una hora.
+
+## Pack de audio y autotune
+
+FX > Audio incluye filtros, efectos de voz y espacio, y un autotune con pista guía. Todos tienen escucha, presets y curvas.
+
+### Efectos del pack
+
+Filtro paso alto y paso bajo, puerta de ruido, de-esser, cambio de tono (−12 a +12 semitonos), chorus, trémolo, lo-fi, ensanche estéreo, reverb de sala por convolución y panorámica. En los efectos con varios valores, cada parámetro tiene su curva de color.
+
+### Autotune
+
+Lleva cada nota a la más cercana de la escala. Elige tonalidad y escala (si no la conoces, usa Cromática), la intensidad de la corrección y la velocidad de ajuste: 0 da el efecto robótico y 1 un deslizamiento natural. Para una sola voz o instrumento melódico; con acordes o música de fondo la detección se confunde.
+
+### Pista guía
+
+En el apartado Pista guía elige otra pista con la melodía (un piano o una voz de referencia, una nota a la vez). La voz se lleva a la nota de la guía: Seguir notas conserva su vibrato y Copiar entonación copia también los deslizamientos. La guía puede estar silenciada para que no se oiga al exportar.
+
+### Escucha exacta
+
+La escucha en directo es aproximada y puede sonar algo granulada. Para juzgar el resultado final, usa Preparar escucha exacta. Opciones > Caché de audio procesado… muestra lo que ocupan estas copias y permite vaciarlas.
+
 ## Separar una canción en instrumentos
 
 Demucs estima cuatro fuentes: Voz, Batería, Bajo y Otros instrumentos. El motor y el modelo están incluidos para trabajar sin Internet ni instalar Python.
@@ -359,6 +455,46 @@ Utiliza una relación como 4:3, 16:9 o 15:9 como punto de partida. Cambiar el en
 
 Coloca el tiempo al inicio y añade una posición. Avanza, cambia el encuadre y añade otra. Puedes mover el momento de los puntos o eliminarlos. Mantén Mayús al arrastrar la cámara para restringir el movimiento a un eje horizontal o vertical. Reproduce el recorrido y aplica cuando esté listo.
 
+## Trayectoria: mover un objeto por una ruta
+
+Un vídeo, una imagen con transparencia o un GIF animado pueden recorrer una ruta dibujada en pantalla. La zona de peso, por ejemplo la cabeza de un pájaro, va sobre la ruta y el cuerpo la sigue al girar.
+
+![Captura de Trayectoria: mover un objeto por una ruta](assets/37-trayectoria-zona.png)
+
+Zona de peso marcada en la cabeza de Lítera; la flecha indica hacia dónde mira.
+
+### Abrir el editor
+
+Coloca el objeto en una pista por encima del fondo, selecciónalo y abre Herramientas > Efectos de vídeo > Trayectoria · ruta de movimiento… o el botón Trayectoria · ruta, junto a Pan/Crop. El lienzo muestra el fotograma real del proyecto.
+
+### 1. Marcar la zona de peso
+
+Pulsa Zona de peso: el objeto aparece en reposo. Haz clic sobre el punto que manda, normalmente la cabeza. La flecha indica hacia dónde mira; cámbiala con Mira a la derecha, Mira a la izquierda o en grados.
+
+### 2. Dibujar la ruta
+
+Pulsa Dibujar ruta. Cada clic añade un nodo al final; si arrastras al crearlo, la línea se curva. Arrastra nodos y tiradores para corregirla. Mayús + clic pone un nodo encima de otro, útil para cerrar un rizo. Doble clic borra un nodo y Ctrl + clic sobre la línea inserta uno. La zona gris queda fuera de cuadro, para entrar y salir de plano.
+
+## Trayectoria: giro, tiempo y GIF animados
+
+Ajusta cuándo se recorre la ruta y cómo gira el objeto. Los fantasmas muestran seis poses a lo largo del camino.
+
+![Captura de Trayectoria: giro, tiempo y GIF animados](assets/38-trayectoria-ruta.png)
+
+Un looping dibujado con el ratón: Lítera pasa boca abajo en lo alto del rizo, como un pájaro real.
+
+### Tiempo y orientación
+
+Elige inicio y fin (o Usar todo el clip), la aceleración y si se repite en bucle. La orientación puede girar con la ruta (loopings, flechas, naves), voltear al cambiar de sentido para que un animal de perfil no vaya boca abajo, o no girar. La inercia retrasa el cuerpo respecto a la cabeza en las curvas; también hay cabeceo extra y tamaño inicial y final.
+
+### Comprobar y aplicar
+
+Ver fantasmas, Reproducir y la barra de tiempo enseñan el movimiento sin salir del editor. Aplicar al clip se puede deshacer; Quitar trayectoria la elimina. Al dividir, recortar, repetir o estirar el clip se conserva la pose en cada instante.
+
+### GIF animados con transparencia
+
+Importa el GIF como un vídeo. La primera vez se convierte en tu equipo a un vídeo con transparencia y se guarda en caché; el proyecto sigue apuntando al GIF original. Si dura menos que el tramo, usa Repetir. Invertir o estabilizar un GIF pierde la transparencia.
+
 ## Generadores: títulos y gráficos
 
 Generadores crea contenido para tu montaje: texto, títulos, rótulos, créditos y carteles. No es otra vista de la biblioteca.
@@ -398,6 +534,46 @@ Pulsa en la curva o usa Añadir punto. Arrastra un punto horizontalmente para ca
 ### Fuentes del ordenador
 
 Generadores y subtítulos permiten usar las fuentes instaladas en Windows. Busca la familia, comprueba la muestra y actualiza el catálogo si acabas de instalar una. Al compartir el proyecto, instala también las fuentes necesarias en el otro equipo: el LQTS no las incorpora.
+
+## Plantillas y efectos de títulos
+
+El editor de títulos y gráficos trae plantillas, efectos de entrada y salida por letra, palabra o línea, degradados, brillo y texto en perspectiva.
+
+![Captura de Plantillas y efectos de títulos](assets/36-titulo-animacion.png)
+
+Pestaña Animación del editor de títulos, con la curva de opacidad de la composición.
+
+### Plantillas
+
+El selector Plantilla, arriba a la derecha, sustituye el diseño por uno listo para editar: títulos (cine, neón, degradado dorado, máquina de escribir, crawl…), rótulos y créditos. Solo muestra las del mismo tipo que el gráfico abierto. Si te equivocas, Cancelar descarta el cambio.
+
+### Entrada, salida y movimiento
+
+En Efectos, elige la entrada (fundido, subir, caer, escalar, desenfoque, girar, barrido o máquina de escribir), cómo se aplica (letra, palabra, línea u objeto) y su suavizado; la salida funciona igual. El movimiento continuo añade ola, latido o temblor. En Estilo hay degradado lineal y brillo.
+
+### Texto en perspectiva
+
+Animación > Texto en perspectiva (crawl), o la plantilla Crawl galáctico, hace subir el texto sobre un plano inclinado hasta perderse en el horizonte. Ajusta la inclinación, la altura del horizonte, el desvanecimiento y cuándo empieza a subir. Fijo en pantalla deja un objeto plano encima.
+
+## Capas e imágenes en los títulos
+
+La pestaña Capas muestra los objetos del título de arriba abajo: la capa de arriba se ve delante.
+
+![Captura de Capas e imágenes en los títulos](assets/35-titulo-capas.png)
+
+Pestaña Capas: pulsa una capa para seleccionarla y ordénala con los cuatro botones.
+
+### Seleccionar y ordenar
+
+Pulsa una capa para seleccionarla en el lienzo; las demás pestañas muestran sus propiedades. Al frente, Subir, Bajar y Al fondo cambian su orden. Con el lienzo enfocado: Ctrl + ] sube, Ctrl + [ baja, Ctrl + Mayús + ] trae al frente y Ctrl + Mayús + [ envía al fondo.
+
+### Formas e imágenes
+
+Además de texto y rectángulo puedes añadir elipses y líneas; «Sin relleno» deja solo el contorno y el efecto Dibujar el trazo lo traza poco a poco. Imagen de paquete… añade los adornos de los paquetes instalados, que se mueven, escalan, giran y animan como el resto.
+
+### Mismo resultado al exportar
+
+El orden de las capas se guarda en el título, en Project Media y en el proyecto, y es el mismo en la vista previa y en el render.
 
 ## Subtítulos automáticos y edición
 
@@ -574,6 +750,102 @@ Los archivos SFK son cachés de formas de onda de audio de VEGAS. No contienen l
 ### Un método seguro de migración
 
 Conserva el original. Prueba primero un proyecto pequeño, con medios conocidos, fundidos y una agrupación de vídeo y audio. Comprueba duración, sincronía, niveles y encuadres antes de trasladar una sesión compleja.
+
+## Preferencias, monitor y línea de tiempo
+
+Los menús Ver y Opciones reúnen el aspecto, el monitor, la línea de tiempo y el autoguardado. Las preferencias son de este equipo y no se guardan en el proyecto.
+
+![Captura de Preferencias, monitor y línea de tiempo](assets/30-preferencias.png)
+
+Opciones > Preferencias…, también desde el botón de ajustes de la barra lateral.
+
+### Monitor
+
+Safe Areas muestra las zonas seguras: acción al 90 % y títulos al 80 %. Calidad elige Completa, Media o Borrador para aligerar la vista previa; la exportación siempre usa la calidad completa. El botón de pantalla completa amplía el monitor y Esc vuelve.
+
+### Línea de tiempo
+
+El imán pega los bordes a otros clips, al cabezal y a las marcas de render a menos de 8 píxeles; mantén Alt para soltar libre. En sus ajustes eliges la altura de las pistas, el formato del tiempo, las miniaturas y si la vista sigue al cabezal.
+
+### Autoguardado y estado
+
+El autoguardado (desactivado por defecto) guarda cada 1 a 15 minutos en el mismo LQTS, una vez guardado el proyecto. Encima del monitor verás «Cambios sin guardar» o «Guardado hace…», con un punto naranja si hay cambios pendientes.
+
+## Idioma y tema
+
+Cinema Studio puede mostrarse en otros idiomas y con un tema claro. Ambos cambios son inmediatos y no cierran el proyecto.
+
+![Captura de Idioma y tema](assets/39-tema-claro.png)
+
+Tema claro: el monitor y los clips conservan sus colores para juzgar bien la imagen.
+
+### Idioma
+
+Opciones > Preferencias > Apariencia > Idioma: español, inglés, francés, chino simplificado o japonés. La etiqueta también dice «Language». Se traducen menús, editores y mensajes; los nombres de clips y pistas, los subtítulos y las notas se quedan como los escribiste. Este manual y los textos para asistentes MCP están en español.
+
+### Tema
+
+Ver > Apariencia u Opciones > Preferencias > Apariencia > Tema: Oscuro (por defecto) o Claro. Se recuerda en este equipo.
+
+## Paquetes de contenido
+
+Los paquetes .lqpack añaden marcos de subtítulos, rótulos, imágenes, máscaras de transición y presets. Solo se instalan los firmados por LQTAC.
+
+![Captura de Paquetes de contenido](assets/32-paquetes.png)
+
+Opciones > Paquetes…: gestor de paquetes instalados.
+
+### Instalar
+
+Abre Paquetes… y pulsa Instalar paquete…, o haz doble clic en un archivo .lqpack. Antes de instalar se muestran el nombre, la versión, la firma y el contenido. Se rechazan los paquetes no oficiales y los modificados después de firmarlos. Un paquete solo contiene imágenes y datos, nunca programas.
+
+### Usar el contenido
+
+Marco en el editor de un subtítulo, o Marco de los subtítulos en las propiedades de la pista para todos; plantillas «· paquete» en el editor de títulos; Imagen de paquete… para adornos; Máscara de un paquete en las transiciones; y el grupo Paquetes en los presets.
+
+### Activar o desinstalar
+
+Activado oculta el paquete sin borrarlo; Desinstalar lo elimina. Un proyecto que use un paquete ausente se abre igual, pero ese marco o imagen no se dibuja hasta que vuelvas a tenerlo.
+
+## Asistente Qbit
+
+Qbit es un asistente opcional que funciona en tu equipo, sin conexión. Entiende peticiones en español sobre el proyecto abierto y propone los cambios antes de hacerlos.
+
+![Captura de Asistente Qbit](assets/33-qbit.png)
+
+Ayuda > Asistente Qbit… o el botón Q de la barra lateral abren su panel flotante.
+
+### Qué puede hacer
+
+Poner transiciones entre dos clips seguidos, aplicar efectos de vídeo y de audio, fundidos de entrada y salida, quitar efectos y deshacer o rehacer. También contesta de forma breve preguntas de uso. Si falta información, por ejemplo qué clip, la pide.
+
+### Siempre con tu permiso
+
+Qbit enseña «Te propongo:» con la lista exacta de cambios y nada cambia hasta pulsar Aplicar. Ctrl + Z lo deshace como cualquier otro cambio.
+
+### Instalación y tiempos
+
+No viene en el ZIP: la primera vez el panel ofrece descargarlo (unos 2 GB, comprobados por partes). Se instala junto al programa. En un portátil sin gráfica dedicada tarda alrededor de un minuto en despertar y unos 6–10 s por respuesta.
+
+## Control desde un asistente de IA (MCP)
+
+Opciones > Control MCP local permite que un asistente compatible, como Claude o Codex, monte y exporte tus proyectos en este equipo.
+
+![Captura de Control desde un asistente de IA (MCP)](assets/34-mcp.png)
+
+Control MCP local: activar el acceso y copiar la configuración para cada asistente.
+
+### Activar y conectar
+
+Activa el control, elige tu asistente y pulsa Copiar configuración (Claude Code, Claude Desktop, Codex u otros). El asistente trabaja sobre el montaje visible: importa, edita, aplica efectos, crea trayectorias, transcribe y renderiza. Los medios no salen del equipo, aunque el asistente puede enviar a su proveedor los textos y vistas previas que pida.
+
+### Grabación con permiso
+
+Permitir grabación de pantalla mediante MCP está desactivado por defecto. Solo con él activado el asistente puede grabar una pantalla, una ventana o una zona. Los permisos de cámara y micrófono de Windows los contestas siempre tú.
+
+### Grabar una zona sin MCP
+
+En Grabar pantalla, elige la fuente, pulsa Preparar captura y después Seleccionar zona…: arrastra sobre la imagen para dibujar la zona que quieres grabar.
 
 ## Atajos de uso frecuente
 

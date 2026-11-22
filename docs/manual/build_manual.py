@@ -77,8 +77,8 @@ c.setFillColor(HexColor('#79e5f5'));c.setFont('SegoeB',9);c.drawString(LEFT,667,
 para('Manual de usuario',LEFT,609,WIDTH,ParagraphStyle('cover',parent=TITLE,fontSize=35,leading=41,textColor=HexColor('#111111')))
 para('Editar, crear y dar forma a tu proyecto.',LEFT,548,WIDTH,LEAD)
 y=image('01-interfaz.png',505,max_h=335)
-para('Montaje · Audio · FX · Títulos · Subtítulos · Captura',LEFT,y-13,WIDTH,HEAD)
-para('Actualizado · 31 de octubre de 2026\nCapturas reales de la aplicación con medios de demostración.',LEFT,108,WIDTH,CAP)
+para('Montaje · Audio · FX · Títulos · Subtítulos · Trayectoria · Captura',LEFT,y-13,WIDTH,HEAD)
+para('Actualizado · 22 de noviembre de 2026\nCapturas reales de la aplicación con medios de demostración.',LEFT,108,WIDTH,CAP)
 footer(1);c.showPage()
 
 # Two-column, linked contents.
@@ -86,20 +86,20 @@ c.bookmarkPage('contents');c.addOutlineEntry('Índice','contents',0)
 c.setFillColor(CYAN);c.setFont('SegoeB',9);c.drawString(LEFT,747,'ORIENTACIÓN')
 para('Encuentra tu tarea',LEFT,722,WIDTH,TITLE)
 para('Sigue la guía desde el primer montaje o salta al editor que necesites. Pulsa una entrada para ir a su página; el pie de página vuelve a este índice.',LEFT,674,WIDTH,LEAD)
-colw=246; ys=[605,605]; split=(len(PAGES)+1)//2
+colw=246; ys=[605,605]; split=(len(PAGES)+1)//2; STEP=min(34,(605-125)/split)
 for i,p in enumerate(PAGES):
     col=0 if i<split else 1;x=LEFT+col*270;y=ys[col]
     label=p['title'];page=i+3
-    c.setFillColor(BLUE);c.setFont('SegoeB',10);c.drawString(x,y-1,f'{page:02d}')
+    c.setFillColor(BLUE);c.setFont('SegoeB',10);c.drawString(x,y-8,f'{page:02d}')
     st=ParagraphStyle('toc',parent=BODY,fontSize=10,leading=13)
     bottom=para(label,x+28,y+2,colw-30,st)
     c.linkRect(label,f'page{page}',(x,bottom-5,x+colw,y+8),relative=0,thickness=0)
-    ys[col]=y-34
+    ys[col]=y-STEP
 para('Cómo leer las imágenes',LEFT,103,WIDTH,HEAD)
 para('Los nombres, las frases y los medios del ejemplo están preparados para esta guía. Los paneles de grabación se muestran en reposo. La disponibilidad y la fluidez dependen de tu equipo.',LEFT,83,WIDTH,CAP)
 footer(2);c.showPage()
 
-checks=[]
+checks=[];overflows=[]
 for i,p in enumerate(PAGES):
     number=i+3;c.bookmarkPage(f'page{number}');c.addOutlineEntry(p['title'],f'page{number}',0)
     c.setFillColor(CYAN);c.setFont('SegoeB',9);c.drawString(LEFT,747,p['section'])
@@ -124,10 +124,11 @@ for i,p in enumerate(PAGES):
         y=para(title,LEFT,y,WIDTH,HEAD)-4
         y=para(text,LEFT,y,WIDTH,BODY)-12
     checks.append((number,round(y,1),p['title']))
-    if y<BOTTOM:raise RuntimeError(f'Page {number} overflow: bottom {y:.1f} / {p["title"]}')
+    if y<BOTTOM:overflows.append(f'Page {number} overflow: bottom {y:.1f} / {p["title"]}')
     footer(number);c.showPage()
+if overflows:raise RuntimeError(chr(10).join(overflows))
 c.save()
-md=['# Cinema Studio by LQTAC '+VERSION+' - Manual de usuario','','Actualizado: 31 de octubre de 2026.','Capturas reales con medios de demostración.']
+md=['# Cinema Studio by LQTAC '+VERSION+' - Manual de usuario','','Actualizado: 22 de noviembre de 2026.','Capturas reales con medios de demostración.']
 for p in PAGES:
     md.extend(['','## '+p['title'],'',p['lead']])
     if p.get('image'):md.extend(['','![Captura de '+p['title']+'](assets/'+p['image']+')','',p['caption']])

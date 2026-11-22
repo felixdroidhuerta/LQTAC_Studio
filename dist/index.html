@@ -392,6 +392,7 @@
     .work-dialog input#workName{width:65%;}.work-dialog p{font-size:11px;line-height:1.5;}.work-dialog fieldset{border:1px solid #48678c;margin:15px 0;}.work-dialog footer{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;}.work-dialog button{background:#193d65;color:#fff;border:1px solid #48678c;padding:8px;border-radius:5px;cursor:pointer;}#workError{color:#ff9f94;}
   </style>
   <script src="assets/work-model.js"></script>
+<script src="assets/motion-path.js"></script>
   <script src="assets/effects-model.js"></script>
   <script src="assets/autotune-core.js"></script>
   <script src="assets/effects-video.js"></script>
@@ -412,7 +413,7 @@
     const compatModal = $('#compatModal');
     const projectFormats = new Set(['veg', 'vf', 'prproj']);
     const interchangeFormats = new Set(['xml', 'fcpxml', 'edl', 'srt', 'txt']);
-    const mediaFormats = new Set(['mp4', 'mov', 'mxf', 'avi', 'm4v', 'webm', 'mp3', 'wav', 'aiff', 'aif', 'flac', 'm4a', 'aac', ...LQTACStillImages.extensions]);
+    const mediaFormats = new Set(['mp4', 'mov', 'mxf', 'avi', 'm4v', 'webm', 'mp3', 'wav', 'aiff', 'aif', 'flac', 'm4a', 'aac', 'gif', ...LQTACStillImages.extensions]);
     const formatOf = (name) => name.split('.').pop().toLowerCase();
     const describeFile = (file, ext) => {
       if (projectFormats.has(ext)) return ext === 'prproj' ? 'Proyecto Premiere · puente XML/EDL' : `Proyecto VEGAS · .${ext.toUpperCase()}`;
@@ -622,7 +623,11 @@
     const clipIsActiveAt = (clip, seconds) => { const timing = clipTiming(clip); return seconds >= timing.startSeconds && seconds < timing.startSeconds + timing.durationSeconds; };
     const clipPlaybackOffset=clip=>clip.dataset.reverse==='true'?0:Number(clip.dataset.sourceOffsetSeconds||0);
     const clipPlaybackPath=async clip=>clip.dataset.reverse==='true'&&!LQTACStillImages.isClip(clip)?window.LQTACReverse.path(clip):window.LQTACStabilize?.active(clip)?window.LQTACStabilize.path(clip):clip.dataset.filePath;
-    const clipLocalTime = (clip, seconds) => Math.max(0, clipPlaybackOffset(clip) + (seconds - clipTiming(clip).startSeconds)*Number(clip.dataset.playbackRate||1));
+    // Bucle: a looped video clip repeats its whole source; stretching only lengthens the event (no repeat copies).
+    const clipLoopSource=clip=>clip?.dataset.loop==='true'&&clip.dataset.reverse!=='true'?Number(clip.dataset.sourceDurationSeconds)||timelineDurationCache.get(clip.dataset.filePath)||0:0;
+    const loopPhase=(time,source)=>{let phase=((time%source)+source)%source;if(source-phase<.0000001)phase=0;return phase;};
+    const clipLocalTime = (clip, seconds) => {const time=Math.max(0, clipPlaybackOffset(clip) + (seconds - clipTiming(clip).startSeconds)*Number(clip.dataset.playbackRate||1)),source=clipLoopSource(clip);return source>0?loopPhase(time,source):time;};
+    window.clipLoopSource=clipLoopSource;
     const effectSettingsCache=new WeakMap(),effectAudioCache=new Map();
     function clipEffectsState(clip,kind){let entry=effectSettingsCache.get(clip);if(!entry){entry={};effectSettingsCache.set(clip,entry);}const text=clip.dataset[kind+'Fx']||'{}';if(entry[kind]?.text!==text){const value=JSON.parse(text);LQTACEffects.validate(value,kind);entry[kind]={text,value};}return entry[kind].value;}
     // Autotune guide: the audio events of the chosen track under this clip, in clip-local seconds (muted events still guide).
@@ -781,6 +786,11 @@
     const trackWorkState=track=>({kind:track.dataset.kind,mute:track.dataset.mute==='true',solo:track.dataset.solo==='true',gain:Number(track.dataset.gain??1),pan:Number(track.dataset.pan||0)});
     const trackIsEnabled=track=>LQTACWork.enabled(trackWorkState(track),$$('.track').map(trackWorkState));
     const clipCropFrames=clip=>JSON.parse(clip.dataset.panCrop||'[]');
+    const clipMotionPath=clip=>clip.dataset.motionPath?JSON.parse(clip.dataset.motionPath):null;
+    // Pan/Crop into the layer; with a motion path the cropped layer is then placed on the route (Trayectoria).
+    const motionLayers=new WeakMap();
+    function drawClipLayer(ctx,source,w,h,clip,local){const crop=LQTACWork.cropAt(clipCropFrames(clip),local),draft=window.motionPathDraft,motion=draft&&draft.clip===clip?draft.motion:clipMotionPath(clip);if(!motion||motion.enabled===false){LQTACWork.drawCrop(ctx,source,w,h,crop);return;}let layer=motionLayers.get(clip);if(!layer){layer=document.createElement('canvas');motionLayers.set(clip,layer);}if(layer.width!==w||layer.height!==h){layer.width=w;layer.height=h;}const lc=layer.getContext('2d');lc.clearRect(0,0,w,h);LQTACWork.drawCrop(lc,source,w,h,crop);LQTACMotion.draw(ctx,layer,w,h,motion,local);}
+    window.drawClipLayer=drawClipLayer;window.clipMotionPath=clipMotionPath;
     const vegasClipState=clip=>({durationSeconds:clipTiming(clip).durationSeconds,fadeInSeconds:Number(clip.dataset.fadeInSeconds)||0,fadeOutSeconds:Number(clip.dataset.fadeOutSeconds)||0,fadeInCurve:clip.dataset.fadeInCurve||'Linear',fadeOutCurve:clip.dataset.fadeOutCurve||'Linear',vegasCurves:JSON.parse(clip.dataset.vegasCurves||'{}')});
     const audioGraphs=new Map();let workAudioContext;
     const applyAudioWork=(media,track,gain)=>{
@@ -863,12 +873,14 @@
           if (ticket !== renderTicket) return;
           const localTime = clipMediaTime(clip, timelineTime);
           media.playbackRate=clip.dataset.kind==='audio'&&LQTACEffects.animatedAudio(clipEffectsState(clip,'audio'))?1:Number(clip.dataset.playbackRate||1);media.preservesPitch=true;
+          const loopSource=clipLoopSource(clip);media.loop=loopSource>0;
           if (media.dataset.source !== sourcePath) {
             media.dataset.source = sourcePath;
             media.onloadedmetadata = () => { media.currentTime = clipMediaTime(clip, timelineTime); };
             media.src = url; media.load();
           }
-          if (media.readyState >= 1 && Math.abs(media.currentTime - localTime) > .35 && !media.seeking) media.currentTime = localTime;
+          const drift=Math.abs(media.currentTime - localTime);
+          if (media.readyState >= 1 && (loopSource>0?Math.min(drift,loopSource-drift):drift) > .35 && !media.seeking) media.currentTime = localTime;
         }
         if (isVideo) {
           media.muted = true; media.style.display = 'block';
@@ -879,7 +891,7 @@
           if(!media.workCanvas){media.workCanvas=document.createElement('canvas');media.workCanvas.className='preview-media';$('.monitor-screen').append(media.workCanvas);}
           const surface=media.workCanvas,rect=$('.monitor-screen').getBoundingClientRect(),w=exportSize?.width||Math.max(2,Math.round(rect.width)),h=exportSize?.height||Math.max(2,Math.round(rect.height));
           if(surface.width!==w||surface.height!==h){surface.width=w;surface.height=h;}
-          const ctx=surface.getContext('2d');ctx.clearRect(0,0,w,h);if(media.readyState>=2)LQTACWork.drawCrop(ctx,LQTACVideoEffects.draw(media,clipEffectsState(clip,'video'),timelineTime-clipTiming(clip).startSeconds,exportSize?1:(window.LQTACPreviewScale||1)),w,h,LQTACWork.cropAt(clipCropFrames(clip),timelineTime-clipTiming(clip).startSeconds));
+          const ctx=surface.getContext('2d');ctx.clearRect(0,0,w,h);if(media.readyState>=2)drawClipLayer(ctx,LQTACVideoEffects.draw(media,clipEffectsState(clip,'video'),timelineTime-clipTiming(clip).startSeconds,exportSize?1:(window.LQTACPreviewScale||1)),w,h,clip,timelineTime-clipTiming(clip).startSeconds);
           surface.style.display='block';surface.style.opacity=String(Number(media.style.opacity)*Number(clip.parentElement.dataset.gain??1)*Number(clip.dataset.gain??1));surface.style.zIndex=media.style.zIndex;media.style.display='none';
         } else applyAudioWork(media,clip.parentElement,eventGain(clip, timelineTime)*envelopeValue(clip.parentElement,timelineTime)*Number(clip.parentElement.dataset.gain??1)*Number(clip.dataset.gain??1));
         if (playing && media.paused) media.play().catch(error => reportPlaybackError(media, error));
@@ -921,7 +933,7 @@
         let surface=vegasTrackSurfaces.get(track);if(!surface){surface=document.createElement('canvas');surface.className='preview-media';$('.monitor-screen').append(surface);vegasTrackSurfaces.set(track,surface);}
         const w=topMedia.workCanvas.width,h=topMedia.workCanvas.height;if(surface.width!==w||surface.height!==h){surface.width=w;surface.height=h;}const ctx=surface.getContext('2d');ctx.clearRect(0,0,w,h);ctx.globalCompositeOperation='lighter';
         const local=timelineTime-clipTiming(top).startSeconds,fade=Number(top.dataset.fadeInSeconds)||0,previous=clips.at(-2);
-        const draw=(c,gain)=>{const source=videoPool.get(c);if(source?.readyState>=2){ctx.globalAlpha=Math.max(0,Math.min(1,gain*Number(c.dataset.gain??1)));LQTACWork.drawCrop(ctx,source,w,h,LQTACWork.cropAt(clipCropFrames(c),timelineTime-clipTiming(c).startSeconds));}};
+        const draw=(c,gain)=>{const source=videoPool.get(c);if(source?.readyState>=2){ctx.globalAlpha=Math.max(0,Math.min(1,gain*Number(c.dataset.gain??1)));drawClipLayer(ctx,source,w,h,c,timelineTime-clipTiming(c).startSeconds);}};
         if(previous&&fade>0&&local<fade){const tables=vegasClipState(top).vegasCurves,p=local/fade;draw(previous,1-LQTACWork.curveAt(top.dataset.fadeInReciprocalCurve,p,tables));draw(top,LQTACWork.curveAt(top.dataset.fadeInCurve,p,tables));}
         else draw(top,clipFadeGain(top,timelineTime));
         ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';surface.style.zIndex=topMedia.style.zIndex;surface.style.opacity=String(envelopeValue(track,timelineTime)*Number(track.dataset.gain??1));surface.style.display='block';
@@ -1074,6 +1086,7 @@
         drawClipFades(clip);
         drawClipSpeed(clip);
         drawClipRepeat(clip);
+        drawClipLoop(clip);
       });
       renderTimelineRuler();
       window.LQTACSubtitles?.syncKaraokeHeaders?.();
@@ -1129,7 +1142,7 @@
     window.updateTimelineSelectionStatus = updateTimelineSelectionStatus;
     const clipContextMenu = document.createElement('div');
     clipContextMenu.className = 'clip-context-menu';
-    clipContextMenu.innerHTML = '<button type="button" data-action="reverse-clip">Invertir clip</button><button type="button" data-action="reverse-group">Invertir grupo</button><button type="button" data-action="toggle-envelope">Mostrar envolvente</button><button type="button" data-action="add-envelope-point">Añadir punto aquí</button><button type="button" data-action="voice-studio">Voz de estudio…</button><button type="button" data-action="copy-fx">Copiar efectos</button><button type="button" data-action="paste-fx">Pegar efectos</button><button type="button" data-action="group">Agrupar selección</button><button type="button" data-action="ungroup">Desagrupar</button><button type="button" data-action="delete" class="danger">Eliminar evento</button>';
+    clipContextMenu.innerHTML = '<button type="button" data-action="reverse-clip">Invertir clip</button><button type="button" data-action="reverse-group">Invertir grupo</button><button type="button" data-action="loop-clip">Bucle</button><button type="button" data-action="toggle-envelope">Mostrar envolvente</button><button type="button" data-action="add-envelope-point">Añadir punto aquí</button><button type="button" data-action="voice-studio">Voz de estudio…</button><button type="button" data-action="copy-fx">Copiar efectos</button><button type="button" data-action="paste-fx">Pegar efectos</button><button type="button" data-action="group">Agrupar selección</button><button type="button" data-action="ungroup">Desagrupar</button><button type="button" data-action="delete" class="danger">Eliminar evento</button>';
     document.body.append(clipContextMenu);
     const hideClipContextMenu = () => clipContextMenu.classList.remove('open');
     const groupMembers = clip => {
@@ -1242,12 +1255,50 @@
     const copyClipEffects=clip=>{const kinds=clipFxKinds(clip);if(!kinds.length)return;fxClipboard={kind:clip.dataset.kind,name:[...clip.childNodes].find(n=>n.nodeType===3&&n.textContent.trim())?.textContent.trim()||'clip',duration:clipTiming(clip).durationSeconds,fx:Object.fromEntries(kinds.map(kind=>[kind,JSON.parse(JSON.stringify(clipEffectsState(clip,kind)))]))};const count=Object.values(fxClipboard.fx).reduce((n,fx)=>n+(fx.enabled?1:0),0);toast('Efectos copiados de «'+fxClipboard.name+'»'+(count?'':' (sin efectos activos: pegarlos los quitará)')+'. Selecciona clips del mismo tipo y elige Pegar efectos.');};
     const pasteClipEffects=async()=>{const targets=pasteTargets();if(!targets.length)return;let fallback=false;const updates=targets.map(clip=>{const duration=clipTiming(clip).durationSeconds,values={};for(const [kind,source] of Object.entries(fxClipboard.fx)){const next=rescaleFxAnimation(source,fxClipboard.duration,duration);if(kind==='video'){const own=clipEffectsState(clip,'video');for(const key of CLIP_BOUND_FX)next[key]=own[key]??null;if(next.chromaZone==='pro'&&!next.chromaProMatte){next.chromaZone='people';fallback=true;}}LQTACEffects.validate(next,kind);values[kind]=JSON.stringify(next);}return [clip,values];});historyCheckpoint();for(const [clip,values] of updates)for(const [kind,text] of Object.entries(values))clip.dataset[kind+'Fx']=text;await renderTimelineAt(timelineTime);toast('Efectos de «'+fxClipboard.name+'» pegados en '+(targets.length===1?'1 clip':targets.length+' clips')+(fallback?'. La IA precisa del croma necesita su propio análisis: se usa IA rápida hasta que la analices':''));};
     window.LQTACClipFx={copy:copyClipEffects,paste:pasteClipEffects,get clipboard(){return fxClipboard;}};
+    // Bucle (loop): video clips only — GIFs and other video files, not stills, titles or subtitles.
+    const loopEligible=clip=>!!clip&&clip.dataset.kind==='video'&&!!clip.dataset.filePath&&!clip.dataset.generator&&!LQTACStillImages.isClip(clip);
+    // Turning the loop off: a clip longer than its media becomes ordinary repeat events, so no time is lost.
+    function splitLoopIntoRepeats(clip){
+      const t=clipTiming(clip),rate=Number(clip.dataset.playbackRate||1),source=Number(clip.dataset.sourceDurationSeconds)||0,offset=Number(clip.dataset.sourceOffsetSeconds)||0;
+      if(!(source>0)||offset+t.durationSeconds*rate<=source+.002)return [clip];
+      const ranges=LQTACWork.repeatRanges({startSeconds:t.startSeconds,durationSeconds:t.durationSeconds,offset,source,rate},'end',0);
+      const videoFx=clipEffectsState(clip,'video'),audioFx=clipEffectsState(clip,'audio'),crop=clipCropFrames(clip),motion=clipMotionPath(clip),fadeIn=Number(clip.dataset.fadeInSeconds)||0,fadeOut=Number(clip.dataset.fadeOutSeconds)||0,nodes=[];
+      let local=0;
+      ranges.forEach((r,i)=>{
+        let node=clip;
+        if(i){node=clip.cloneNode(true);delete node.dataset.bound;delete node.dataset.pointerSelection;delete node.dataset.groupId;delete node.dataset.groupType;node.classList.remove('selected','grouped');node.querySelectorAll('[data-bound]').forEach(child=>delete child.dataset.bound);node.querySelectorAll('.clip-loop-badge,.clip-loop-marks').forEach(child=>child.remove());clip.parentElement.insertBefore(node,$('.envelope-layer',clip.parentElement));const mask=transitionMasks.get(clip);if(mask)transitionMasks.set(node,{...mask});}
+        const d=r.durationSeconds;
+        Object.assign(node.dataset,{startSeconds:String(r.startSeconds),durationSeconds:String(d),sourceOffsetSeconds:String(r.sourceOffsetSeconds),fadeInSeconds:String(i?0:Math.min(fadeIn,d)),fadeOutSeconds:String(i===ranges.length-1?Math.min(fadeOut,d):0),videoFx:JSON.stringify(LQTACEffects.slice(videoFx,local,d)),audioFx:JSON.stringify(LQTACEffects.slice(audioFx,local,d)),repeatIndex:String(i+1)});
+        if(motion)node.dataset.motionPath=JSON.stringify(LQTACMotion.shift(motion,local));
+        if(crop.length)node.dataset.panCrop=JSON.stringify([{time:0,...LQTACWork.cropAt(crop,local)},...crop.filter(f=>f.time>local&&f.time<local+d).map(f=>({...f,time:f.time-local})),{time:d,...LQTACWork.cropAt(crop,local+d)}]);
+        nodes.push(node);local+=d;
+      });
+      return nodes;
+    }
+    async function toggleClipLoop(clip){
+      if(!loopEligible(clip)||!clip.isConnected||historyBusy||exporting)return;
+      const enable=clip.dataset.loop!=='true',targets=[...new Set([clip,...selectedTimelineClips])].filter(c=>c.isConnected&&loopEligible(c)&&(c.dataset.loop==='true')!==enable);
+      if(enable&&targets.some(c=>c.dataset.reverse==='true')){toast('Restaura el clip hacia delante antes de activar el bucle');return;}
+      stopTimelinePlayback();
+      if(enable)for(const c of targets)if(!(Number(c.dataset.sourceDurationSeconds)>0)){const known=await mediaDurationSeconds({filePath:c.dataset.filePath,kind:'video'});if(!(known>0)){toast('No se pudo leer la duración del medio para el bucle');return;}c.dataset.sourceDurationSeconds=String(known);}
+      historyCheckpoint();
+      let created=0;
+      for(const c of targets){
+        if(enable){c.dataset.loop='true';c.dataset.sourceOffsetSeconds=String(loopPhase(Number(c.dataset.sourceOffsetSeconds)||0,Number(c.dataset.sourceDurationSeconds)));delete c.dataset.repeatIndex;}
+        else{delete c.dataset.loop;created+=splitLoopIntoRepeats(c).length-1;}
+      }
+      bindClips();refreshTimelineScale();$$('.track').forEach(updateTrackTransitions);await renderTimelineAt(timelineTime);
+      toast(enable?'Bucle activado · estira el borde para repetirlo sin crear eventos nuevos':created?'Bucle quitado · se crearon repeticiones para conservar la duración':'Bucle quitado');
+    }
+    window.LQTACLoop={toggle:toggleClipLoop,eligible:loopEligible};
     const showClipContextMenu = (event, clip) => {
       contextTrack = clip.closest('.track');contextClip=clip;
       const reverseButton=$('[data-action="reverse-clip"]',clipContextMenu),reverseGroup=$('[data-action="reverse-group"]',clipContextMenu),members=groupMembers(clip),media=members.filter(c=>c.dataset.kind!=='subtitle');
       reverseButton.style.display=clip.dataset.kind==='subtitle'?'none':'block';reverseButton.textContent=clip.dataset.reverse==='true'?'Restaurar clip hacia delante':'Invertir clip';
       reverseGroup.style.display=members.length>1&&media.length?'block':'none';reverseGroup.textContent=media.length&&media.every(c=>c.dataset.reverse==='true')?'Restaurar grupo hacia delante':'Invertir grupo';
       if (!selectedTimelineClips.includes(clip)) selectTimelineClip(clip);
+      const loopButton=$('[data-action="loop-clip"]',clipContextMenu);loopButton.style.display=loopEligible(clip)?'block':'none';loopButton.textContent=clip.dataset.loop==='true'?'✓ Bucle (quitar)':'Bucle';loopButton.title='Repite el clip de forma continua; al estirarlo se alarga el mismo evento';
+      if(clip.dataset.loop==='true')reverseButton.style.display='none';
       configureClipFxMenu(clip);
       configureEnvelopeContextMenu(event,contextTrack);
       $('[data-action="group"]', clipContextMenu).style.display = selectedTimelineClips.length > 1 ? 'block' : 'none';
@@ -1261,7 +1312,7 @@
     };
     const showTrackContextMenu = (event, track) => {
       contextTrack = track;contextClip=null;
-      $$('[data-action^="reverse-"],[data-action$="-fx"],[data-action="voice-studio"]',clipContextMenu).forEach(button=>button.style.display='none');
+      $$('[data-action^="reverse-"],[data-action$="-fx"],[data-action="voice-studio"],[data-action="loop-clip"]',clipContextMenu).forEach(button=>button.style.display='none');
       applyTimelineSelection([]);
       configureEnvelopeContextMenu(event,track);
       $('[data-action="group"]', clipContextMenu).style.display = 'none';
@@ -1274,6 +1325,7 @@
     clipContextMenu.addEventListener('click', event => {
       if(event.target.closest('[data-action="reverse-clip"]'))void window.LQTACReverse.invert(contextClip,false);
       if(event.target.closest('[data-action="reverse-group"]'))void window.LQTACReverse.invert(contextClip,true);
+      if(event.target.closest('[data-action="loop-clip"]')){const clip=contextClip;hideClipContextMenu();void toggleClipLoop(clip);}
       if(event.target.closest('[data-action="voice-studio"]')){const clip=contextClip;hideClipContextMenu();LQTACVoiceStudio.open(clip);}
       if(event.target.closest('[data-action="copy-fx"]')){copyClipEffects(contextClip);hideClipContextMenu();}
       if(event.target.closest('[data-action="paste-fx"]:not(:disabled)')){hideClipContextMenu();void pasteClipEffects().catch(error=>toast('No se pudieron pegar los efectos: '+error.message));}
@@ -1313,8 +1365,9 @@
       clip.dataset.startSeconds = String(Number(item.startSeconds??((startPercent / 100) * timelineDurationSeconds)));
       clip.dataset.sourceOffsetSeconds = String(item.kind==='subtitle'?0:Number(item.sourceOffsetSeconds)||0);
       clip.dataset.videoFx=JSON.stringify(item.videoFx||{});clip.dataset.audioFx=JSON.stringify(item.audioFx||{});
-      clip.dataset.playbackRate=String(item.playbackRate??1);clip.dataset.gain=String(item.gain??1);clip.dataset.mute=String(!!item.mute);clip.dataset.panCrop=JSON.stringify(item.panCrop||[]);
+      clip.dataset.playbackRate=String(item.playbackRate??1);clip.dataset.gain=String(item.gain??1);clip.dataset.mute=String(!!item.mute);clip.dataset.panCrop=JSON.stringify(item.panCrop||[]);if(item.motionPath)clip.dataset.motionPath=JSON.stringify(item.motionPath);else delete clip.dataset.motionPath;
       clip.dataset.reverse=String(!!item.reverse);
+      if(item.loop&&item.kind==='video'&&!item.reverse)clip.dataset.loop='true';else delete clip.dataset.loop;
       clip.dataset.autoCrossfade=String(item.autoCrossfade!==false);clip.dataset.vegasCurves=JSON.stringify(item.vegasCurves||{});for(const key of ['fadeInCurve','fadeOutCurve','fadeInReciprocalCurve','fadeOutReciprocalCurve'])clip.dataset[key]=item[key]||'Linear';
       clip.dataset.fadeInSeconds=String(Number(item.fadeInSeconds)||0);clip.dataset.fadeOutSeconds=String(Number(item.fadeOutSeconds)||0);
       if(Number(item.sourceDurationSeconds)>0)clip.dataset.sourceDurationSeconds=String(item.sourceDurationSeconds);
@@ -1501,13 +1554,24 @@
       if(!marker){marker=document.createElement('span');marker.className='clip-repeat-marker';marker.style.cssText='position:absolute;left:2px;bottom:1px;pointer-events:none;font-size:8px;line-height:11px;background:#071832cc;color:#b9f4ff;border-radius:2px;padding:0 2px;z-index:4';clip.append(marker);}
       marker.textContent='↻ '+index;
     }
+    function drawClipLoop(clip){
+      let badge=clip.querySelector('.clip-loop-badge'),marks=clip.querySelector('.clip-loop-marks');const source=clipLoopSource(clip);
+      if(!(source>0)){badge?.remove();marks?.remove();return;}
+      if(!badge){badge=document.createElement('span');badge.className='clip-loop-badge';badge.title='Bucle activo: estira el clip para repetirlo';badge.style.cssText='position:absolute;right:14px;top:2px;font-size:9px;line-height:13px;padding:0 4px;border-radius:3px;background:#071832cc;color:#b9f4ff;pointer-events:none;z-index:4';clip.append(badge);}
+      badge.textContent='∞ Bucle';
+      // One thin mark at every point where the source starts over.
+      const {durationSeconds}=clipTiming(clip),period=source/Number(clip.dataset.playbackRate||1),first=(source-loopPhase(Number(clip.dataset.sourceOffsetSeconds)||0,source))/Number(clip.dataset.playbackRate||1),tiles=Math.ceil((durationSeconds-first)/period)+1;
+      if(!(period>0)||first>=durationSeconds-.000001||tiles>4000){marks?.remove();return;}
+      if(!marks){marks=document.createElement('span');marks.className='clip-loop-marks';clip.append(marks);}
+      marks.style.cssText=`position:absolute;top:0;bottom:0;left:${(first-period)/durationSeconds*100}%;width:${tiles*period/durationSeconds*100}%;pointer-events:none;z-index:2;background-image:linear-gradient(to right,transparent calc(100% - 1px),#79e5f5cc calc(100% - 1px));background-size:${100/tiles}% 100%;background-repeat:repeat-x`;
+    }
     const beginClipStretch=(event,clip,edge)=>{
       event.preventDefault();event.stopPropagation();stopTimelinePlayback();
       const targets=(event.altKey?[clip]:groupMembers(clip)).filter(c=>c?.isConnected);
       applyTimelineSelection(targets);clip.dataset.pointerSelection='1';
-      const keys=['startSeconds','durationSeconds','playbackRate','fadeInSeconds','fadeOutSeconds','panCrop','videoFx','audioFx','subtitleStyle'];
+      const keys=['startSeconds','durationSeconds','playbackRate','fadeInSeconds','fadeOutSeconds','panCrop','motionPath','videoFx','audioFx','subtitleStyle'];
       const originals=targets.map(c=>Object.fromEntries(keys.map(key=>[key,c.dataset[key]])));
-      const states=targets.map(c=>({...clipTiming(c),kind:c.dataset.kind,playbackRate:Number(c.dataset.playbackRate||1),fadeInSeconds:Number(c.dataset.fadeInSeconds)||0,fadeOutSeconds:Number(c.dataset.fadeOutSeconds)||0,panCrop:clipCropFrames(c),videoFx:clipEffectsState(c,'video'),audioFx:clipEffectsState(c,'audio'),subtitleStyle:c.dataset.kind==='subtitle'?JSON.parse(c.dataset.subtitleStyle||'{}'):undefined}));
+      const states=targets.map(c=>({...clipTiming(c),kind:c.dataset.kind,playbackRate:Number(c.dataset.playbackRate||1),fadeInSeconds:Number(c.dataset.fadeInSeconds)||0,fadeOutSeconds:Number(c.dataset.fadeOutSeconds)||0,panCrop:clipCropFrames(c),motionPath:clipMotionPath(c)??undefined,videoFx:clipEffectsState(c,'video'),audioFx:clipEffectsState(c,'audio'),subtitleStyle:c.dataset.kind==='subtitle'?JSON.parse(c.dataset.subtitleStyle||'{}'):undefined}));
       const reference=targets.indexOf(clip),origin=event.clientX,secondsPerPixel=timelineDurationSeconds/clip.parentElement.getBoundingClientRect().width;
       const previousUndo=[...undoHistory],previousRedo=[...redoHistory];let recorded=false,lastScale=1;
       try{clip.setPointerCapture(event.pointerId);}catch{}
@@ -1539,7 +1603,7 @@
       const states=targets.map(c=>{const timing=clipTiming(c),physicalOffset=Number(c.dataset.sourceOffsetSeconds)||0;const pool=c.dataset.kind==='video'?videoPool:timelineAudioPool;
         const known=Number(c.dataset.sourceDurationSeconds)||timelineDurationCache.get(c.dataset.filePath)||pool.get(c)?.duration;
         const source=c.dataset.kind==='subtitle'?604800:Number.isFinite(known)&&known>0?known:physicalOffset+timing.durationSeconds*Number(c.dataset.playbackRate||1),offset=c.dataset.reverse==='true'?Math.max(0,source-physicalOffset-timing.durationSeconds*Number(c.dataset.playbackRate||1)):physicalOffset;
-        return {clip:c,data:{...c.dataset},copies:[],...timing,offset,source,subtitleStyle:JSON.parse(c.dataset.subtitleStyle||'{}'),crop:clipCropFrames(c),videoFx:clipEffectsState(c,'video'),audioFx:clipEffectsState(c,'audio'),rate:Number(c.dataset.playbackRate||1),fadeIn:Number(c.dataset.fadeInSeconds)||0,fadeOut:Number(c.dataset.fadeOutSeconds)||0};});
+        return {clip:c,data:{...c.dataset},copies:[],...timing,offset,source,loop:clipLoopSource(c)>0,subtitleStyle:JSON.parse(c.dataset.subtitleStyle||'{}'),crop:clipCropFrames(c),videoFx:clipEffectsState(c,'video'),audioFx:clipEffectsState(c,'audio'),rate:Number(c.dataset.playbackRate||1),fadeIn:Number(c.dataset.fadeInSeconds)||0,fadeOut:Number(c.dataset.fadeOutSeconds)||0};});
       // A linked audio/video pair uses the same usable endpoint even if container durations differ slightly.
       for(const s of states){const peers=states.filter(p=>p.data.groupType==='media'&&p.data.filePath===s.data.filePath&&p.data.reverse===s.data.reverse&&Math.abs(Number(p.data.sourceOffsetSeconds||0)-Number(s.data.sourceOffsetSeconds||0))<.000001&&Math.abs(p.rate-s.rate)<.000001&&Math.abs(p.startSeconds-s.startSeconds)<.000001);if(peers.length>1)s.source=Math.min(...peers.map(p=>p.source));if(s.data.reverse==='true')s.offset=Math.max(0,s.source-Number(s.data.sourceOffsetSeconds||0)-s.durationSeconds*s.rate);}
       const originX=event.clientX,secondsPerPixel=timelineDurationSeconds/clip.parentElement.getBoundingClientRect().width,minimum=1/24;
@@ -1552,7 +1616,7 @@
         if(!trimRecorded&&Math.abs(delta)>.000001){historyCheckpoint();trimRecorded=true;}
         if(!trimRecorded)return;
         for(const s of states){
-          const subtitle=s.data.kind==='subtitle',staticMedia=subtitle||LQTACStillImages.isClip(s.clip),ranges=staticMedia?[{startSeconds:s.startSeconds+(edge==='start'?delta:0),durationSeconds:s.durationSeconds+(edge==='start'?-delta:delta),sourceOffsetSeconds:0,localOffset:edge==='start'?delta:0}]:LQTACWork.repeatRanges(s,edge,delta);
+          const subtitle=s.data.kind==='subtitle',staticMedia=subtitle||LQTACStillImages.isClip(s.clip),single={startSeconds:s.startSeconds+(edge==='start'?delta:0),durationSeconds:s.durationSeconds+(edge==='start'?-delta:delta),sourceOffsetSeconds:s.loop?loopPhase(s.offset+(edge==='start'?delta*s.rate:0),s.source):0,localOffset:edge==='start'?delta:0},ranges=staticMedia||s.loop?[single]:LQTACWork.repeatRanges(s,edge,delta);
           while(s.copies.length>ranges.length-1){const copy=s.copies.pop();transitionMasks.delete(copy);copy.remove();}
           for(let i=0;i<ranges.length;i++){
             let node=i?s.copies[i-1]:s.clip;
@@ -1563,6 +1627,7 @@
             if(ranges.length>1||s.data.repeatIndex)node.dataset.repeatIndex=String((Number(s.data.repeatIndex)||1)+i);
             if(i&&s.data.groupId){if(!groups.has(i))groups.set(i,'repeat-'+Date.now()+'-'+(++groupSequence));node.dataset.groupId=groups.get(i);}
             if(subtitle)node.dataset.subtitleStyle=JSON.stringify(LQTACSubtitleModel.shiftedStyle(s.subtitleStyle,offset));
+            if(s.data.motionPath)node.dataset.motionPath=JSON.stringify(LQTACMotion.shift(JSON.parse(s.data.motionPath),offset));
             if(s.crop.length)node.dataset.panCrop=JSON.stringify([{time:0,...LQTACWork.cropAt(s.crop,offset)},...s.crop.filter(f=>f.time>offset&&f.time<offset+duration).map(f=>({...f,time:f.time-offset})),{time:duration,...LQTACWork.cropAt(s.crop,offset+duration)}]);
           }
         }
@@ -1570,11 +1635,11 @@
       };
       const move=e=>{let requested=(e.clientX-originX)*secondsPerPixel;
         if(window.LQTACSnap)requested=LQTACSnap.adjust(states.map(s=>edge==='start'?s.startSeconds:s.startSeconds+s.durationSeconds),requested,targets.concat(states.flatMap(s=>s.copies)),1/secondsPerPixel,e.altKey);
-        const low=Math.max(...states.map(s=>edge==='start'?Math.max(-s.startSeconds,-s.offset/s.rate-(maxParts-1)*s.source/s.rate):minimum-s.durationSeconds));
-        const high=Math.min(...states.map(s=>edge==='start'?s.durationSeconds-minimum:Math.min(604800-s.startSeconds-s.durationSeconds,(s.source-s.offset)/s.rate+(maxParts-1)*s.source/s.rate-s.durationSeconds)));
+        const low=Math.max(...states.map(s=>edge==='start'?Math.max(-s.startSeconds,s.loop?-Infinity:-s.offset/s.rate-(maxParts-1)*s.source/s.rate):minimum-s.durationSeconds));
+        const high=Math.min(...states.map(s=>edge==='start'?s.durationSeconds-minimum:Math.min(604800-s.startSeconds-s.durationSeconds,s.loop?Infinity:(s.source-s.offset)/s.rate+(maxParts-1)*s.source/s.rate-s.durationSeconds)));
         apply(Math.max(low,Math.min(high,requested)));
       };
-      const finish=()=>{window.LQTACSnap?.clear();window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',finish);window.removeEventListener('pointercancel',cancel);window.removeEventListener('keydown',escape,true);window.removeEventListener('blur',cancel);try{clip.releasePointerCapture(event.pointerId);}catch{}applyTimelineSelection(targets);void renderTimelineAt(timelineTime);toast(states.some(s=>s.copies.length)?'Repeticiones creadas · cada unión marcada · velocidad intacta':'Recorte aplicado · medios originales intactos');};
+      const finish=()=>{window.LQTACSnap?.clear();window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',finish);window.removeEventListener('pointercancel',cancel);window.removeEventListener('keydown',escape,true);window.removeEventListener('blur',cancel);try{clip.releasePointerCapture(event.pointerId);}catch{}applyTimelineSelection(targets);void renderTimelineAt(timelineTime);toast(states.some(s=>s.copies.length)?'Repeticiones creadas · cada unión marcada · velocidad intacta':states.some(s=>s.loop)?'Bucle ampliado · el clip se repite sin crear eventos nuevos':'Recorte aplicado · medios originales intactos');};
       const cancel=()=>{for(const s of states){s.copies.forEach(c=>{transitionMasks.delete(c);c.remove();});s.copies=[];restoreData(s.clip,s.data);}if(trimRecorded){undoHistory.splice(0,undoHistory.length,...oldUndo);redoHistory.splice(0,redoHistory.length,...oldRedo);updateHistoryButtons();}redraw();finish();};
       const escape=e=>{if(e.key==='Escape'||((e.ctrlKey||e.metaKey)&&['z','y'].includes(e.key.toLowerCase()))){e.preventDefault();e.stopImmediatePropagation();cancel();}};
       window.addEventListener('pointermove',move);window.addEventListener('pointerup',finish);window.addEventListener('pointercancel',cancel);window.addEventListener('keydown',escape,true);window.addEventListener('blur',cancel);
@@ -1587,8 +1652,8 @@
       stopTimelinePlayback();const rightGroups=new Map(),rightClips=[];
       for(const clip of targets){
         const timing=clipTiming(clip),leftDuration=timelineTime-timing.startSeconds,offset=Number(clip.dataset.sourceOffsetSeconds)||0;
-        const right=createTimelineClip(clip.parentElement,{subtitleText:clip.dataset.subtitleText,subtitleStyle:JSON.parse(clip.dataset.subtitleStyle||'{}'),name:clip.firstChild?.textContent||'Media',kind:clip.dataset.kind,filePath:clip.dataset.filePath,generator:clip.dataset.generator?JSON.parse(clip.dataset.generator):undefined,durationSeconds:timing.durationSeconds-leftDuration,sourceOffsetSeconds:clip.dataset.reverse==='true'?offset:offset+leftDuration*Number(clip.dataset.playbackRate||1),reverse:clip.dataset.reverse==='true',sourceDurationSeconds:Number(clip.dataset.sourceDurationSeconds)||undefined,playbackRate:Number(clip.dataset.playbackRate||1),gain:Number(clip.dataset.gain??1),mute:clip.dataset.mute==='true'},timelineTime/timelineDurationSeconds*100);
-        const crop=clipCropFrames(clip);right.dataset.panCrop=JSON.stringify([{time:0,...LQTACWork.cropAt(crop,leftDuration)},...crop.filter(f=>f.time>leftDuration).map(f=>({...f,time:f.time-leftDuration}))]);clip.dataset.panCrop=JSON.stringify([...crop.filter(f=>f.time<leftDuration),{time:leftDuration,...LQTACWork.cropAt(crop,leftDuration)}]);
+        const right=createTimelineClip(clip.parentElement,{subtitleText:clip.dataset.subtitleText,subtitleStyle:JSON.parse(clip.dataset.subtitleStyle||'{}'),name:clip.firstChild?.textContent||'Media',kind:clip.dataset.kind,filePath:clip.dataset.filePath,generator:clip.dataset.generator?JSON.parse(clip.dataset.generator):undefined,durationSeconds:timing.durationSeconds-leftDuration,sourceOffsetSeconds:clip.dataset.reverse==='true'?offset:clipLoopSource(clip)>0?loopPhase(offset+leftDuration*Number(clip.dataset.playbackRate||1),clipLoopSource(clip)):offset+leftDuration*Number(clip.dataset.playbackRate||1),reverse:clip.dataset.reverse==='true',loop:clip.dataset.loop==='true',sourceDurationSeconds:Number(clip.dataset.sourceDurationSeconds)||undefined,playbackRate:Number(clip.dataset.playbackRate||1),gain:Number(clip.dataset.gain??1),mute:clip.dataset.mute==='true'},timelineTime/timelineDurationSeconds*100);
+        if(clip.dataset.motionPath)right.dataset.motionPath=JSON.stringify(LQTACMotion.shift(clipMotionPath(clip),leftDuration));const crop=clipCropFrames(clip);right.dataset.panCrop=JSON.stringify([{time:0,...LQTACWork.cropAt(crop,leftDuration)},...crop.filter(f=>f.time>leftDuration).map(f=>({...f,time:f.time-leftDuration}))]);clip.dataset.panCrop=JSON.stringify([...crop.filter(f=>f.time<leftDuration),{time:leftDuration,...LQTACWork.cropAt(crop,leftDuration)}]);
         right.dataset.startSeconds=String(timelineTime);right.dataset.transition=clip.dataset.transition||'fade';
         if(clip.dataset.kind==='subtitle')right.dataset.subtitleStyle=JSON.stringify(LQTACSubtitleModel.shiftedStyle(JSON.parse(clip.dataset.subtitleStyle||'{}'),leftDuration));
         for(const key of ['autoCrossfade','vegasCurves','fadeInCurve','fadeOutCurve','fadeInReciprocalCurve','fadeOutReciprocalCurve'])right.dataset[key]=clip.dataset[key];
@@ -2093,7 +2158,7 @@
         ...trackWorkState(track),karaokeSync:track.dataset.kind==='subtitle'&&track.dataset.karaokeSync?JSON.parse(track.dataset.karaokeSync):undefined,karaokeEnabled:track.dataset.kind==='subtitle'?track.dataset.karaokeEnabled==='true':undefined,vegasMix:track.dataset.vegasMix==='true',envelopeVisible:track.classList.contains('envelope-visible'),envelope:getEnvelopePoints(track).map(p=>({...p})),
         clips:timelineClips().filter(c=>c.parentElement===track).map(c=>{
           const mask=transitionMasks.get(c);
-          return {generator:c.dataset.generator?JSON.parse(c.dataset.generator):undefined,subtitleText:c.dataset.subtitleText,subtitleStyle:c.dataset.kind==='subtitle'?JSON.parse(c.dataset.subtitleStyle||'{}'):undefined,name:c.firstChild?.textContent||c.textContent,kind:c.dataset.kind||track.dataset.kind,filePath:c.dataset.filePath||'',...clipTiming(c),videoFx:clipEffectsState(c,'video'),audioFx:clipEffectsState(c,'audio'),playbackRate:Number(c.dataset.playbackRate||1),reverse:c.dataset.reverse==='true',gain:Number(c.dataset.gain??1),mute:c.dataset.mute==='true',panCrop:clipCropFrames(c),fadeInSeconds:Number(c.dataset.fadeInSeconds)||0,fadeOutSeconds:Number(c.dataset.fadeOutSeconds)||0,sourceOffsetSeconds:Number(c.dataset.sourceOffsetSeconds)||0,sourceDurationSeconds:Number(c.dataset.sourceDurationSeconds)||undefined,repeatIndex:Number(c.dataset.repeatIndex)||undefined,groupId:c.dataset.groupId||'',groupType:c.dataset.groupType||'',transition:c.dataset.transition||'fade',
+          return {generator:c.dataset.generator?JSON.parse(c.dataset.generator):undefined,subtitleText:c.dataset.subtitleText,subtitleStyle:c.dataset.kind==='subtitle'?JSON.parse(c.dataset.subtitleStyle||'{}'):undefined,name:c.firstChild?.textContent||c.textContent,kind:c.dataset.kind||track.dataset.kind,filePath:c.dataset.filePath||'',...clipTiming(c),videoFx:clipEffectsState(c,'video'),audioFx:clipEffectsState(c,'audio'),playbackRate:Number(c.dataset.playbackRate||1),reverse:c.dataset.reverse==='true',loop:c.dataset.loop==='true'||undefined,gain:Number(c.dataset.gain??1),mute:c.dataset.mute==='true',panCrop:clipCropFrames(c),motionPath:clipMotionPath(c)??undefined,fadeInSeconds:Number(c.dataset.fadeInSeconds)||0,fadeOutSeconds:Number(c.dataset.fadeOutSeconds)||0,sourceOffsetSeconds:Number(c.dataset.sourceOffsetSeconds)||0,sourceDurationSeconds:Number(c.dataset.sourceDurationSeconds)||undefined,repeatIndex:Number(c.dataset.repeatIndex)||undefined,groupId:c.dataset.groupId||'',groupType:c.dataset.groupType||'',transition:c.dataset.transition||'fade',
             autoCrossfade:c.dataset.autoCrossfade!=='false',...vegasClipState(c),fadeInReciprocalCurve:c.dataset.fadeInReciprocalCurve||'Linear',fadeOutReciprocalCurve:c.dataset.fadeOutReciprocalCurve||'Linear',mask:mask?Object.fromEntries(Object.entries(mask).filter(([key])=>!['image','filePath'].includes(key))):undefined};
         })}))
     });
@@ -2271,6 +2336,7 @@
 <script src="assets/audio-live-preview.js"></script>
 <script src="assets/audio-effect-editor.js"></script>
 <script src="assets/pan-crop-editor.js"></script>
+<script src="assets/motion-path-editor.js"></script>
 <script src="assets/karaoke-editor.js"></script>
 <script src="assets/subtitles-controls.js"></script>
 <script src="assets/karaoke-sync-model.js"></script>

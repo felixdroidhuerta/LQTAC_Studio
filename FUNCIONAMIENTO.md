@@ -1440,3 +1440,41 @@ Botones y menús que antes no hacían nada:
 - **Tercera tanda (21/11/2026):** traducidos también los mensajes que genera el programa por dentro: el informe de Voz de estudio, los errores de exportación, proyecto, paquetes, grabación e IA, los avisos de progreso y los nombres de los presets. Las ventanas nativas de Windows (abrir, guardar y avisos) salen en el idioma elegido: título, mensaje, botones y tipos de archivo.
 - **Quedan en español:** el manual PDF y los textos que lee un asistente por MCP. Algún mensaje poco habitual puede seguir en español; si ves alguno, avisa y se añade.
 - Las traducciones al chino y al japonés conviene que las revise un hablante nativo antes de publicarlas.
+
+## Trayectoria · ruta de movimiento (fases 1, 2 y 3, 22/11/2026)
+
+Un clip de vídeo o imagen (PNG/WebP con transparencia) puede recorrer una ruta en pantalla. Se marca una **zona de peso** (p. ej. la cabeza de un pájaro): ese punto va exactamente sobre la ruta y el objeto gira a su alrededor, de modo que la cabeza manda y el cuerpo la sigue.
+
+- **Ruta:** curva Bézier de 2 a 200 nodos, en coordenadas de pantalla normalizadas; puede empezar o terminar fuera de cuadro. Se recorre a **velocidad uniforme** entre `start` y `end` (segundos del clip), con suavizado opcional (Linear, Fast, Slow, Smooth, Sharp) y bucle.
+- **Orientación:** `path` gira libremente con la ruta (looping, flechas, naves); `flip` voltea en horizontal al ir hacia la izquierda, para que un animal de perfil no vaya boca abajo; `none` solo desplaza. `forward` indica hacia dónde mira el objeto en la imagen y `angleOffset` añade cabeceo.
+- **Inercia:** el cuerpo se orienta según la cuerda entre la cabeza y un punto de la ruta una «longitud de cuerpo» por detrás (`inertia` 0–1). En las curvas, el cuerpo se alinea con retraso. El cálculo es determinista, así que saltar a cualquier punto, la vista previa y la exportación dan la misma pose.
+- **Tamaño:** `scale`, y `scaleEnd` para alejarse o acercarse a lo largo de la ruta. Se dibuja después de efectos y Pan/Crop.
+- **Montaje:** se guarda en LQTS. Al dividir, recortar o repetir se conserva la pose en el mismo instante absoluto, y al estirar se escala con el clip. Como Pan/Crop, está anclada al tiempo del montaje: invertir el clip no la invierte.
+- **Editor visual:** **Herramientas › Efectos de vídeo › Trayectoria · ruta de movimiento…** o el botón **Trayectoria · ruta** junto a «Pan/Crop · editor visual», con un clip de vídeo o imagen seleccionado.
+  - El lienzo muestra el fotograma real del proyecto (con las pistas inferiores) y la ruta en borrador aplicada, igual que en la exportación. Alrededor hay una zona gris para entradas y salidas fuera de cuadro.
+  - **⊕ Zona de peso:** el objeto aparece en reposo; un clic marca el punto (p. ej. la cabeza). La flecha muestra hacia dónde mira («Mira a la derecha/izquierda» o grados).
+  - **✎ Dibujar ruta:** clic añade un nodo al final y arrastrar al crearlo saca tiradores curvos. Se arrastran nodos y tiradores (Alt rompe la simetría), Mayús + clic añade un nodo encima de otro (para cerrar un rizo), doble clic borra y Ctrl + clic sobre la línea inserta.
+  - **Ver fantasmas:** seis poses semitransparentes a lo largo de la ruta para juzgar el giro sin reproducir. ▶ reproduce el tramo y la barra recorre el clip.
+  - Tiempo (inicio, fin, «aquí», todo el clip), aceleración, bucle, orientación, inercia, cabeceo y tamaño inicial/final.
+  - **Aplicar al clip** crea un paso de deshacer; **Quitar trayectoria** la elimina; **Cancelar** no toca el proyecto.
+- **MCP:** `cinema_edit` → `updateClip.patch.motionPath` (`null` la quita).
+- **Validación:** `verify-motion-path.cjs` comprueba:
+  - Matemática: extremos en el primer y último nodo, velocidad uniforme ±3 %, pose determinista, looping de −360° exactos, retraso por inercia, modo flip, desplazamiento y estiramiento, y rechazo de datos no válidos.
+  - Marca roja en la zona de peso: en los fotogramas exportados cae sobre la ruta con un error máximo de 0,77 px.
+  - Ida y vuelta LQTS.
+  - Render real de **Lítera haciendo un looping** sobre cielo: `Pruebas\Trayectoria\litera-looping.mp4`, más una hoja de poses y el proyecto LQTS.
+  - Regresión sin fallos: verify-work, verify-stretch, verify-pan-crop-editor, verify-repeat y verify-generators-live.
+- **Validación del editor:** `verify-motion-editor.cjs` marca la cabeza de Lítera con el ratón, dibuja el looping arrastrando tiradores, inserta y borra un nodo, aplica y comprueba que la ruta guardada gira −360°. Guarda `editor-zona-de-peso.png` y `editor-ruta-looping.png` en `Pruebas\Trayectoria`. verify-i18n, verify-menus y verify-pan-crop-editor siguen pasando.
+- **GIF animado con transparencia:** se importa como un vídeo más (Archivo, Insertar vídeo, Explorador). La primera vez se convierte en local a WebM VP9 con alfa en la caché `gif-cache` del perfil (unos segundos); el proyecto guarda la ruta del .gif original. Duración, vista previa, efectos, Pan/Crop, Trayectoria y exportación funcionan igual que con un vídeo. Si el GIF dura menos que el tramo, usa «Repetir»: cada repetición conserva la trayectoria en el mismo instante.
+- **Validación del GIF:** `verify-gif-media.cjs` crea un GIF transparente de Lítera aleteando (8 fotogramas, 1 s), comprueba la conversión (alfa, 8 fotogramas, 1,00 s, reutilización de caché), que el compositor no deja caja negra sobre el cielo y que los fotogramas cambian, y renderiza `Pruebas\Trayectoria\litera-gif-looping.mp4` con su hoja de poses y el LQTS.
+- **Límites:** no se exporta a VEGAS. Invertir o estabilizar un GIF genera un MP4 sin transparencia (fondo negro).
+
+## Bucle de clip · 22/11/2026 (tanda 0.27.0)
+
+- Botón derecho sobre un clip de vídeo (MP4, WebM, GIF animado…) → **Bucle**. El clip repite su medio completo de forma continua. No aparece en imágenes fijas, títulos/generadores, subtítulos ni audio.
+- Con el bucle activo, estirar el borde derecho o izquierdo **alarga el mismo evento** en lugar de crear copias pegadas «↻ 2, ↻ 3…». El clip muestra la insignia «∞ Bucle» y una marca fina en cada punto donde el medio vuelve a empezar.
+- Ctrl+arrastre (cambio de velocidad), cortar con S, deshacer/rehacer, Propiedades, guardado LQTS y exportación respetan el bucle; el corte conserva la fase.
+- Al quitar el bucle («✓ Bucle (quitar)»), si el clip era más largo que su medio se convierte en repeticiones normales numeradas, para no perder duración.
+- Bucle e Invertir son excluyentes: hay que quitar uno para usar el otro. En un grupo vídeo+audio el bucle solo afecta al vídeo; el audio sigue usando las repeticiones clásicas.
+- MCP: `cinema_edit` admite `patch.loop`.
+- Prueba: `desktop/verify-loop.cjs` (GIF real generado con ffmpeg: menú, estirado sin copias, reloj y vista previa en bucle, fase del borde izquierdo, corte, quitar bucle → repeticiones, LQTS, validación, MCP, fotogramas idénticos por vuelta y MP4). Regresión sin fallos: verify-repeat, verify-stretch, verify-reverse, verify-project, verify-motion-path, verify-gif-media.

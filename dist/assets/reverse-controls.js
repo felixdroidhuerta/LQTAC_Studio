@@ -10,6 +10,7 @@ window.LQTACReverse=(()=>{
   async function invert(clip,wholeGroup=false){
     if(!clip?.isConnected||historyBusy||exporting||document.querySelector('dialog[open]'))return false;
     const targets=wholeGroup?groupMembers(clip):[clip],media=targets.filter(c=>c.dataset.kind!=='subtitle');if(!media.length)return false;
+    if(media.some(c=>c.dataset.loop==='true')){hideClipContextMenu();toast('Quita el bucle antes de invertir el clip');return false;}
     hideClipContextMenu();stopTimelinePlayback();historyBusy=true;updateHistoryButtons();
     const previousInert=$('.workspace').inert;$('.workspace').inert=true;
     const dialog=document.createElement('dialog');dialog.className='work-dialog';dialog.id='reverseDialog';dialog.style.width='min(460px,90vw)';dialog.innerHTML='<h2>Preparando reproducción invertida</h2><p>Se conserva el archivo original. La preparación es local.</p><progress max="1" value="0" style="width:100%"></progress><p role="status"></p><footer><button type="button">Cancelar</button></footer>';document.body.append(dialog);dialog.showModal();

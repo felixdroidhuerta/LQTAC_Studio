@@ -3,7 +3,7 @@ const io=require('./project-io.cjs');
 const generators=require('../dist/assets/generator-model.js');
 const revision=p=>crypto.createHash('sha256').update(JSON.stringify({...p,time:0,zoom:0,zoomStart:0})).digest('hex');
 const uid=prefix=>prefix+'-'+crypto.randomUUID();
-const clipKeys=new Set(['name','startSeconds','durationSeconds','sourceOffsetSeconds','playbackRate','gain','mute','fadeInSeconds','fadeOutSeconds','videoFx','audioFx','panCrop','transition','reverse','subtitleText','subtitleStyle']);
+const clipKeys=new Set(['name','startSeconds','durationSeconds','sourceOffsetSeconds','playbackRate','gain','mute','fadeInSeconds','fadeOutSeconds','videoFx','audioFx','panCrop','motionPath','transition','reverse','loop','subtitleText','subtitleStyle']);
 function describe(project){return {revision:revision(project),project,references:project.tracks.flatMap(t=>t.clips.map((c,i)=>({ref:t.id+':'+i,trackId:t.id,name:c.name,groupId:c.groupId||''})))};}
 async function edit(project,operations,probe){
  const p=structuredClone(project),refs=new Map(p.tracks.flatMap(t=>t.clips.map((c,i)=>[t.id+':'+i,c])));

@@ -50,7 +50,7 @@
       return {...c,startSeconds:Math.max(0,anchor+(c.startSeconds-anchor)*scale),durationSeconds:c.durationSeconds*scale,
         playbackRate:c.kind==='subtitle'?(c.playbackRate??1):(c.playbackRate??1)/scale,
         fadeInSeconds:(c.fadeInSeconds||0)*scale,fadeOutSeconds:(c.fadeOutSeconds||0)*scale,
-        panCrop:c.panCrop?.map(f=>({...f,time:f.time*scale})),videoFx:fx(c.videoFx),audioFx:fx(c.audioFx),subtitleStyle};
+        panCrop:c.panCrop?.map(f=>({...f,time:f.time*scale})),motionPath:c.motionPath?{...c.motionPath,start:c.motionPath.start*scale,end:c.motionPath.end*scale}:c.motionPath,videoFx:fx(c.videoFx),audioFx:fx(c.audioFx),subtitleStyle};
     })};
   }
   function repeatRanges(state,edge,delta){

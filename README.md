@@ -7,7 +7,7 @@ Editor local de vídeo y audio para Windows. Incluye separación offline de canc
 
 ## Descargar el programa
 
-Para un equipo nuevo, abre [Releases](https://github.com/felixdroidhuerta/LQTAC_Studio/releases/tag/v0.27.0-portable) y descarga **Cinema_Studio_0.27.0_Windows_x64_Portable.zip** dentro de Assets.
+Para un equipo nuevo, abre [Releases](https://github.com/felixdroidhuerta/LQTAC_Studio/releases/tag/v0.27.1-portable) y descarga **Cinema_Studio_0.27.1_Windows_x64_Portable.zip** dentro de Assets.
 
 Extrae todo el ZIP y abre **Cinema Studio.exe**. El motor y sus bibliotecas están incluidos; no requiere Node, pnpm ni Internet en el equipo destino. La carpeta Shapes junto al ejecutable contiene la máscara LQTAC de ejemplo.
 
@@ -21,7 +21,7 @@ La versión local añade pista de subtítulos editable, Whisper small multiling�
 
 ## Funciones actuales
 
-**Novedad 0.27.0 · Trayectoria, GIF animados y Bucle:**
+**Novedad 0.27.0 · Trayectoria, GIF animados y Bucle** (la 0.27.1 añade Trayectoria al panel FX, junto a Pan/Crop)**:**
 - **Trayectoria:** Herramientas › Efectos de vídeo › Trayectoria · ruta de movimiento… (o el botón **Trayectoria · ruta**). Marcas una zona de peso en el objeto (por ejemplo, la cabeza de un pájaro) y dibujas la ruta con curvas; el objeto la recorre a velocidad uniforme, gira con ella o se voltea al ir a la izquierda, y el cuerpo sigue a la cabeza con inercia. La ruta puede entrar y salir de cuadro, tiene aceleración, bucle y tamaño inicial/final, y se ve igual en la vista previa y en la exportación.
 - **GIF animados con transparencia:** se importan como cualquier vídeo y conservan el fondo transparente sobre las pistas de abajo.
 - **Bucle:** botón derecho sobre un clip de vídeo o GIF › **Bucle**. Al estirar el clip se alarga el mismo evento y el medio se repite, en lugar de crear copias pegadas. Cada vuelta queda marcada en el clip, y al quitar el bucle se convierte en repeticiones normales sin perder duración.

@@ -1,4 +1,4 @@
-# Cinema Studio by LQTAC 0.27.0 - Manual de usuario
+# Cinema Studio by LQTAC 0.27.1 - Manual de usuario
 
 Actualizado: 22 de noviembre de 2026.
 Capturas reales con medios de demostración.
@@ -465,7 +465,7 @@ Zona de peso marcada en la cabeza de Lítera; la flecha indica hacia dónde mira
 
 ### Abrir el editor
 
-Coloca el objeto en una pista por encima del fondo, selecciónalo y abre Herramientas > Efectos de vídeo > Trayectoria · ruta de movimiento… o el botón Trayectoria · ruta, junto a Pan/Crop. El lienzo muestra el fotograma real del proyecto.
+Coloca el objeto en una pista por encima del fondo, selecciónalo y abre Herramientas > Efectos de vídeo > Trayectoria · ruta de movimiento… o la casilla Trayectoria · ruta de movimiento del panel FX (sección Vídeo), junto a Pan/Crop. El lienzo muestra el fotograma real del proyecto.
 
 ### 1. Marcar la zona de peso
 

@@ -50,6 +50,7 @@ $$('.dock-panel-item').filter(b=>b!==subtitleDock).forEach(b=>b.addEventListener
 const subtitleToolbar=document.createElement('button');subtitleToolbar.type='button';subtitleToolbar.className='timeline-tool';subtitleToolbar.textContent='＋ Subtítulo';subtitleToolbar.onclick=addManualSubtitle;$('#addTrackButton').after(subtitleToolbar);
 // Put visual tools together; keep the inspector for properties, not duplicate FX editors.
 visualCropButton.dataset.fxKind='video';visualCropButton.dataset.fxKey='panCrop';$('#effectsCatalog .fx-grid').prepend(visualCropButton);
+{const motionButton=$('#openMotionPath');if(motionButton){motionButton.dataset.fxKind='video';motionButton.dataset.fxKey='motionPath';motionButton.textContent='Trayectoria · ruta de movimiento';visualCropButton.after(motionButton);}}
 effectsButton.textContent='Ajustes generales de FX del clip';effectsPanel.insertBefore(effectsButton,$('#effectsCatalog'));
 $('#openEventWork').textContent='Propiedades del evento';const propertyIntro=$('p',transformCard);propertyIntro.textContent='Nombre, silencio, volumen/opacidad y velocidad. Pan/Crop y filtros están en FX.';
 $('#openEventWork').onclick=()=>{const clip=selectedTimelineClip;if(!clip?.isConnected){toast('Selecciona un evento');return;}if(clip.dataset.kind==='subtitle'){openSubtitleEditor(clip);return;}openWorkControls(clip.parentElement,clip);const legacy=$('fieldset',workDialog);if(legacy)legacy.hidden=true;};

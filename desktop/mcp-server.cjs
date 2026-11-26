@@ -27,7 +27,7 @@ async function handle(message){
  if(message.method==='resources/templates/list')return reply({resourceTemplates:[]});
  if(message.method==='prompts/list')return reply({prompts:[]});
  if(message.method==='tools/call'){
-  try{const {name,arguments:args={}}=message.params||{},spec=tools.find(t=>t.name===name);if(!spec)throw Error('Herramienta no admitida');validate(spec.inputSchema,args);const result=await bridge(name,args);return reply(result?.content?result:{content:[{type:'text',text:JSON.stringify(result)}]});}
+  try{const {name,arguments:args={}}=message.params||{},spec=tools.find(t=>t.name===name);if(!spec)throw Error('Herramienta no admitida');validate(spec.inputSchema,args);if(name==='cinema_guide')return reply({content:[{type:'text',text:require('./mcp-guide.cjs').guide(args.topic||'inicio')}]});const result=await bridge(name,args);return reply(result?.content?result:{content:[{type:'text',text:JSON.stringify(result)}]});}
   catch(e){return reply({isError:true,content:[{type:'text',text:e.message}]});}
  }
  return error(-32601,'Method not found');

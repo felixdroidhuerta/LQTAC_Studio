@@ -32,7 +32,20 @@ function createBridge({directory,getWindow,isBusy=()=>false,setProjectPath=()=>{
  }
  async function call(name,a){
   const spec=tools.find(t=>t.name===name);if(!spec)throw Error('Herramienta no admitida');validate(spec.inputSchema,a);
-  if(name==='cinema_status'){const editor=await evaluate('status');if(job?.state==='running'&&job.kind==='render')job.progress=editor.renderProgress;return {enabled,version:require('./branding.cjs').version(),job,editor,recordingAllowed,recording:await evaluate('recordStatus')};}
+  if(name==='cinema_guide')return {content:[{type:'text',text:require('./mcp-guide.cjs').guide(a.topic||'inicio')}]};
+  if(name==='cinema_status'){const editor=await evaluate('status');if(job?.state==='running'&&job.kind==='render')job.progress=editor.renderProgress;
+   // Word lists can be long: the status reports how many; cinema_transcript returns them.
+   const shown=job?.result?.words?{...job,result:{...job.result,words:undefined,wordCount:job.result.words.length,note:'Palabras con tiempos: cinema_transcript'}}:job;
+   return {enabled,version:require('./branding.cjs').version(),job:shown,editor,recordingAllowed,recording:await evaluate('recordStatus')};}
+  if(name==='cinema_transcript'){
+   if(job?.kind!=='subtitles'||job.state!=='completed')throw Error('No hay una transcripción terminada. Usa cinema_transcribe y espera a que cinema_status indique completed');
+   const r=job.result,from=a.from??-Infinity,to=a.to??Infinity,inside=x=>x.startSeconds+x.durationSeconds>from&&x.startSeconds<to;
+   const fold=s=>String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^\p{L}\p{N}\s]/gu,' ').replace(/\s+/g,' ').trim();
+   const words=(r.words||[]).filter(inside),cues=r.cues.filter(inside).map(c=>({text:c.subtitleText,startSeconds:c.startSeconds,durationSeconds:c.durationSeconds}));
+   let matches;if(a.query){const q=fold(a.query).split(' ').filter(Boolean),all=r.words||[],norm=all.map(w=>fold(w.text));matches=[];
+    for(let i=0;i+q.length<=all.length;i++)if(q.every((p,k)=>norm[i+k]===p||k===q.length-1&&norm[i+k].startsWith(p))){const last=all[i+q.length-1];if(inside(all[i]))matches.push({text:all.slice(i,i+q.length).map(w=>w.text).join(' '),startSeconds:all[i].startSeconds,endSeconds:+(last.startSeconds+last.durationSeconds).toFixed(3)});}}
+   return {engine:r.engine,wordTiming:r.wordTiming||'estimated',cues,words,...(matches?{matches}:{})};
+  }
   // Interface access: works with dialogs open, so it does not require an idle editor.
   if(name==='cinema_ui_snapshot')return evaluate('uiSnapshot',a);
   if(name==='cinema_ui_screenshot'){

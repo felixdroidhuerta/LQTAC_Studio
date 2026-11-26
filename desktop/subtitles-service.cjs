@@ -7,6 +7,26 @@ function status(){const exe=path.join(__dirname,'speech','bin','Release','whispe
   return {...cpp,ready:cpp.ready||faster.ready,name:faster.name,defaultEngine:'faster-int8',engines:[faster,cpp]};}
 function cancel(){if(current){current.cancelled=true;current.child?.kill();current.render?.cancel();require('./effects-audio.cjs').cancel();}}
 function run(job,exe,args,progress,jsonProgress=false){return new Promise((resolve,reject)=>{if(job.cancelled)return reject(Error('Transcripción cancelada'));const child=spawn(exe,args,{windowsHide:true,cwd:path.dirname(exe)});job.child=child;let pending='';child.stdout.on('data',d=>{if(!jsonProgress)return;pending=(pending+d.toString()).slice(-65536);const lines=pending.split('\n');pending=lines.pop();for(const line of lines)try{const p=JSON.parse(line);if(typeof p.stage==='string'&&Number.isFinite(p.progress))progress({stage:p.stage,progress:Math.max(0,Math.min(1,p.progress))});}catch{}});let error='';child.stderr.on('data',d=>{error=(error+d).slice(-6000);const p=String(d).match(/progress\s*=\s*(\d+)/);if(p)progress({stage:'Reconociendo voz',progress:Number(p[1])/100});});child.on('error',reject);child.on('close',code=>{job.child=null;code===0&&!job.cancelled?resolve():reject(Error(job.cancelled?'Transcripción cancelada':error||'No se pudo ejecutar el motor local'));});});}
+// Word timing for syncing graphics with speech. Whisper.cpp full JSON (-ojf) lists tokens with millisecond offsets: a token
+// starting with a space opens a new word, others (sub-words, punctuation) extend the current one; [_…_] are control tokens.
+function wordsFromWhisper(json,origin=0,end=Infinity){
+  const words=[];
+  for(const seg of Array.isArray(json?.transcription)?json.transcription:[])for(const t of Array.isArray(seg.tokens)?seg.tokens:[]){
+    const text=typeof t.text==='string'?t.text:'';if(!text||/^\[_/.test(text)||text.includes('�'))continue;
+    const from=Number(t.offsets?.from)/1000,to=Number(t.offsets?.to)/1000;if(!Number.isFinite(from)||!Number.isFinite(to))continue;
+    const last=words.at(-1);
+    if(/^\s/.test(text)||!last)words.push({text:text.trim(),start:from,end:Math.max(from,to)});
+    else{last.text+=text;last.end=Math.max(last.end,to);}
+  }
+  return words.filter(w=>w.text).map(w=>({text:w.text,startSeconds:+(w.start+origin).toFixed(3),durationSeconds:+Math.max(.02,Math.min(w.end,end-origin)-w.start).toFixed(3)})).filter(w=>w.startSeconds<end);
+}
+// Faster Whisper only gives cues: spread each cue over its words in proportion to their length (approximate).
+function wordsFromCues(cues){
+  const words=[];
+  for(const c of cues){const parts=String(c.subtitleText||'').replace(/\s+/g,' ').trim().split(' ').filter(Boolean),total=parts.reduce((n,w)=>n+w.length+1,0);let at=c.startSeconds;
+    for(const w of parts){const d=c.durationSeconds*(w.length+1)/total;words.push({text:w,startSeconds:+at.toFixed(3),durationSeconds:+d.toFixed(3)});at+=d;}}
+  return words;
+}
 function at(points,t){if(!points.length)return 1;if(t<=points[0].time)return points[0].value;for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i];if(t<=b.time)return a.value+(b.value-a.value)*(t-a.time)/(b.time-a.time);}return points.at(-1).value;}
 async function transcribe(options,progress=()=>{}){
   if(current)throw Error('Ya hay una transcripción en curso');const id=options.engine??'faster-int8',runtime=status().engines.find(e=>e.id===id);if(!runtime)throw Error('Motor de subtítulos no válido');if(!runtime.ready)throw Error('Faltan el motor o el modelo de '+runtime.name+'. Prepara el motor local o selecciona el otro motor. No se descarga nada automáticamente.');
@@ -19,8 +39,11 @@ async function transcribe(options,progress=()=>{}){
     await run(job,engine.ffmpegPath(),['-v','error','-y','-i',path.join(temp,'mix.wav'),'-ar','16000','-ac','1','-c:a','pcm_s16le',path.join(temp,'voice.wav')],progress);
     progress({stage:'Cargando '+runtime.name,progress:0});const relative=p=>path.relative(path.dirname(runtime.exe),p),threads=String(Math.max(1,Math.min(8,os.availableParallelism?.()||4)));
     if(id==='faster-int8')await run(job,runtime.exe,['--model',relative(runtime.model),'--input',relative(path.join(temp,'voice.wav')),'--output',relative(path.join(temp,'result.srt')),'--language',options.language,'--threads',threads],progress,true);
-    else await run(job,runtime.exe,['-m',relative(runtime.model),'-f',relative(path.join(temp,'voice.wav')),'-l',options.language,'-t',threads,'-ng','-osrt','-of',relative(path.join(temp,'result')),'-pp','-ml','80','-sow'],progress);
-    const text=await fs.readFile(path.join(temp,'result.srt'),'utf8');if(!text.trim())return {cues:[],origin,engine:id};const cues=parse(text).map(c=>({...c,startSeconds:c.startSeconds+origin,durationSeconds:Math.min(c.durationSeconds,end-origin-(c.startSeconds))})).filter(c=>c.durationSeconds>0);return {cues,origin,engine:id};
+    else await run(job,runtime.exe,['-m',relative(runtime.model),'-f',relative(path.join(temp,'voice.wav')),'-l',options.language,'-t',threads,'-ng','-osrt','-ojf','-of',relative(path.join(temp,'result')),'-pp','-ml','80','-sow'],progress);
+    const text=await fs.readFile(path.join(temp,'result.srt'),'utf8');if(!text.trim())return {cues:[],words:[],wordTiming:'none',origin,engine:id};const cues=parse(text).map(c=>({...c,startSeconds:c.startSeconds+origin,durationSeconds:Math.min(c.durationSeconds,end-origin-(c.startSeconds))})).filter(c=>c.durationSeconds>0);
+    // Words with their own times (exact with Whisper.cpp, estimated with Faster Whisper).
+    let words=null;if(id==='whisper-cpp')try{words=wordsFromWhisper(JSON.parse(await fs.readFile(path.join(temp,'result.json'),'utf8')),origin,end);}catch{}
+    return {cues,words:words?.length?words:wordsFromCues(cues),wordTiming:words?.length?'exact':'estimated',origin,engine:id};
   }catch(error){if(job.cancelled)throw Error('Transcripción cancelada');throw error;}finally{current=null;if(temp)await fs.rm(temp,{recursive:true,force:true}).catch(()=>{});}
 }
-module.exports={status,cancel,transcribe};
+module.exports={status,cancel,transcribe,wordsFromWhisper,wordsFromCues};

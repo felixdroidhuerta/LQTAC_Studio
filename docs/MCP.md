@@ -38,7 +38,9 @@ En este equipo se registra además el servidor `cinema-studio` en la configuraci
 | `cinema_effects` | Parámetros, rangos y transiciones disponibles |
 | `cinema_subtitle_import` | SRT a una nueva pista de subtítulos |
 | `cinema_transcribe` | Transcripción offline de una pista de audio |
+| `cinema_transcript` | Frases y palabras con sus tiempos de la última transcripción; búsqueda de dónde se dice algo (0.28) |
 | `cinema_apply_subtitles` | Insertar el resultado terminado de la transcripción |
+| `cinema_guide` | Manual para asistentes: diagramas, esquema de rótulos, composición, sincronía (0.28; funciona sin abrir el programa) |
 | `cinema_ui_snapshot` | Interfaz visible: diálogos abiertos y su estado, controles con `ref`, valor y opciones, y todos los comandos de menú (con su ruta y si están disponibles) |
 | `cinema_ui_action` | Usar cualquier función: `command`, `click`, `set`, `contextmenu`, `select`, `key`, `close`, `menus`; contesta selectores nativos (`files`), cuadros de mensaje (`dialogButton`) y confirmaciones (`accept`) |
 | `cinema_ui_screenshot` | PNG de la ventana de Cinema Studio |
@@ -107,6 +109,12 @@ Los FX se asignan con `updateClip`, por ejemplo `patch.videoFx={"enabled":true,"
 
 **Trayectoria (0.27):** un clip de vídeo, imagen o GIF puede seguir una ruta con `updateClip` → `patch.motionPath` (`null` la quita). Ejemplo: `{"anchor":{"x":0.62,"y":0.38},"nodes":[{"x":-0.1,"y":0.7,"out":{"x":0.2,"y":0.7}},{"x":0.5,"y":0.3,"in":{"x":0.3,"y":0.3},"out":{"x":0.7,"y":0.3}},{"x":1.1,"y":0.6}],"start":0,"end":6,"orient":"path","inertia":0.4,"scale":0.3}`. `anchor` es la zona de peso en coordenadas 0–1 de la capa (el punto que va sobre la ruta y sobre el que gira); `nodes` son de 2 a 200 puntos Bézier en coordenadas de pantalla (de −2 a 3, fuera de cuadro permitido) con tiradores `in`/`out` absolutos; `start`/`end` en segundos locales del clip; `easing` Linear, Fast, Slow, Smooth o Sharp; `orient` path (gira con la ruta), flip (voltea al ir a la izquierda) o none; `forward` (°, hacia dónde mira la imagen), `angleOffset` (°), `inertia` 0–1, `scale` y `scaleEnd` 0,01–10, `loop`. Se recorre a velocidad uniforme y la pose es determinista. Los GIF animados se importan como vídeo y se convierten en local a WebM con transparencia.
 
+**Diagramas animados (0.28):** `cinema_edit` → `{"op":"title","trackId":"G","start":12.4,"generator":{…}}` inserta un rótulo completo con el mismo JSON del editor de títulos y de los paquetes. Novedades del JSON: `canvas` (`{"width":1080,"height":1920}` para vídeo vertical; sin él, 1920×1080), objetos `path` (trazo SVG `M L H V C Q Z` en coordenadas locales, colocado con `left`/`top`), `arrow` (`none`, `start`, `end`, `both`) en `line` y `path`, y `count` en textos (`{"from":0,"to":382781,"duration":1.5,"delay":0.5}` con `{n}` en el texto; se muestra 382.781). Cada objeto entra con su `anim.in.delay`, así un diagrama se construye paso a paso; el efecto `draw` dibuja contornos y flechas. El esquema completo y las recetas están en `cinema_guide` (temas `rotulos`, `diagramas`, `composicion`, `sincronia`).
+
+**Sincronía con la voz (0.28):** `cinema_transcribe` con `engine:"whisper-cpp"` devuelve también el tiempo de cada palabra (`wordTiming:"exact"`; con `faster-int8` se estiman a partir de las frases). `cinema_transcript` las devuelve filtradas por `from`/`to`, y con `query` indica dónde se dice una palabra o frase (sin distinguir mayúsculas ni acentos): `{"query":"shaders de la consola"}` → `matches:[{"text":"shaders de la consola","startSeconds":41.2,"endSeconds":42.3}]`. `cinema_status` solo informa del número de palabras.
+
+**Pantalla dividida y capturas:** se hacen con `panCrop` (zona visible de la fuente: centro `x`,`y` y fracción `width`,`height`) y una Trayectoria fija de dos nodos iguales (`orient:"none"`, `inertia:0`), que coloca la capa en un punto con una escala (`scale` → `scaleEnd` para un acercamiento lento). Recetas en `cinema_guide` tema `composicion`.
+
 Antes de sustituir un montaje con `cinema_new` o `cinema_open`, guarda el LQTS o autoriza `discardCurrent:true`. Un destino existente requiere `overwrite:true`. Solo se admiten rutas absolutas.
 
 Render y transcripción devuelven un trabajo. Consulta `cinema_status` hasta `completed`, `failed` o `cancelled`. El render usa el mismo compositor del monitor, con audio, textos y FX. La transcripción no inserta automáticamente el resultado: lee la nueva revisión y llama a `cinema_apply_subtitles` para elegir cuándo incorporarlo. La fuente es una pista de audio, incluida la pista asociada a un vídeo.
@@ -114,7 +122,7 @@ Render y transcripción devuelven un trabajo. Consulta `cinema_status` hasta `co
 ## Arquitectura y límites
 
 - `desktop/mcp-server.cjs`: JSON-RPC MCP sobre stdio, sin dependencias externas; negociación 2025-11-25, 2025-06-18, 2025-03-26 y 2024-11-05. No anuncia protocolos posteriores.
-- `desktop/mcp-tools.cjs`: contrato y validación de las 23 herramientas.
+- `desktop/mcp-tools.cjs`: contrato y validación de las 25 herramientas; `desktop/mcp-guide.cjs`: manual para asistentes (`cinema_guide`), con las listas de valores sacadas de los modelos.
 - `desktop/mcp-clients.cjs`: configuración generada para Claude Code, Claude Desktop/.mcp.json, Codex y JSON genérico.
 - `dist/assets/automation-ui.js`: acceso a la interfaz (snapshot, acciones, confirmaciones del editor). Excluye grabadores (`[data-capture]`, `#cameraDialog`, `#microphoneDialog`) y el panel MCP.
 - `desktop/main.cjs`: respuestas de un solo uso para selectores nativos y cuadros de mensaje (60 s, nunca permisos), autorización del destino de grabación y listado/miniaturas de fuentes.

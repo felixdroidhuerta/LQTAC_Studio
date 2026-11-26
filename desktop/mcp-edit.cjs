@@ -32,7 +32,11 @@ async function edit(project,operations,probe){
   else if(o.op==='updateTrack'){const patch=o.patch||{};if(Object.keys(patch).some(k=>!['name','gain','pan','mute','solo'].includes(k)))throw Error('Propiedad de pista no admitida');Object.assign(track(o.trackId),patch);}
   else if(o.op==='envelope'){const t=track(o.trackId);if(t.kind==='subtitle')throw Error('Subtítulos sin envolvente');t.envelope=o.points||[];t.envelopeVisible=true;}
   else if(o.op==='subtitle'){const t=track(o.trackId);if(t.kind!=='subtitle')throw Error('Selecciona una pista de subtítulos');t.clips.push({kind:'subtitle',filePath:'',name:o.text,subtitleText:o.text,subtitleStyle:o.style||{},startSeconds:o.start??0,durationSeconds:o.duration??3});}
-  else if(o.op==='title'){const t=track(o.trackId);if(t.kind!=='video')throw Error('Los títulos requieren una pista de vídeo');const g=generators.create(o.titleType||'title');g.duration=o.duration??5;const texts=g.objects?.filter(x=>x.type==='textbox');if(texts?.length){texts[0].text=o.text||'Título';for(const extra of texts.slice(1))extra.text='';}t.clips.push({kind:'video',filePath:'',name:o.text||'Título',generator:g,startSeconds:o.start??0,durationSeconds:g.duration,sourceOffsetSeconds:0});p.library.push({name:o.text||'Título',kind:'video',filePath:'',generator:g});}
+  else if(o.op==='title'){const t=track(o.trackId);if(t.kind!=='video')throw Error('Los títulos requieren una pista de vídeo');
+   // generator: complete title design (objects, per-object animation, canvas size…) as in the title editor; otherwise a plain template with text.
+   let g,name;if(o.generator!==undefined){g=structuredClone(o.generator);if(o.duration!==undefined)g.duration=o.duration;try{generators.validate(g);}catch(e){throw Error('Rótulo no válido: '+e.message);}name=o.text||g.name;}
+   else{g=generators.create(o.titleType||'title');g.duration=o.duration??5;const texts=g.objects?.filter(x=>x.type==='textbox');if(texts?.length){texts[0].text=o.text||'Título';for(const extra of texts.slice(1))extra.text='';}name=o.text||'Título';}
+   t.clips.push({kind:'video',filePath:'',name,generator:g,startSeconds:o.start??0,durationSeconds:g.duration,sourceOffsetSeconds:0});p.library.push({name,kind:'video',filePath:'',generator:g});}
   else if(o.op==='group'){const id=uid('group');for(const ref of o.refs||[])Object.assign(clip(ref),{groupId:id,groupType:'custom'});}
   else if(o.op==='ungroup'){for(const c of group(clip(o.ref),true)){c.groupId='';c.groupType='';}}
  }

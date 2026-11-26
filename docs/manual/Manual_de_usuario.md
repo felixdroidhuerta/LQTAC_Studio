@@ -1,4 +1,4 @@
-# Cinema Studio by LQTAC 0.27.1 - Manual de usuario
+# Cinema Studio by LQTAC 0.28.0 - Manual de usuario
 
 Actualizado: 22 de noviembre de 2026.
 Capturas reales con medios de demostración.
@@ -574,6 +574,30 @@ Además de texto y rectángulo puedes añadir elipses y líneas; «Sin relleno»
 ### Mismo resultado al exportar
 
 El orden de las capas se guarda en el título, en Project Media y en el proyecto, y es el mismo en la vista previa y en el render.
+
+## Diagramas animados y vídeo vertical
+
+Novedad de la 0.28. El editor de títulos puede trabajar en vertical y dibujar flechas, marcas y contadores que entran paso a paso, sincronizados con lo que se dice.
+
+![Captura de Diagramas animados y vídeo vertical](assets/40-diagramas.png)
+
+Un diagrama vertical que se construye solo: caja, flecha, caja, flecha curva, marca de visto, aviso y contador.
+
+### Lienzo vertical
+
+Lienzo > Tamaño del lienzo: horizontal 16:9, vertical 9:16 (1080×1920), cuadrado, 4:5 o 4:3. Un título vertical llena un vídeo vertical sin bandas.
+
+### Flechas
+
+Añadir flecha crea una flecha curva que se dibuja sola. Estilo > Punta de flecha la pone en un extremo o en los dos de cualquier línea o trazo.
+
+### Paso a paso
+
+Cada objeto entra con su retraso (Efectos): caja con Escalar, texto con Subir por palabra, flecha con Dibujar el trazo. Los contadores («modelos · 382.781») y los trazos libres los crea un asistente por MCP.
+
+### Montaje automático
+
+Por MCP, un asistente transcribe la voz con tiempos por palabra, coloca cada diagrama cuando se nombra y baja la cámara a la mitad inferior. Ver MCP.md.
 
 ## Subtítulos automáticos y edición
 

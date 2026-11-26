@@ -81,8 +81,14 @@ TEMA = dict(title='Idioma y tema', section='AJUSTES', lead='Cinema Studio puede 
 ('Idioma', 'Opciones > Preferencias > Apariencia > Idioma: español, inglés, francés, chino simplificado o japonés. La etiqueta también dice «Language». Se traducen menús, editores y mensajes; los nombres de clips y pistas, los subtítulos y las notas se quedan como los escribiste. Este manual y los textos para asistentes MCP están en español.'),
 ('Tema', 'Ver > Apariencia u Opciones > Preferencias > Apariencia > Tema: Oscuro (por defecto) o Claro. Se recuerda en este equipo.')])
 
+DIAGRAMAS = dict(title='Diagramas animados y vídeo vertical', section='TEXTO', lead='Novedad de la 0.28. El editor de títulos puede trabajar en vertical y dibujar flechas, marcas y contadores que entran paso a paso, sincronizados con lo que se dice.', image='40-diagramas.png', caption='Un diagrama vertical que se construye solo: caja, flecha, caja, flecha curva, marca de visto, aviso y contador.', blocks=[
+('Lienzo vertical', 'Lienzo > Tamaño del lienzo: horizontal 16:9, vertical 9:16 (1080×1920), cuadrado, 4:5 o 4:3. Un título vertical llena un vídeo vertical sin bandas.'),
+('Flechas', 'Añadir flecha crea una flecha curva que se dibuja sola. Estilo > Punta de flecha la pone en un extremo o en los dos de cualquier línea o trazo.'),
+('Paso a paso', 'Cada objeto entra con su retraso (Efectos): caja con Escalar, texto con Subir por palabra, flecha con Dibujar el trazo. Los contadores («modelos · 382.781») y los trazos libres los crea un asistente por MCP.'),
+('Montaje automático', 'Por MCP, un asistente transcribe la voz con tiempos por palabra, coloca cada diagrama cuando se nombra y baja la cámara a la mitad inferior. Ver MCP.md.')])
+
 def add(pages):
     after(pages, 'FX de audio con escucha', PRESETS, ESPECIALES, SEGUIMIENTO, CROMA, AUDIO)
     after(pages, 'PAN: encuadrar y mover la cámara', TRAYECTORIA, TRAYECTORIA2)
-    after(pages, 'Animar títulos y elegir fuentes', TITULOS, CAPAS)
+    after(pages, 'Animar títulos y elegir fuentes', TITULOS, CAPAS, DIAGRAMAS)
     before(pages, 'Atajos de uso frecuente', PREFS, TEMA, PAQUETES, QBIT, MCP)
